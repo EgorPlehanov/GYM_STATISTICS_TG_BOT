@@ -10,6 +10,10 @@ from .keyboards_types import PaginationAction
 
 
 class EditTrainingExercisePagination(CallbackData, prefix='ex_pag'):
+    """
+    CallbackData для пагинации выбора упражнения
+    """
+    
     action: PaginationAction
     page: int
     exercise_id: int
@@ -22,7 +26,7 @@ def get_ikb_edit_select_exercise_fab(
     page_size: int = 5
 ) -> InlineKeyboardMarkup:
     """
-    Фабрика для создания инлайн клавиатуры для выбора упражнения из тренировки
+    Фабрика для инлайн клавиатуры для выбора упражнения из тренировки
     """
     builder = InlineKeyboardBuilder()
     
