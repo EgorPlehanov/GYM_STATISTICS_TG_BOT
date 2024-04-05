@@ -9,7 +9,6 @@ from .keyboards_types import PaginationAction
 
 
 
-
 class TrainingExercisePagination(CallbackData, prefix='ex_pag'):
     """
     CallbackData для пагинации выбора упражнения

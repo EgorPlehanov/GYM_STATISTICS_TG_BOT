@@ -58,7 +58,7 @@ async def selected_additional_weight(inline_query: InlineQuery, state: FSMContex
         Генерирует список чисел, которые содержат substring
         """
         numbers = []
-        for i in range(0, 30100, 25):
+        for i in range(0, 50100, 25):
             number = i / 100
             if str(number).find(substring) != -1:
                 numbers.append(number)
@@ -120,6 +120,7 @@ async def selected_additional_weight(message: Message, state: FSMContext):
             has_acept_addition_button = await check_acept_addition(state)
         ),
     )
+
 
 
 @router.callback_query(F.data == "to_weight", TrainingStates.select_exercise)

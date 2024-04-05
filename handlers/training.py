@@ -20,6 +20,7 @@ from handlers import (
     training_select_weight,
     training_select_repetitions,
     training_acept_addition,
+    training_finish_add_comment,
 )
 
 
@@ -31,6 +32,7 @@ router.include_routers(
     training_select_weight.router,
     training_select_repetitions.router,
     training_acept_addition.router,
+    training_finish_add_comment.router,
 )
 
 
@@ -56,6 +58,7 @@ async def cmd_training(message: Message, state: FSMContext) -> None:
 @router.callback_query(F.data == 'to_menu', TrainingStates.select_date)
 @router.callback_query(F.data == 'to_menu', TrainingStates.select_exercise)
 @router.callback_query(F.data == 'to_menu', TrainingStates.select_weight)
+@router.callback_query(F.data == 'to_menu', TrainingStates.add_comment)
 async def back_to_menu(callback: CallbackQuery, state: FSMContext):
     """
     Инлайн кнопка "Назад" возврат в меню
@@ -86,8 +89,6 @@ async def cancel_trainings(callback: CallbackQuery, state: FSMContext):
     """
     await state.clear()
     await callback.message.delete()
-
-
 
 
 
@@ -176,13 +177,3 @@ async def cancel_trainings(callback: CallbackQuery, state: FSMContext):
 #     )
 
 
-# @router.callback_query(
-#     F.data == 'finish_training',
-#     TrainingStates.finish
-# )
-# async def finish_training(callback: CallbackQuery, state: FSMContext):
-#     """
-#     Инлайн кнопка "Завершить тренировку"
-#     """
-#     await state.clear()
-#     await callback.message.delete()

@@ -13,3 +13,4 @@ from .ikb_edit_select_exercise import (
     EditTrainingExercisePagination,
 )
 from .ikb_acept_addition import get_ikb_acept_addition
+from .ikb_finish_add_comment import ikb_finish_add_comment
