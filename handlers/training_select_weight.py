@@ -4,12 +4,14 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineQuery, CallbackQuery
 
 from typing import List, Dict, Union
+import re
 
 from .training_states import TrainingStates
 from utils.check_acept_addition import check_acept_addition
 from utils.format_exercise_data import get_formatted_state_date
 from keyboards import (
     get_ikb_open_inline_search,
+    get_ikb_acept_addition,
 )
 
 
@@ -119,6 +121,33 @@ async def selected_additional_weight(message: Message, state: FSMContext):
             back_button_callback_data="to_weight",
             has_acept_addition_button = await check_acept_addition(state)
         ),
+    )
+
+
+
+@router.message(F.text.regexp(r'^\d+([.,]?\d+)?\s*[xXхХ]\s*\d+$'), TrainingStates.select_weight)
+@router.message(F.text.regexp(r'^\d+([.,]?\d+)?\s*[xXхХ]\s*\d+$'), TrainingStates.select_repetitions)
+@router.message(F.text.regexp(r'^\d+([.,]?\d+)?\s*[xXхХ]\s*\d+$'), TrainingStates.acept_addition)
+async def read_weight_and_repetitions(message: Message, state: FSMContext):
+    """
+    Обработка ввода веса и повторений
+    """
+    weight, repetitions = re.split(r'\s*[xXхХ]\s*', message.text)
+    weight = float(weight.replace(',', '.'))
+    repetitions = int(repetitions)
+
+    await state.set_state(TrainingStates.acept_addition)
+
+    await state.update_data(weight=weight, repetitions=repetitions)
+    await message.delete()
+
+    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+
+    await message.bot.edit_message_text(
+        chat_id=message.chat.id,
+        message_id=user_data.get('message_id'),
+        text=await get_formatted_state_date(state),
+        reply_markup=get_ikb_acept_addition(user_data.get('mode'))
     )
 
 
