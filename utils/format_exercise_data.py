@@ -15,10 +15,10 @@ def format_exercise_data(exercise_data: Dict[str, Union[int, Dict]]):
         text_parts.append(f"◼️ {exercise['exercise_name']}:")
 
         for set_number, set_data in exercise['sets'].items():
-            weight_str = '___.__' if set_data['weight'] is None else f"{set_data['weight']:.2f}"
+            weight_str = '___.__' if set_data['weight'] is None else str(set_data['weight']).rstrip('0').rstrip(".")
             repetitions_str = '___' if set_data['repetitions'] is None else f"{set_data['repetitions']}" 
             time_str = '__:__' if set_data['time'] is None else set_data['time'].strftime('%H:%M')
-            text_parts.append(f"▫️ {time_str} - {set_data['set_number']}) {weight_str} x {repetitions_str}")
+            text_parts.append(f"▫️ {set_data['set_number']}) {time_str} - {weight_str} x {repetitions_str}")
 
     return "\n".join(text_parts)
 
@@ -35,17 +35,26 @@ def result_format_exercise_data(exercise_data: Dict[str, Union[int, Dict]]):
 
         sets = []
         factor = 0
-        cur_weight = ""
-        cur_repetitions = ""
+        cur_weight = None
+        cur_repetitions = None
+
         for set_number, set_data in exercise['sets'].items():
-            factor += 1
-            weight = f"{set_data['weight']}"
-            repetitions = f"{set_data['repetitions']}"
+            weight = str(set_data['weight']).rstrip('0').rstrip(".")
+            repetitions = set_data['repetitions']
+
+            if cur_weight is None and cur_repetitions is None:
+                cur_weight = weight
+                cur_repetitions = repetitions
+
             if cur_weight != weight or cur_repetitions != repetitions:
-                sets.append(f"{weight}x{repetitions}" + (f"x{factor}" if factor > 1 else ""))
+                sets.append(f"{cur_weight}x{cur_repetitions}" + (f"x{factor}" if factor > 1 else ""))
                 factor = 0
                 cur_weight = weight
                 cur_repetitions = repetitions
+
+            factor += 1
+        else:
+            sets.append(f"{cur_weight}x{cur_repetitions}" + (f"x{factor}" if factor > 1 else ""))
         
         text_parts.append("▫️ " + ", ".join(sets))
 
