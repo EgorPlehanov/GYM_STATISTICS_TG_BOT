@@ -21,7 +21,7 @@ router = Router()
 
 
 @router.inline_query(TrainingStates.select_repetitions)
-async def selected_additional_weight(inline_query: InlineQuery, state: FSMContext):
+async def inline_repetitions(inline_query: InlineQuery, state: FSMContext):
     """
     Инлайн выбор кол-ва повторений: возвращает список значений
     """
@@ -64,11 +64,9 @@ async def selected_additional_weight(inline_query: InlineQuery, state: FSMContex
 
 
 
-@router.message(
-    F.via_bot,
-    TrainingStates.select_repetitions
-)
-async def selected_additional_weight(message: Message, state: FSMContext):
+@router.message(F.via_bot, TrainingStates.select_repetitions)
+@router.message(F.text.regexp(r'^\d+$'), TrainingStates.select_repetitions)
+async def selected_repetitions(message: Message, state: FSMContext):
     """
     Инлайн выбор доп. веса: обработка выбранного значения
     """

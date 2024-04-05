@@ -49,7 +49,7 @@ async def add_set_handler(callback: CallbackQuery, state: FSMContext):
 
 
 @router.inline_query(TrainingStates.select_weight)
-async def selected_additional_weight(inline_query: InlineQuery, state: FSMContext):
+async def inline_additional_weight(inline_query: InlineQuery, state: FSMContext):
     """
     Инлайн выбор доп. веса: возвращает список значений
     """
@@ -94,17 +94,17 @@ async def selected_additional_weight(inline_query: InlineQuery, state: FSMContex
 
 
 
-@router.message(
-    F.via_bot,
-    TrainingStates.select_weight
-)
+@router.message(F.via_bot, TrainingStates.select_weight)
+@router.message(F.text.regexp(r'^\d+([.,]?\d+)?$'), TrainingStates.select_weight)
 async def selected_additional_weight(message: Message, state: FSMContext):
     """
     Инлайн выбор доп. веса: обработка выбранного значения
     """
-    await state.set_state(TrainingStates.select_repetitions)
+    weight = float(message.text.replace(',', '.'))
 
-    await state.update_data(weight=float(message.text))
+    await state.set_state(TrainingStates.select_repetitions)
+    
+    await state.update_data(weight=weight)
     await message.delete()
 
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
