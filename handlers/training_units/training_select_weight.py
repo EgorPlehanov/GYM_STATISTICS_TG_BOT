@@ -15,7 +15,7 @@ from .training_types import (
 )
 from utils.check_acept_addition import check_acept_addition
 from utils.format_exercise_data import get_formatted_state_date
-from keyboards import (
+from keyboards.training_kb import (
     get_ikb_open_inline_search,
     get_ikb_acept_addition,
 )

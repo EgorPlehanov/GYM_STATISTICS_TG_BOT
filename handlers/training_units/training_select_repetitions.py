@@ -8,7 +8,7 @@ from typing import List, Dict, Union
 from .training_types import TrainingStates, TrainingMode, acept_button_by_mode
 from utils.format_exercise_data import get_formatted_state_date
 from utils.check_acept_addition import check_acept_addition
-from keyboards import (
+from keyboards.training_kb import (
     get_ikb_open_inline_search,
     get_ikb_acept_addition,
 )

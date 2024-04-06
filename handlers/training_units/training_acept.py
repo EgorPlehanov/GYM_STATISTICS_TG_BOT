@@ -8,7 +8,7 @@ from datetime import datetime
 from .training_types import TrainingStates
 from utils.edit_exercise_data import add_exercise, add_set, update_set
 from utils.format_exercise_data import get_formatted_state_date
-from keyboards import get_ikb_training_menu
+from keyboards.training_kb import get_ikb_training_menu
 
 
 

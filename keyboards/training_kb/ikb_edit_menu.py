@@ -1,8 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from handlers.training_types import TrainingMode, acept_button_by_mode
-
 
 
 def get_ikb_edit_menu(has_edit_exercise_button: bool = False) -> InlineKeyboardMarkup:

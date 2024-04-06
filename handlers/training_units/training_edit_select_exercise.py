@@ -6,7 +6,7 @@ from typing import Dict, Union
 
 from .training_types import TrainingStates
 from utils.format_exercise_data import get_formatted_state_date
-from keyboards import (
+from keyboards.training_kb import (
     PaginationAction,
     EditTrainingExercisePagination,
     get_ikb_edit_select_exercise_fab,

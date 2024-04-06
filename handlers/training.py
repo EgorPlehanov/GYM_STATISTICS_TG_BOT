@@ -6,39 +6,39 @@ from aiogram.filters.callback_data import CallbackQuery
 
 from typing import Dict, Union
 
-from .training_types import TrainingStates
+from .training_units import (
+    TrainingStates,
+    select_date_router,
+    select_exercise_router,
+    select_weight_router,
+    select_repetitions_router,
+    finish_add_comment_router,
+    acept_router,
+    edit_menu_router,
+    edit_select_exercise_router,
+    edit_select_set_router,
+)
 from utils.edit_exercise_data import initialize_exercise_data
 from utils.format_exercise_data import get_formatted_state_date
-from keyboards import (
+from keyboards.training_kb import (
     get_ikb_select_date,
     get_ikb_training_menu,
 )
 from db.db import get_most_frequent_exercises
-from handlers import (
-    training_acept,
-    training_select_date,
-    training_select_exercise,
-    training_select_weight,
-    training_select_repetitions,
-    training_finish_add_comment,
-    training_edit_menu,
-    training_edit_select_exercise,
-    training_edit_select_set,
-)
 
 
 
 router = Router()
 router.include_routers(
-    training_select_date.router,
-    training_select_exercise.router,
-    training_select_weight.router,
-    training_select_repetitions.router,
-    training_acept.router,
-    training_finish_add_comment.router,
-    training_edit_menu.router,
-    training_edit_select_exercise.router,
-    training_edit_select_set.router,
+    select_date_router,
+    select_exercise_router,
+    select_weight_router,
+    select_repetitions_router,
+    acept_router,
+    finish_add_comment_router,
+    edit_menu_router,
+    edit_select_exercise_router,
+    edit_select_set_router,
 )
 
 

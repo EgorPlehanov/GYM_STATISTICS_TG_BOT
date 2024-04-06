@@ -12,7 +12,7 @@ from utils.edit_exercise_data import (
     delete_all_exercise_sets,
     delete_set,
 )
-from keyboards import (
+from keyboards.training_kb import (
     get_ikb_edit_menu,
     ikb_edit_acept_delete,
 )
@@ -139,6 +139,12 @@ async def delete_exercises_sets(callback: CallbackQuery, state: FSMContext):
         delete_all_exercise_sets(user_data['exercise_data'], edit_exercise_id)
     else:
         delete_set(user_data['exercise_data'], edit_exercise_id, edit_set_id)
+
+    exercise_data = user_data.get('exercise_data')
+    cur_exercise_id = exercise_data.get('cur_exercise_id')
+    if cur_exercise_id not in exercise_data['exercises']:
+        await state.update_data(exercise_id=None)
+        await state.update_data(exercise_name=None)
 
     await state.update_data(state_before_delete=None)
     await state.update_data(reply_markup_before_delete=None)

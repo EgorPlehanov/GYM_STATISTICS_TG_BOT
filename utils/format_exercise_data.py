@@ -5,7 +5,7 @@ from typing import Dict, Union
 from datetime import datetime
 
 from .formate_set_data_text import format_set_data_to_text
-from handlers.training_types import TrainingStates, TrainingMode
+from handlers.training_units import TrainingStates, TrainingMode
 
 
 

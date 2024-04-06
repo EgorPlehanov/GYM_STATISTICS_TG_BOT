@@ -8,7 +8,7 @@ from datetime import datetime
 
 from .training_types import TrainingStates, TrainingMode
 from utils.format_exercise_data import get_formatted_state_date
-from keyboards import (
+from keyboards.training_kb import (
     get_ikb_training_menu,
     DialogCalendar,
     DialogCalendarCallback,
