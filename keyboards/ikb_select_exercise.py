@@ -32,6 +32,9 @@ def get_ikb_select_exercise_fab(
     """
     builder = InlineKeyboardBuilder()
     
+    if has_acept_addition_button:
+        builder.row(InlineKeyboardButton(text="✅ Добавить ✅", callback_data="acept_addition"))
+    
     for i in range(page * page_size, (page + 1) * page_size):
         if i >= len(exercise_data):
             break
@@ -65,10 +68,8 @@ def get_ikb_select_exercise_fab(
         )
     ] if page < math.ceil(len(exercise_data) / page_size) - 1 else []))
     builder.row(
-        *[InlineKeyboardButton(text="⬅️ Меню", callback_data="to_menu")] + ([
+        *[InlineKeyboardButton(text=f"⬅️ Меню {'' if has_next_button else '⬅️'}", callback_data="to_menu")] + ([
             InlineKeyboardButton(text="Вес ➡️", callback_data="to_weight")
         ] if has_next_button else [])
     )
-    if has_acept_addition_button:
-        builder.row(InlineKeyboardButton(text="✅ Добавить ✅", callback_data="acept_addition"))
     return builder.as_markup()

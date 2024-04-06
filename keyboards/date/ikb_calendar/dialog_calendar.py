@@ -54,8 +54,9 @@ class DialogCalendar:
                     month=-1,
                     day=-1).pack()
             ) for value in range(min_year, max_year + 1)
-        ], pagination_buttons]  # nav buttons
-
+        ], pagination_buttons,   # nav buttons
+            [InlineKeyboardButton(text="⬅️ Меню даты ⬅️", callback_data="to_date_menu")]
+        ]  
         inline_kb = InlineKeyboardMarkup(inline_keyboard=markup)
         return inline_kb
 
@@ -91,6 +92,8 @@ class DialogCalendar:
                         month=self.months.index(month) + 1, day=-1).pack()
                 ) for month in self.months[6:max_month]
             ])
+
+        markup.append([InlineKeyboardButton(text="⬅️ Меню даты ⬅️", callback_data="to_date_menu")])
         
         inline_kb = InlineKeyboardMarkup(inline_keyboard=markup)
         return inline_kb
@@ -148,6 +151,8 @@ class DialogCalendar:
             markup.append(calendar_row)
             if break_flag:
                 break
+        
+        markup.append([InlineKeyboardButton(text="⬅️ Меню даты ⬅️", callback_data="to_date_menu")])
 
         inline_kb = InlineKeyboardMarkup(inline_keyboard=markup)
         return inline_kb

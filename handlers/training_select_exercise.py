@@ -3,8 +3,13 @@ from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 
 from typing import Dict, Union
+from collections import namedtuple
 
-from .training_states import TrainingStates
+from .training_types import (
+    TrainingStates,
+    TrainingMode,
+    exercise_button_by_mode
+)
 from utils.format_exercise_data import get_formatted_state_date
 from keyboards import (
     get_ikb_select_exercise_fab,
@@ -29,7 +34,7 @@ async def add_exercise_handler(callback: CallbackQuery, state: FSMContext):
     Инлайн кнопка "Добавить упражнение"
     """
     await state.set_state(TrainingStates.select_exercise)
-    await state.update_data(mode="add_exercise")
+    await state.update_data(mode=TrainingMode.ADD_EXERCISE)
 
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
     most_frequent_exercises = user_data.get('most_frequent_exercises', [])
@@ -95,31 +100,26 @@ async def selected_exercise(
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
     most_frequent_exercises = user_data.get('most_frequent_exercises', [])
 
-    exercise_data = user_data.get('exercise_data')
     exercise_id = int(callback_data.exercise_id)
     exercise_name = get_value_by_key(exercise_id, most_frequent_exercises)
 
-    await state.update_data(exercise_data=exercise_data)
     await state.update_data(cur_exercise_name=exercise_name)
     await state.update_data(cur_exercise_id=exercise_id)
 
-    back_button_text = {
-        "add_exercise": "Упражнение",
-        "add_set": "Меню",
-    }
-    back_button_callback_data = {
-        "add_exercise": "to_exercise",
-        "add_set": "to_menu",
-    }
+    Button = namedtuple("back_button", ["text", "callback_data"])
+    
+    back_button: Button = exercise_button_by_mode.get(user_data.get('mode'))
+
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
         reply_markup = get_ikb_open_inline_search(
             entity_name = "вес",
-            back_button_text=back_button_text.get(user_data.get('mode')),
-            back_button_callback_data=back_button_callback_data.get(user_data.get('mode')),
+            back_button_text=back_button.text,
+            back_button_callback_data=back_button.callback_data,
             has_next_button=user_data.get("weight") is not None,
             next_button_text="Повторения",
             next_button_callback_data="to_repetitions",
+            has_delete_set_button = user_data.get("mode") == TrainingMode.EDIT_SET
         ),
     )
 

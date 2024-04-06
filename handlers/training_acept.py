@@ -5,12 +5,11 @@ from aiogram.fsm.context import FSMContext
 from typing import Dict, Union
 from datetime import datetime
 
-from .training_states import TrainingStates
-from utils.edit_exercise_data import add_exercise, add_set
+from .training_types import TrainingStates
+from utils.edit_exercise_data import add_exercise, add_set, update_set
 from utils.format_exercise_data import get_formatted_state_date
-from keyboards import (
-    get_ikb_training_menu
-)
+from keyboards import get_ikb_training_menu
+
 
 
 router = Router()
@@ -34,10 +33,7 @@ async def acept_addition(callback: CallbackQuery, state: FSMContext):
     exercise_name = user_data.get('cur_exercise_name')
     weight = user_data.get('weight')
     repetitions = user_data.get('repetitions')
-
-    time = None
-    if user_data.get('date').strftime('%d.%m.%Y') == datetime.now().strftime('%d.%m.%Y'):
-        time = datetime.now()
+    time = datetime.now()
     
     add_exercise(exercise_data, exercise_id, exercise_name)
     add_set(exercise_data, exercise_id, weight, repetitions, time)
@@ -53,5 +49,5 @@ async def acept_addition(callback: CallbackQuery, state: FSMContext):
     
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
-        reply_markup=get_ikb_training_menu()
+        reply_markup=get_ikb_training_menu(is_add_add_set_button=True)
     )

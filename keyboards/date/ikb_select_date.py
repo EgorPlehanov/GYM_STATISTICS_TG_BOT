@@ -11,11 +11,11 @@ def get_ikb_select_date(
     """
     builder = InlineKeyboardBuilder()
     builder.row(
-        InlineKeyboardButton(text="Сегодня", callback_data="today"),
-        InlineKeyboardButton(text="Другая дата", callback_data="other_date"),
+        InlineKeyboardButton(text="Сегодня 📅", callback_data="today"),
+        InlineKeyboardButton(text="Другая дата 🗓️", callback_data="other_date"),
     )
     if is_back_to_menu:
-        builder.row(InlineKeyboardButton(text="🔙 Назад 🔙", callback_data="to_menu"))
+        builder.row(InlineKeyboardButton(text="⬅️ Меню исправления ⬅️", callback_data="to_edit_menu"))
     else:
-        builder.row(InlineKeyboardButton(text="Отменить ❌", callback_data="cancel"))
+        builder.row(InlineKeyboardButton(text="❌ Отменить тренировку ❌", callback_data="cancel"))
     return builder.as_markup()

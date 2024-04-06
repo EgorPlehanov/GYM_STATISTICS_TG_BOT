@@ -6,7 +6,13 @@ from aiogram.types import InlineQuery, CallbackQuery
 from typing import List, Dict, Union
 import re
 
-from .training_states import TrainingStates
+from .training_types import (
+    TrainingStates,
+    TrainingMode,
+    Button,
+    weight_back_button_by_mode,
+    acept_button_by_mode
+)
 from utils.check_acept_addition import check_acept_addition
 from utils.format_exercise_data import get_formatted_state_date
 from keyboards import (
@@ -30,10 +36,9 @@ async def add_set_handler(callback: CallbackQuery, state: FSMContext):
     """
     await state.set_state(TrainingStates.select_weight)
 
+    await state.update_data(mode=TrainingMode.ADD_SET)
 
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
-    if user_data.get('mode') != 'add_exercise':
-        await state.update_data(mode='add_set')
 
     await state.update_data(cur_exercise_id=user_data.get('exercise_id'))
     await state.update_data(cur_exercise_name=user_data.get('exercise_name'))
@@ -45,6 +50,7 @@ async def add_set_handler(callback: CallbackQuery, state: FSMContext):
             has_next_button = user_data.get("weight") is not None,
             next_button_text = "Повторения",
             next_button_callback_data = "to_repetitions",
+            has_delete_set_button = False
         ),
     )
 
@@ -111,6 +117,8 @@ async def selected_additional_weight(message: Message, state: FSMContext):
 
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
 
+    acept_button = acept_button_by_mode.get(user_data.get('mode'))
+
     await message.bot.edit_message_text(
         chat_id=message.chat.id,
         message_id=user_data.get('message_id'),
@@ -119,29 +127,40 @@ async def selected_additional_weight(message: Message, state: FSMContext):
             entity_name = "повторения",
             back_button_text="Вес",
             back_button_callback_data="to_weight",
-            has_acept_addition_button = await check_acept_addition(state)
+            has_acept_button = await check_acept_addition(state),
+            acept_button_text = acept_button.text,
+            acept_button_callback_data = acept_button.callback_data,
+            has_delete_set_button = user_data.get("mode") == TrainingMode.EDIT_SET
         ),
     )
 
 
 
-@router.message(F.text.regexp(r'^\d+([.,]?\d+)?\s*[xXхХ]\s*\d+$'), TrainingStates.select_weight)
-@router.message(F.text.regexp(r'^\d+([.,]?\d+)?\s*[xXхХ]\s*\d+$'), TrainingStates.select_repetitions)
-@router.message(F.text.regexp(r'^\d+([.,]?\d+)?\s*[xXхХ]\s*\d+$'), TrainingStates.acept_addition)
+@router.message(F.text.regexp(r'^\d+([.,]?\d+)?\s*[*×xXхХ]\s*\d+$'), TrainingStates.select_weight)
+@router.message(F.text.regexp(r'^\d+([.,]?\d+)?\s*[*×xXхХ]\s*\d+$'), TrainingStates.select_repetitions)
+@router.message(F.text.regexp(r'^\d+([.,]?\d+)?\s*[*×xXхХ]\s*\d+$'), TrainingStates.acept_addition)
 async def read_weight_and_repetitions(message: Message, state: FSMContext):
     """
     Обработка ввода веса и повторений
     """
-    weight, repetitions = re.split(r'\s*[xXхХ]\s*', message.text)
+    await message.delete()
+
+    weight, repetitions = re.split(r'\s*[*×xXхХ]\s*', message.text)
     weight = float(weight.replace(',', '.'))
     repetitions = int(repetitions)
 
     await state.set_state(TrainingStates.acept_addition)
 
-    await state.update_data(weight=weight, repetitions=repetitions)
-    await message.delete()
-
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+
+    if (
+        weight == user_data.get('weight')
+        and repetitions == user_data.get('repetitions')
+        and await state.get_state == "TrainingStates.acept_addition"
+    ):
+        return
+
+    await state.update_data(weight=weight, repetitions=repetitions)
 
     await message.bot.edit_message_text(
         chat_id=message.chat.id,
@@ -163,23 +182,21 @@ async def to_weight(callback: CallbackQuery, state: FSMContext):
 
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
 
-    back_button_text = {
-        "add_exercise": "Упражнение",
-        "add_set": "Меню",
-    }
-    back_button_callback_data = {
-        "add_exercise": "to_exercise",
-        "add_set": "to_menu",
-    }
+    back_button: Button = weight_back_button_by_mode.get(user_data.get('mode'))
+    acept_button = acept_button_by_mode.get(user_data.get('mode'))
+
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
         reply_markup = get_ikb_open_inline_search(
             entity_name = "вес",
-            back_button_text=back_button_text.get(user_data.get('mode')),
-            back_button_callback_data=back_button_callback_data.get(user_data.get('mode')),
+            back_button_text=back_button.text,
+            back_button_callback_data=back_button.callback_data,
             has_next_button=user_data.get("weight") is not None,
             next_button_text="Повторения",
             next_button_callback_data="to_repetitions",
-            has_acept_addition_button = await check_acept_addition(state)
+            has_acept_button = await check_acept_addition(state),
+            acept_button_text = acept_button.text,
+            acept_button_callback_data = acept_button.callback_data,
+            has_delete_set_button = user_data.get("mode") == TrainingMode.EDIT_SET
         ),
     )

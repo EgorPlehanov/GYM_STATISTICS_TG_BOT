@@ -1,18 +1,21 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from handlers.training_types import TrainingMode, acept_button_by_mode
 
 
 def get_ikb_acept_addition(
-    mode: str = "add_exercise",
+    mode: TrainingMode = TrainingMode.ADD_EXERCISE,
 ) -> InlineKeyboardMarkup:
     """
     Фабрика инлайн клавиатуры подтверждения добавления упражнения/подхода
     """
+    acept_button = acept_button_by_mode[mode]
+
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="✅ Добавить ✅", callback_data="acept_addition"))
+    builder.row(InlineKeyboardButton(text=f"✅ {acept_button.text} ✅", callback_data=acept_button.callback_data))
     builder.row(InlineKeyboardButton(text="✏️ Изменить повторения 🔁", callback_data="to_repetitions"))
     builder.row(InlineKeyboardButton(text="✏️ Изменить вес ⚖️", callback_data="to_weight"))
-    if mode == "add_exercise":
+    if mode == TrainingMode.ADD_EXERCISE:
         builder.row(InlineKeyboardButton(text="✏️ Изменить упражнение 🏋", callback_data="to_exercise"))
     return builder.as_markup()

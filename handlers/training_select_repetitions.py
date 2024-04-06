@@ -4,9 +4,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineQuery, CallbackQuery
 
 from typing import List, Dict, Union
-from datetime import datetime
 
-from .training_states import TrainingStates
+from .training_types import TrainingStates, TrainingMode, acept_button_by_mode
 from utils.format_exercise_data import get_formatted_state_date
 from utils.check_acept_addition import check_acept_addition
 from keyboards import (
@@ -91,11 +90,12 @@ async def selected_repetitions(message: Message, state: FSMContext):
 @router.callback_query(F.data == "to_repetitions", TrainingStates.acept_addition)
 async def to_repetitions(callback: CallbackQuery, state: FSMContext):
     """
-    Инлайн кнопка "Вперед Повторения" переход к повторениям
+    Инлайн кнопка "Переход к Повторениям" переход к повторениям
     """
     await state.set_state(TrainingStates.select_repetitions)
 
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    acept_button = acept_button_by_mode.get(user_data.get('mode'))
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
@@ -103,6 +103,9 @@ async def to_repetitions(callback: CallbackQuery, state: FSMContext):
             entity_name = "повторения",
             back_button_text="Вес",
             back_button_callback_data="to_weight",
-            has_acept_addition_button = await check_acept_addition(state)
+            has_acept_button = await check_acept_addition(state),
+            acept_button_text = acept_button.text,
+            acept_button_callback_data = acept_button.callback_data,
+            has_delete_set_button = user_data.get("mode") == TrainingMode.EDIT_SET
         ),
     )

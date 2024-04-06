@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 
 from typing import Dict, Union
 
-from .training_states import TrainingStates
+from .training_types import TrainingStates
 from utils.format_exercise_data import get_formatted_state_date
 from keyboards import ikb_finish_add_comment
 
