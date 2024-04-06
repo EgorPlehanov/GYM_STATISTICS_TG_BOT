@@ -4,7 +4,10 @@ from aiogram.enums import ParseMode
 from aiogram.client.bot import DefaultBotProperties
 
 from config_reader import config
-from handlers import training
+from handlers import (
+    start,
+    training,
+)
 
 
 
@@ -16,6 +19,7 @@ async def main():
     dp = Dispatcher()
 
     dp.include_routers(
+        start.router,
         training.router
     )
 
