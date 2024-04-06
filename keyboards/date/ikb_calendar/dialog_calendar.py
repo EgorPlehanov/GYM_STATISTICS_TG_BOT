@@ -134,20 +134,21 @@ class DialogCalendar:
             calendar_row = []
             
             for day in week:
-
-                if day == 0 or day > max_day:
-                    if day > max_day and not break_flag:
-                        break_flag = True
+                if break_flag:
                     calendar_row.append(
-                        InlineKeyboardButton(text=" ", callback_data=ignore_callback.pack()))
+                        InlineKeyboardButton(text=" ", callback_data=ignore_callback.pack())
+                    )
                     continue
-
                 calendar_row.append(InlineKeyboardButton(
                     text=str(day),
                     callback_data=DialogCalendarCallback(
                         act=DialogCalendarAction.SET_DAY, year=year, month=month,
                         day=day).pack()
                 ))
+                if day == 0 or day >= max_day:
+                    if day >= max_day and not break_flag:
+                        break_flag = True
+
             markup.append(calendar_row)
             if break_flag:
                 break
