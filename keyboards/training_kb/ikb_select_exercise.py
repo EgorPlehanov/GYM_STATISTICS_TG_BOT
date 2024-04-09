@@ -6,6 +6,7 @@ from typing import List, Dict
 import math
 
 from .keyboards_types import PaginationAction
+from db.models import Exercise
 
 
 
@@ -21,11 +22,12 @@ class TrainingExercisePagination(CallbackData, prefix='ex_pag'):
 
 
 def get_ikb_select_exercise_fab(
-    exercise_data: List[Dict[int, str]],
+    exercise_data: List[Exercise],
     page: int = 0,
     page_size: int = 5,
     has_next_button: bool = False,
     has_acept_addition_button: bool = False,
+    select_exercise_id: int | None = None
 ) -> InlineKeyboardMarkup:
     """
     Фабрика для создания инлайн клавиатуры для выбора упражнения
@@ -35,16 +37,15 @@ def get_ikb_select_exercise_fab(
     if has_acept_addition_button:
         builder.row(InlineKeyboardButton(text="✅ Добавить ✅", callback_data="acept_addition"))
     
-    for i in range(page * page_size, (page + 1) * page_size):
-        if i >= len(exercise_data):
-            break
+    for exercise in exercise_data[page * page_size:(page + 1) * page_size]:
+        select_flag = " ⭐" if exercise.id == select_exercise_id else ""
         builder.row(
             InlineKeyboardButton(
-                text=list(exercise_data[i].values())[0],
+                text=f"{exercise.name}{select_flag}",
                 callback_data=TrainingExercisePagination(
                     action=PaginationAction.SET,
                     page=page,
-                    exercise_id=list(exercise_data[i].keys())[0],
+                    exercise_id=exercise.id,
                 ).pack()
             )
         )

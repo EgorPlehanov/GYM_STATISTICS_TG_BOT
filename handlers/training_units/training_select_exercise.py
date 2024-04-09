@@ -2,7 +2,7 @@ from aiogram import Router, F
 from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 
-from typing import Dict, Union
+from typing import Dict, Union, List
 from collections import namedtuple
 
 from .training_types import (
@@ -18,6 +18,7 @@ from keyboards.training_kb import (
     get_ikb_open_inline_search,
 )
 from utils.check_acept_addition import check_acept_addition
+from db.models import Exercise
 
 
 
@@ -71,7 +72,8 @@ async def selected_exercise_pagination(
         reply_markup = get_ikb_select_exercise_fab(
             exercise_data=most_frequent_exercises,
             page=page,
-            has_acept_addition_button = await check_acept_addition(state)
+            has_acept_addition_button = await check_acept_addition(state),
+            select_exercise_id=user_data.get("cur_exercise_id")
         ),
     )
 
@@ -91,19 +93,17 @@ async def selected_exercise(
     """
     await state.set_state(TrainingStates.select_weight)
 
-    def get_value_by_key(key, lst):
-        for d in lst:
-            if key in d:
-                return d[key]
-        return None
-
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
-    most_frequent_exercises = user_data.get('most_frequent_exercises', [])
+    most_frequent_exercises: List[Exercise] = user_data.get('most_frequent_exercises', [])
 
     exercise_id = int(callback_data.exercise_id)
-    exercise_name = get_value_by_key(exercise_id, most_frequent_exercises)
+    exercise = next(e for e in most_frequent_exercises if e.id == exercise_id)
 
-    await state.update_data(cur_exercise_name=exercise_name)
+    # Перемещаем выбранное упражнение в начало списка
+    most_frequent_exercises.remove(exercise)
+    most_frequent_exercises.insert(0, exercise)
+
+    await state.update_data(cur_exercise_name=exercise.name)
     await state.update_data(cur_exercise_id=exercise_id)
 
     Button = namedtuple("back_button", ["text", "callback_data"])
@@ -141,6 +141,7 @@ async def back_to_exercise(callback: CallbackQuery, state: FSMContext):
         reply_markup = get_ikb_select_exercise_fab(
             exercise_data = most_frequent_exercises,
             has_next_button = user_data.get("cur_exercise_id") is not None,
-            has_acept_addition_button = await check_acept_addition(state)
+            has_acept_addition_button = await check_acept_addition(state),
+            select_exercise_id=user_data.get("cur_exercise_id")
         ),
     )

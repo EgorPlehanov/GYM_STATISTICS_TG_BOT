@@ -33,7 +33,7 @@ async def acept_addition(callback: CallbackQuery, state: FSMContext):
     exercise_name = user_data.get('cur_exercise_name')
     weight = user_data.get('weight')
     repetitions = user_data.get('repetitions')
-    time = datetime.now()
+    time = callback.message.date
     
     add_exercise(exercise_data, exercise_id, exercise_name)
     add_set(exercise_data, exercise_id, weight, repetitions, time)

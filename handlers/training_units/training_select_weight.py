@@ -13,6 +13,7 @@ from .training_types import (
     weight_back_button_by_mode,
     acept_button_by_mode
 )
+from filters import StateAtributeNotNoneFilter
 from utils.check_acept_addition import check_acept_addition
 from utils.format_exercise_data import get_formatted_state_date
 from keyboards.training_kb import (
@@ -136,9 +137,23 @@ async def selected_additional_weight(message: Message, state: FSMContext):
 
 
 
-@router.message(F.text.regexp(r'^\d+([.,]?\d+)?\s*[*×xXхХ]\s*\d+$'), TrainingStates.select_weight)
-@router.message(F.text.regexp(r'^\d+([.,]?\d+)?\s*[*×xXхХ]\s*\d+$'), TrainingStates.select_repetitions)
-@router.message(F.text.regexp(r'^\d+([.,]?\d+)?\s*[*×xXхХ]\s*\d+$'), TrainingStates.acept_addition)
+@router.message(
+    StateAtributeNotNoneFilter("exercise_id"),
+    F.text.regexp(r'^\d+([.,]?\d+)?\s*[*×xх]\s*\d+$', flags=re.IGNORECASE),
+    TrainingStates.menu
+)
+@router.message(
+    F.text.regexp(r'^\d+([.,]?\d+)?\s*[*×xх]\s*\d+$', flags=re.IGNORECASE),
+    TrainingStates.select_weight
+)
+@router.message(
+    F.text.regexp(r'^\d+([.,]?\d+)?\s*[*×xх]\s*\d+$', flags=re.IGNORECASE),
+    TrainingStates.select_repetitions
+)
+@router.message(
+    F.text.regexp(r'^\d+([.,]?\d+)?\s*[*×xх]\s*\d+$', flags=re.IGNORECASE),
+    TrainingStates.acept_addition
+)
 async def read_weight_and_repetitions(message: Message, state: FSMContext):
     """
     Обработка ввода веса и повторений
@@ -153,10 +168,19 @@ async def read_weight_and_repetitions(message: Message, state: FSMContext):
 
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
 
+    mode = user_data.get('mode')
+
+    # Если значение введено в меню тренировки
+    if mode is None:
+        mode = TrainingMode.ADD_SET
+        await state.update_data(mode=TrainingMode.ADD_SET)
+        await state.update_data(cur_exercise_id=user_data.get('exercise_id'))
+        await state.update_data(cur_exercise_name=user_data.get('exercise_name'))
+
     if (
         weight == user_data.get('weight')
         and repetitions == user_data.get('repetitions')
-        and await state.get_state == "TrainingStates.acept_addition"
+        and await state.get_state() == "TrainingStates.acept_addition"
     ):
         return
 
@@ -166,7 +190,7 @@ async def read_weight_and_repetitions(message: Message, state: FSMContext):
         chat_id=message.chat.id,
         message_id=user_data.get('message_id'),
         text=await get_formatted_state_date(state),
-        reply_markup=get_ikb_acept_addition(user_data.get('mode'))
+        reply_markup=get_ikb_acept_addition(mode)
     )
 
 

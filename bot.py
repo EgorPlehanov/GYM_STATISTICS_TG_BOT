@@ -8,16 +8,17 @@ from handlers import (
     start,
     training,
 )
+from db.queries.core import create_tables_async, create_tables_sync
 
 
 
 async def main():
     bot = Bot(
-        token=config.bot_token.get_secret_value(),
+        token=config.BOT_TOKEN.get_secret_value(),
         default=DefaultBotProperties(parse_mode=ParseMode.HTML)
     )
-    dp = Dispatcher()
 
+    dp = Dispatcher()
     dp.include_routers(
         start.router,
         training.router
@@ -28,5 +29,8 @@ async def main():
     await dp.start_polling(bot)
 
 
+
 if __name__ == '__main__':
     asyncio.run(main())
+    # asyncio.run(create_tables_async())
+    # create_tables_sync()

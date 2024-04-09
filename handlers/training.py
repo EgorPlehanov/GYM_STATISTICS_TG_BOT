@@ -5,6 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.filters.callback_data import CallbackQuery
 
 from typing import Dict, Union
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .training_units import (
     TrainingStates,
@@ -24,11 +25,14 @@ from keyboards.training_kb import (
     get_ikb_select_date,
     get_ikb_training_menu,
 )
-from db.db import get_most_frequent_exercises
+from middlewares import DBSessionMiddleware
+from db.database import async_session_factory
+from db.queries import get_sorted_exercises_by_sets_count
 
 
 
 router = Router()
+router.message.middleware(DBSessionMiddleware(async_session_factory))
 router.include_routers(
     select_date_router,
     select_exercise_router,
@@ -44,14 +48,17 @@ router.include_routers(
 
 
 @router.message(StateFilter(None), Command("training"))
-async def cmd_training(message: Message, state: FSMContext) -> None:
+async def cmd_training(message: Message, state: FSMContext, session: AsyncSession) -> None:
     """
     Команда /training
     """
     await state.set_state(TrainingStates.select_date)
 
     await state.update_data(exercise_data=initialize_exercise_data())
-    await state.update_data(most_frequent_exercises=await get_most_frequent_exercises())
+    await state.update_data(most_frequent_exercises=await get_sorted_exercises_by_sets_count(
+        session = session,
+        user_id=message.from_user.id,
+    ))
 
     answer = await message.answer(
         text=await get_formatted_state_date(state),
