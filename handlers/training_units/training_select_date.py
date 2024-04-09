@@ -5,9 +5,11 @@ from aiogram.fsm.context import FSMContext
 
 from typing import Dict, Union
 from datetime import datetime
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .training_types import TrainingStates, TrainingMode
 from utils.format_exercise_data import get_formatted_state_date
+from utils.edit_exercise_data import initialize_exercise_data
 from keyboards.training_kb import (
     get_ikb_training_menu,
     DialogCalendar,
@@ -25,13 +27,21 @@ router = Router()
     F.data == 'today',
     TrainingStates.select_date
 )
-async def selected_date_today(callback: CallbackQuery, state: FSMContext) -> None:
+async def selected_date_today(callback: CallbackQuery, state: FSMContext, session: AsyncSession) -> None:
     """
     Инлайн кнопка "Сегодня"
     """
     await state.set_state(TrainingStates.menu)
     await state.update_data(mode=None)
-    await state.update_data(date=datetime.now())
+    # await state.update_data(date=datetime.now())
+
+    exercise_data = initialize_exercise_data(
+        session=session,
+        user_id=callback.from_user.id,
+        date=datetime.now()
+    )
+
+    await state.update_data(exercise_data=exercise_data)
 
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
     exercises = user_data.get('exercise_data')['exercises']
@@ -66,7 +76,8 @@ async def selected_date_other(callback: CallbackQuery, state: FSMContext) -> Non
 async def process_dialog_calendar(
     callback: CallbackQuery,
     callback_data: CallbackData,
-    state: FSMContext
+    state: FSMContext,
+    session: AsyncSession,
 ) -> None:
     """
     Обработка выбора даты в инлайн календаре
@@ -76,7 +87,14 @@ async def process_dialog_calendar(
     if selected:
         await state.set_state(TrainingStates.menu)
         await state.update_data(mode=None)
-        await state.update_data(date=date)
+        # await state.update_data(date=date)
+
+        exercise_data = initialize_exercise_data(
+            session=session,
+            user_id=callback.from_user.id,
+            date=date
+        )
+        await state.update_data(exercise_data=exercise_data)
 
         user_data: Dict[str, Union[int, Dict]] = await state.get_data()
         exercises = user_data.get('exercise_data')['exercises']

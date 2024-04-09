@@ -93,3 +93,77 @@ async def save_training_data(
             session.add(new_set)
     
     await session.commit()
+
+
+
+async def check_training_exists_for_user_and_date(
+    session: AsyncSession,
+    user_id: int,
+    date: datetime
+) -> bool:
+    """
+    Проверяет существует ли тренировка для пользователя и даты
+    """
+    result = await session.execute(
+        select(Training)
+        .filter(Training.user_id == user_id, func.date(Training.date) == date.date())
+    )
+    return bool(result.scalar())
+
+
+
+async def get_training_data_by_date_and_user(
+    session: AsyncSession, user_id:
+    int, date: datetime
+) -> dict:
+    """
+    Возвращает данные о тренировке по дате и пользователям
+    """
+    training_result = await session.execute(
+        select(
+            Training.id.label('id'),
+            Training.comment.label('comment')
+        )
+        .filter(Training.user_id == user_id, func.date(Training.date) == date.date())
+    )
+
+    sets_result = await session.execute(
+        select(
+            Set.exercise_id.label('exercise_id'),
+            Exercise.name.label('exercise_name'),
+            Set.overall_order.label('overall_order'),
+            Set.exercise_order.label('exercise_order'),
+            Set.weight.label('weight'),
+            Set.repetitions.label('repetitions'),
+            Set.execution_time.label('execution_time')
+        )
+        .join(Training, Training.id == Set.training_id)
+        .join(Exercise, Exercise.id == Set.exercise_id)
+        .filter(Training.user_id == user_id, Training.date == date)
+    )
+    
+    training_data = {
+        'id': training_result.first()['id'],
+        'date': date,
+        'comment': training_result.first()['comment'],
+        'global_set_counter': 0,
+        'exercises': {}
+    }
+    
+    for row in sets_result:
+        exercise_id, exercise_name, overall_order, exercise_order, weight, repetitions, execution_time = row
+        
+        if exercise_id not in training_data['exercises']:
+            training_data['exercises'][exercise_id] = {'exercise_name': exercise_name, 'local_set_counter': 0, 'sets': {}}
+        
+        training_data['exercises'][exercise_id]['local_set_counter'] += 1
+        training_data['global_set_counter'] += 1
+        
+        training_data['exercises'][exercise_id]['sets'][overall_order] = {
+            'set_number': exercise_order,
+            'weight': weight,
+            'repetitions': repetitions,
+            'time': execution_time
+        }
+
+    return training_data

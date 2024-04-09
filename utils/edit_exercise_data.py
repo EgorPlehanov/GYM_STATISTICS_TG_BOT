@@ -1,18 +1,35 @@
 from typing import Dict, Union
-import datetime
+from datetime import datetime
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from db.queries import (
+    check_training_exists_for_user_and_date,
+    get_training_data_by_date_and_user
+)
 
 
 
-def initialize_exercise_data() -> Dict[str, Union[int, Dict]]:
+async def initialize_exercise_data(
+    session: AsyncSession,
+    user_id: int,
+    date: datetime
+) -> Dict[str, Union[int, Dict]]:
     """
     Инициализирует данные о тренировке
     """
-    return {
-        "global_set_counter": 0,
-        "date": None,
-        "comment": None,
-        "exercises": {}
-    }
+    is_exists = await check_training_exists_for_user_and_date(session, user_id, date)
+    if is_exists:
+        init_exercise_data = await get_training_data_by_date_and_user(session, user_id, date)
+    else:
+        init_exercise_data =  {
+            "id": None,
+            "user_id": user_id,
+            "date": date,
+            "comment": None,
+            "global_set_counter": 0,
+            "exercises": {}
+        }
+    return init_exercise_data, is_exists
 
 
 
