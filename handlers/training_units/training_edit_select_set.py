@@ -90,7 +90,7 @@ async def selected_set(
             entity_name = "вес",
             back_button_text="Подход",
             back_button_callback_data="to_edit_menu_set",
-            has_next_button=user_data.get("weight") is not None,
+            has_next_button=True,
             next_button_text="Повторения",
             next_button_callback_data="to_repetitions",
             has_acept_button = await check_acept_addition(state),

@@ -46,18 +46,6 @@ class UserGroup(Base):
 
 
 
-class Training(Base):
-    __tablename__ = "training"
-
-    id: Mapped[intpk]
-    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
-    date: Mapped[datetime]
-    comment: Mapped[str_256]
-    created_at: Mapped[created_at]
-    updated_at: Mapped[updated_at]
-
-
-
 @unique
 class MeasurementUnit(Enum):
     KG = "кг"
@@ -90,6 +78,18 @@ class Exercise(Base):
     discription: Mapped[str_4096]
     measurement_unit: Mapped[MeasurementUnit]
     image: Mapped[str]
+
+
+
+class Training(Base):
+    __tablename__ = "training"
+
+    id: Mapped[intpk]
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    date: Mapped[datetime]
+    comment: Mapped[str_256 | None]
+    created_at: Mapped[created_at]
+    updated_at: Mapped[updated_at]
 
 
 

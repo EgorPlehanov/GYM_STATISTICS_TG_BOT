@@ -40,9 +40,14 @@ async def add_exercise_handler(callback: CallbackQuery, state: FSMContext):
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
     most_frequent_exercises = user_data.get('most_frequent_exercises', [])
 
+    selected_exercise_id = user_data.get("cur_exercise_id") or user_data.get("exercise_id")
+
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
-        reply_markup = get_ikb_select_exercise_fab(exercise_data=most_frequent_exercises),
+        reply_markup = get_ikb_select_exercise_fab(
+            exercise_data=most_frequent_exercises,
+            selected_exercise_id=selected_exercise_id
+        ),
     )
 
 
@@ -68,12 +73,14 @@ async def selected_exercise_pagination(
     elif callback_data.action == PaginationAction.NEXT:
         page = page + 1 if page < len(most_frequent_exercises) - 1 else page
 
+    selected_exercise_id = user_data.get("cur_exercise_id") or user_data.get("exercise_id")
+
     await callback.message.edit_reply_markup(
         reply_markup = get_ikb_select_exercise_fab(
             exercise_data=most_frequent_exercises,
             page=page,
             has_acept_addition_button = await check_acept_addition(state),
-            select_exercise_id=user_data.get("cur_exercise_id")
+            selected_exercise_id=selected_exercise_id
         ),
     )
 
@@ -142,6 +149,6 @@ async def back_to_exercise(callback: CallbackQuery, state: FSMContext):
             exercise_data = most_frequent_exercises,
             has_next_button = user_data.get("cur_exercise_id") is not None,
             has_acept_addition_button = await check_acept_addition(state),
-            select_exercise_id=user_data.get("cur_exercise_id")
+            selected_exercise_id=user_data.get("cur_exercise_id")
         ),
     )

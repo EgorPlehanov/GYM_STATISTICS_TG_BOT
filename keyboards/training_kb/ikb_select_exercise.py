@@ -27,7 +27,7 @@ def get_ikb_select_exercise_fab(
     page_size: int = 5,
     has_next_button: bool = False,
     has_acept_addition_button: bool = False,
-    select_exercise_id: int | None = None
+    selected_exercise_id: int | None = None
 ) -> InlineKeyboardMarkup:
     """
     Фабрика для создания инлайн клавиатуры для выбора упражнения
@@ -38,7 +38,7 @@ def get_ikb_select_exercise_fab(
         builder.row(InlineKeyboardButton(text="✅ Добавить ✅", callback_data="acept_addition"))
     
     for exercise in exercise_data[page * page_size:(page + 1) * page_size]:
-        select_flag = " ⭐" if exercise.id == select_exercise_id else ""
+        select_flag = " ⭐" if exercise.id == selected_exercise_id else ""
         builder.row(
             InlineKeyboardButton(
                 text=f"{exercise.name}{select_flag}",

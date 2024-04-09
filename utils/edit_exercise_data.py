@@ -7,7 +7,12 @@ def initialize_exercise_data() -> Dict[str, Union[int, Dict]]:
     """
     Инициализирует данные о тренировке
     """
-    return {"global_set_counter": 0, "exercises": {}}
+    return {
+        "global_set_counter": 0,
+        "date": None,
+        "comment": None,
+        "exercises": {}
+    }
 
 
 

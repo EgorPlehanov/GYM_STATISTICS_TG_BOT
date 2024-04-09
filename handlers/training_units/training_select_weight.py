@@ -164,7 +164,6 @@ async def read_weight_and_repetitions(message: Message, state: FSMContext):
     weight = float(weight.replace(',', '.'))
     repetitions = int(repetitions)
 
-    await state.set_state(TrainingStates.acept_addition)
 
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
 
@@ -180,9 +179,11 @@ async def read_weight_and_repetitions(message: Message, state: FSMContext):
     if (
         weight == user_data.get('weight')
         and repetitions == user_data.get('repetitions')
-        and await state.get_state() == "TrainingStates.acept_addition"
+        and await state.get_state() == TrainingStates.acept_addition
     ):
         return
+    
+    await state.set_state(TrainingStates.acept_addition)
 
     await state.update_data(weight=weight, repetitions=repetitions)
 
