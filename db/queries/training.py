@@ -1,4 +1,4 @@
-from sqlalchemy import func, select, update, delete
+from sqlalchemy import func, select, update, delete, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from typing import List, Dict, Union
@@ -15,7 +15,7 @@ async def get_sorted_exercises_by_sets_count(
     page_num: int = 0
 ) -> List[Exercise]:
     """
-
+    Возвращает список упражнений по количеству подходов
     """
     offset = (page_num - 1) * page_size
 
@@ -110,8 +110,10 @@ async def delete_old_sets(
     """
     await session.execute(
         delete(Set)
-        .where(Set.training_id == training_id)
-        .where(Set.id.not_in(current_sets_id))
+        .where(and_(
+            Set.training_id == training_id,
+            Set.id.not_in(current_sets_id)
+        ))
     )
 
 
@@ -123,9 +125,9 @@ async def save_new_training_data(
     Сохраняет данные о тренировке в базу данных
     """
     training = Training(
-        user_id=training_data.get('user_id'),
-        date=training_data.get('date').replace(tzinfo=None),
-        comment=training_data.get('comment'),
+        user_id = training_data.get('user_id'),
+        date = training_data.get('date').replace(tzinfo=None),
+        comment = training_data.get('comment'),
     )
     session.add(training)
     await session.flush()  # для получения training.id
@@ -143,8 +145,8 @@ async def update_training_data(
     await session.execute(
         update(Training)
         .values(
-            date=training_data.get('date').replace(tzinfo=None),
-            comment=training_data.get('comment'),
+            date = training_data.get('date').replace(tzinfo=None),
+            comment = training_data.get('comment'),
         )
         .where(Training.id == training_id)
     )
@@ -199,7 +201,7 @@ async def check_training_exists_for_user_and_date(
 async def get_training_data_by_date_and_user(
     session: AsyncSession, user_id:
     int, date: datetime
-) -> dict:
+) -> TrainingData:
     """
     Возвращает данные о тренировке по дате и пользователям
     """

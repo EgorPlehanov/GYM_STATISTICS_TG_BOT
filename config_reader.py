@@ -3,7 +3,8 @@ from pydantic import SecretStr
 
 
 class Settings(BaseSettings):
-    BOT_TOKEN: SecretStr
+    TG_BOT_TOKEN: SecretStr
+    TG_BOT_USERNAME: str
 
     DB_HOST: str
     DB_PORT: int

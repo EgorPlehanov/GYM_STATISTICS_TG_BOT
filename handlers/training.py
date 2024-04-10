@@ -32,6 +32,7 @@ from db.queries import get_sorted_exercises_by_sets_count
 
 
 router = Router()
+router.message.filter(F.chat.type == "private")
 router.message.middleware(DBSessionMiddleware(async_session_factory))
 router.include_routers(
     select_date_router,

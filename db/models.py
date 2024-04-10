@@ -1,12 +1,11 @@
-from sqlalchemy import MetaData, Table, Column, Integer, String, DateTime, Boolean, ForeignKey, Text, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import MetaData, Table, Column, Integer, String, DateTime, Boolean, ForeignKey, Text, func, BigInteger
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from typing import Annotated
 from datetime import datetime
 from enum import Enum, unique
 
 from db.database import Base, str_256, str_4096
-
 
 
 intpk = Annotated[int, mapped_column(primary_key=True)]
@@ -20,8 +19,8 @@ class User(Base):
 
     id: Mapped[intpk]
     name: Mapped[str]
-    chat_id: Mapped[int]
     language_code: Mapped[str]
+    is_bot_banned: Mapped[bool] = mapped_column(default=False)
     created_at: Mapped[created_at]
     updated_at: Mapped[updated_at]
 
@@ -30,17 +29,20 @@ class User(Base):
 class Group(Base):
     __tablename__ = "group"
 
-    id: Mapped[intpk]
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     name: Mapped[str]
+    type: Mapped[str_256]
+    is_bot_banned: Mapped[bool] = mapped_column(default=False)
+    is_bot_admin: Mapped[bool] = mapped_column(default=False)
 
 
 
-class UserGroup(Base):
+class GroupUser(Base):
     __tablename__ = "user_group"
 
     id: Mapped[intpk]
-    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     group_id: Mapped[int] = mapped_column(ForeignKey("group.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     is_user_admin: Mapped[bool]
     created_at: Mapped[created_at]
 
@@ -75,7 +77,7 @@ class Exercise(Base):
     id: Mapped[intpk]
     name: Mapped[str_256]
     category: Mapped[ExerciseCategory | None]
-    discription: Mapped[str_4096]
+    description: Mapped[str_4096]
     measurement_unit: Mapped[MeasurementUnit]
     image: Mapped[str]
 
@@ -91,6 +93,9 @@ class Training(Base):
     created_at: Mapped[created_at]
     updated_at: Mapped[updated_at]
 
+    sets: Mapped[list["Set"]] = relationship("Set", back_populates="training")
+
+
 
 
 class Set(Base):
@@ -104,6 +109,8 @@ class Set(Base):
     weight: Mapped[float]
     repetitions: Mapped[int]
     execution_time: Mapped[datetime | None]
+
+    training: Mapped["Training"] = relationship("Training", back_populates="sets", overlaps="sets")
 
 
 
