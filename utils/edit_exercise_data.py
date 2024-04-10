@@ -13,7 +13,7 @@ async def initialize_exercise_data(
     session: AsyncSession,
     user_id: int,
     date: datetime
-) -> Dict[str, Union[int, Dict]]:
+) -> tuple[Dict[str, Union[int, Dict]], bool]:
     """
     Инициализирует данные о тренировке
     """

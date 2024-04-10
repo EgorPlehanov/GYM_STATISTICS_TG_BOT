@@ -95,26 +95,29 @@ def get_training_values(
     """
     weekdays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
     training_values = []
-    if user_data.get('date'):
+
+    exercise_data = user_data.get('exercise_data')
+
+    if exercise_data is not None and exercise_data.get('date'):
         date_edit_flag = '✏️ ' if user_data.get('mode') == TrainingMode.EDIT_DATE else ''
 
-        date_formatted = user_data['date'].strftime('%d.%m.%Y')
-        weekday_name = weekdays[user_data['date'].weekday()]
+        date_formatted = exercise_data['date'].strftime('%d.%m.%Y')
+        weekday_name = weekdays[exercise_data['date'].weekday()]
         comment = ""
-        if user_data.get('comment'):
-            comment = f" ({html.italic(user_data['comment'])})"
+        if exercise_data.get('comment'):
+            comment = f" ({html.italic(exercise_data['comment'])})"
 
         training_values.append(f"{date_edit_flag}{html.bold(weekday_name)} {html.bold(date_formatted)}{comment}")
 
         if is_result:
-            training_values.append(result_format_exercise_data(user_data['exercise_data']))
+            training_values.append(result_format_exercise_data(exercise_data))
         else:
-            if user_data.get('exercise_data') and user_data.get('exercise_data').get('exercises'):
+            if exercise_data.get('exercises'):
                 edit_exercise_id = user_data.get('edit_exercise_id')
                 edit_set_id = user_data.get('edit_set_id')
 
                 format_exercise_text = format_exercise_data(
-                    exercise_data = user_data['exercise_data'],
+                    exercise_data = exercise_data,
                     edit_exercise_id = edit_exercise_id,
                     edit_set_id = edit_set_id
                 )
@@ -174,6 +177,17 @@ async def get_delete_object_text(state: FSMContext) -> str:
 
 
 
+async def get_formatted_other_date(state: FSMContext) -> str:
+    """
+    Возвращает текст других тренировок
+    """
+    user_data = await state.get_data()
+    canged_exercise_data = user_data.get('changed_exercise_data')
+    return f"\n{get_training_values({'exercise_data': canged_exercise_data}, is_result=True)}\n"
+    
+
+
+
 
 async def get_state_text(state: FSMContext) -> str:
     """
@@ -181,6 +195,7 @@ async def get_state_text(state: FSMContext) -> str:
     """
     state_to_text = {
         TrainingStates.select_date:             "Выберите дату",
+        TrainingStates.change_date_acept:       "Что делать с этой тренировкой",
         TrainingStates.select_exercise:         "Выберите упражнение",
         TrainingStates.select_weight:           "Выберите доп. вес",
         TrainingStates.select_repetitions:      "Выберите кол-во повторений",
@@ -194,12 +209,13 @@ async def get_state_text(state: FSMContext) -> str:
     }
     state_to_adition_text = {
         TrainingStates.edit_delete: await get_delete_object_text(state),
+        TrainingStates.change_date_acept: await get_formatted_other_date(state),
     }
     cur_state = await state.get_state()
 
     adition_text = state_to_adition_text.get(cur_state, '')
     if adition_text != '':
-        adition_text = f"\n❗ {html.bold(adition_text)} ❗"
+        adition_text = f"\n❗❗❗ {html.bold(adition_text)} ❗❗❗"
 
     return f"⬇️ {state_to_text[cur_state]} ⬇️" + adition_text
 
@@ -211,10 +227,6 @@ async def get_formatted_state_date(state: FSMContext, is_result: bool = False) -
     """
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
     text_list = []
-
-    # text_list.append(f"{user_data['exercise_data']}") # TEST
-
-    mode = user_data.get('mode')
 
     training_values = get_training_values(user_data, is_result)
     if training_values is not None:

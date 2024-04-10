@@ -15,6 +15,7 @@ class TrainingMode(Enum):
 
 class TrainingStates(StatesGroup):
     select_date             = State()   # выбор даты
+    change_date_acept       = State()   # изменение даты
     select_exercise         = State()   # выбор упражнения
     select_weight           = State()   # выбор веса
     select_repetitions      = State()   # выбор повторений

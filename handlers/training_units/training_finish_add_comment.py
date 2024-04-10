@@ -41,10 +41,11 @@ async def add_comment(message: Message, state: FSMContext):
     """
     Ввод комментария
     """
-    await state.update_data(comment=message.text)
+    # await state.update_data(comment=message.text)
     await message.delete()
 
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data['exercise_data']['comment'] = message.text
 
     await message.bot.edit_message_text(
         chat_id=message.chat.id,
@@ -66,9 +67,6 @@ async def finish(callback: CallbackQuery, state: FSMContext, session: AsyncSessi
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
     await save_training_data(
         session=session,
-        user_id=callback.from_user.id,
-        date=user_data.get('date'),
-        comment=user_data.get('comment'),
         training_data=user_data.get('exercise_data')
     )
 
