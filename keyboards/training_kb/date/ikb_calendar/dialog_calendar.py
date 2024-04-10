@@ -16,9 +16,15 @@ class DialogCalendar:
     months = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"]
 
 
-    def __init__(self, year: int = datetime.now().year, month: int = datetime.now().month):
+    def __init__(
+        self,
+        year: int = datetime.now().year,
+        month: int = datetime.now().month,
+        training_date: list[datetime] = [],
+    ) -> None:
         self.year = year
         self.month = month
+        self.training_date = training_date
 
 
 
@@ -101,8 +107,6 @@ class DialogCalendar:
 
 
     async def _get_days_kb(self, year: int, month: int):
-        
-
         markup = [[
             InlineKeyboardButton(
                 text=str(year),
@@ -134,13 +138,18 @@ class DialogCalendar:
             calendar_row = []
             
             for day in week:
-                if break_flag:
+                if break_flag or day == 0:
                     calendar_row.append(
                         InlineKeyboardButton(text=" ", callback_data=ignore_callback.pack())
                     )
                     continue
+                
+                day_text = str(day)
+                if datetime(year, month, day).date() in self.training_date:
+                    day_text = f"✅{day}"
+
                 calendar_row.append(InlineKeyboardButton(
-                    text=str(day),
+                    text=day_text,
                     callback_data=DialogCalendarCallback(
                         act=DialogCalendarAction.SET_DAY, year=year, month=month,
                         day=day).pack()

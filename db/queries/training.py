@@ -269,3 +269,19 @@ async def delete_training_by_id(
     """
     await session.execute(delete(Training).where(Training.id == training_id))
     await session.commit()
+
+
+
+async def get_training_date_by_user_id(
+    session: AsyncSession,
+    user_id: int
+) -> List[datetime]:
+    """
+    Возвращает список дат тренировок пользователя
+    """
+    result = await session.execute(
+        select(Training.date)
+        .filter(Training.user_id == user_id)
+        .order_by(Training.date)
+    )
+    return [row[0].date() for row in result.all()]

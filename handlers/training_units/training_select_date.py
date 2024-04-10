@@ -19,7 +19,7 @@ from keyboards.training_kb import (
 )
 from middlewares import DBSessionMiddleware
 from db.database import async_session_factory
-from db.queries import save_training_data, delete_training_by_id
+from db.queries import save_training_data, delete_training_by_id, get_training_date_by_user_id
 
 
 
@@ -98,12 +98,19 @@ async def selected_date_today(callback: CallbackQuery, state: FSMContext, sessio
     F.data == 'other_date',
     TrainingStates.select_date
 )
-async def selected_date_other(callback: CallbackQuery, state: FSMContext) -> None:
+async def selected_date_other(callback: CallbackQuery, state: FSMContext, session: AsyncSession) -> None:
     """
     Инлайн кнопка "Другая дата"
     """
+    user_data = await state.get_data()
+    if user_data.get('training_date') is None:
+        training_date = await get_training_date_by_user_id(session, callback.from_user.id)
+        await state.update_data(training_date=training_date)
+    else:
+        training_date = user_data.get('training_date')
+
     await callback.message.edit_reply_markup(
-        reply_markup=await DialogCalendar().start_calendar()
+        reply_markup=await DialogCalendar(training_date=training_date).start_calendar()
     )
 
 
@@ -120,7 +127,11 @@ async def process_dialog_calendar(
     """
     Обработка выбора даты в инлайн календаре
     """
-    selected, date = await DialogCalendar().process_selection(callback, callback_data)
+    user_data = await state.get_data()
+
+    selected, date = await DialogCalendar(
+        training_date=user_data.get('training_date')
+    ).process_selection(callback, callback_data)
 
     if selected:
         await state.set_state(TrainingStates.menu)
