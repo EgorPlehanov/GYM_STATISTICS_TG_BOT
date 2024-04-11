@@ -41,9 +41,10 @@ class GroupUser(Base):
     __tablename__ = "user_group"
 
     id: Mapped[intpk]
-    group_id: Mapped[int] = mapped_column(ForeignKey("group.id"))
+    group_id: Mapped[int] = mapped_column(ForeignKey("group.id"), onupdate="CASCADE")
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     is_user_admin: Mapped[bool]
+    is_redirect_to_group: Mapped[bool] = mapped_column(default=False)
     created_at: Mapped[created_at]
 
 

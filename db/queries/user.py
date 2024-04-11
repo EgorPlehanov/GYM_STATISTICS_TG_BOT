@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
+from sqlalchemy.dialects.postgresql import insert
 
 from ..models import User
 
@@ -46,3 +47,29 @@ async def update_user_private_chat_banned(
         .filter_by(id = user_id)
     )
     await session.commit()
+
+
+
+async def create_user_if_not_exists(
+    session: AsyncSession,
+    user_id: User,
+    name: str,
+    language_code: str,
+) -> bool:
+    """
+    Создает группу в базе данных, если ее еще нет.
+    """
+    insert_stmt = (
+        insert(User)
+        .values(
+            id=user_id,
+            name=name,
+            language_code=language_code,
+        )
+    )
+    insert_stmt = insert_stmt.on_conflict_do_nothing(index_elements=['id'])
+    result = await session.execute(insert_stmt)
+    await session.commit()
+
+    is_created = bool(result.rowcount)
+    return is_created

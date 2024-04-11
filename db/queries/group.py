@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select, update, delete
 from sqlalchemy.dialects.postgresql import insert
 
 from ..models import Group, GroupUser, User
@@ -34,6 +34,26 @@ async def create_group(
 
 
 
+async def update_group_is_bot_banned(
+    session: AsyncSession,
+    group_id: int,
+    is_bot_banned: bool,
+) -> None:
+    """
+    Обновляет статус блокировки бота в группе
+    """
+    await session.execute(
+        update(Group)
+        .values(
+            is_bot_banned = is_bot_banned,
+            is_bot_admin=False if is_bot_banned else Group.is_bot_admin
+        )
+        .filter_by(id = group_id)
+    )
+    await session.commit()
+
+
+
 async def create_group_if_not_exists(
     session: AsyncSession,
     id: int,
@@ -43,10 +63,8 @@ async def create_group_if_not_exists(
     """
     Создает группу в базе данных, если ее еще нет.
     """
-    print(type(id))
     insert_stmt = insert(Group).values(id=id, name=name, type=group_type)
     insert_stmt = insert_stmt.on_conflict_do_nothing(index_elements=['id'])
-    
     result = await session.execute(insert_stmt)
     await session.commit()
 
@@ -61,17 +79,39 @@ async def create_group_if_not_exists(
 
 
 
-async def update_group_is_bot_banned(
+async def update_group_is_bot_admin(
     session: AsyncSession,
     group_id: int,
-    is_bot_banned: bool,
+    is_bot_admin: bool,
 ) -> None:
     """
-    Обновляет статус блокировки бота в группе
+    Обновляет статус администратора в группе
     """
     await session.execute(
         update(Group)
-        .values(is_bot_banned = is_bot_banned)
+        .values(is_bot_admin = is_bot_admin)
+        .filter_by(id = group_id)
+    )
+    await session.commit()
+
+
+
+async def update_group_to_supergroup(
+    session: AsyncSession,
+    group_id: int,
+    supergroup_id: int
+) -> None:
+    """
+    Обновляет у пользователей группу ссылку на супергруппу
+    Группу удаляет из базы данных
+    """
+    await session.execute(
+        update(GroupUser)
+        .values(group_id = supergroup_id)
+        .filter_by(group_id = group_id)
+    )
+    await session.execute(
+        delete(Group)
         .filter_by(id = group_id)
     )
     await session.commit()
