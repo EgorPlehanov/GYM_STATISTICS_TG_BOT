@@ -11,10 +11,10 @@ from .training_types import (
     exercise_button_by_mode
 )
 from utils.format_exercise_data import get_formatted_state_date
+from keyboards.keyboards_types import PaginationAction
 from keyboards.training_kb import (
     get_ikb_select_exercise_fab,
     TrainingExercisePagination,
-    PaginationAction,
     get_ikb_open_inline_search,
 )
 from utils.check_acept_addition import check_acept_addition

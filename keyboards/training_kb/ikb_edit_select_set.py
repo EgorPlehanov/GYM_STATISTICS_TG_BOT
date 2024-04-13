@@ -5,7 +5,7 @@ from aiogram.filters.callback_data import CallbackData
 from typing import  Dict
 import math
 
-from .keyboards_types import PaginationAction
+from ..keyboards_types import PaginationAction
 from utils.formate_set_data_text import format_set_data_to_text
 
 

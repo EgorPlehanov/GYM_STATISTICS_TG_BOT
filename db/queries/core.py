@@ -61,3 +61,7 @@ def create_tables_sync():
 
     print('БД ПЕРЕСОЗДАНА')
 
+    # Создание одной таблицы
+    # Base.metadata.create_all(sync_engine, tables=[GroupTrainingResultMessage.__table__])
+
+

@@ -10,8 +10,8 @@ from .training_types import (
     acept_button_by_mode,
 )
 from utils.format_exercise_data import get_formatted_state_date
+from keyboards.keyboards_types import PaginationAction
 from keyboards.training_kb import (
-    PaginationAction,
     EditTrainingSetPagination,
     get_ikb_edit_select_set_fab,
     get_ikb_open_inline_search,

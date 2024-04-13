@@ -5,7 +5,7 @@ from aiogram.filters.callback_data import CallbackData
 from typing import List, Dict
 import math
 
-from .keyboards_types import PaginationAction
+from ..keyboards_types import PaginationAction
 from db.models import Exercise
 
 

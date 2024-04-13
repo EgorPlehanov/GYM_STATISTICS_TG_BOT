@@ -9,6 +9,7 @@ from db.database import Base, str_256, str_4096
 
 
 intpk = Annotated[int, mapped_column(primary_key=True)]
+bigintpk = Annotated[int, mapped_column(BigInteger, primary_key=True)]
 created_at = Annotated[datetime, mapped_column(server_default=func.now())]
 updated_at = Annotated[datetime, mapped_column(server_default=func.now(), onupdate=datetime.now)]
 
@@ -17,7 +18,7 @@ updated_at = Annotated[datetime, mapped_column(server_default=func.now(), onupda
 class User(Base):
     __tablename__ = "user"
 
-    id: Mapped[intpk]
+    id: Mapped[bigintpk]
     name: Mapped[str]
     language_code: Mapped[str]
     is_bot_banned: Mapped[bool] = mapped_column(default=False)
@@ -29,7 +30,7 @@ class User(Base):
 class Group(Base):
     __tablename__ = "group"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    id: Mapped[bigintpk]
     name: Mapped[str]
     type: Mapped[str_256]
     is_bot_banned: Mapped[bool] = mapped_column(default=False)
@@ -38,13 +39,24 @@ class Group(Base):
 
 
 class GroupUser(Base):
-    __tablename__ = "user_group"
+    __tablename__ = "group_user"
 
     id: Mapped[intpk]
-    group_id: Mapped[int] = mapped_column(ForeignKey("group.id"), onupdate="CASCADE")
+    group_id: Mapped[int] = mapped_column(ForeignKey("group.id", ondelete="CASCADE"))
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
-    is_user_admin: Mapped[bool]
+    is_user_admin: Mapped[bool] = mapped_column(default=False)
     is_redirect_to_group: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[created_at]
+
+
+
+class GroupTrainingResultMessage(Base):
+    __tablename__ = "group_training_result_message"
+
+    id: Mapped[intpk]
+    group_id: Mapped[int] = mapped_column(ForeignKey("group.id", ondelete="CASCADE"))
+    training_id: Mapped[int] = mapped_column(ForeignKey("training.id", ondelete="CASCADE"))
+    message_id: Mapped[int] = mapped_column(BigInteger)
     created_at: Mapped[created_at]
 
 
@@ -98,7 +110,6 @@ class Training(Base):
 
 
 
-
 class Set(Base):
     __tablename__ = "set"
 
@@ -112,65 +123,3 @@ class Set(Base):
     execution_time: Mapped[datetime | None]
 
     training: Mapped["Training"] = relationship("Training", back_populates="sets", overlaps="sets")
-
-
-
-
-
-
-
-
-
-
-# metadata_obj = MetaData()
-
-
-
-# user = Table(
-#     "user",
-#     metadata_obj,
-#     Column("id", Integer, primary_key=True),
-#     Column("name", String),
-#     Column("chat_id", Integer),
-#     Column("language_code", String),
-#     Column("created_at", DateTime),
-#     Column("updated_at", DateTime),
-# )
-
-
-
-# group = Table(
-#     "group",
-#     metadata_obj,
-#     Column("id", Integer, primary_key=True),
-#     Column("name", String),
-# )
-
-
-
-# user_group = Table(
-#     "user_group",
-#     metadata_obj,
-#     Column("id", Integer, primary_key=True),
-#     Column("user_id", Integer),
-#     Column("group_id", Integer),
-#     Column("is_user_admin", Boolean),
-# )
-
-
-
-# training = Table(
-#     "training",
-#     metadata_obj,
-#     Column("id", Integer, primary_key=True),
-#     Column("user_id", Integer),
-#     Column("date", DateTime),
-#     Column("created_at", DateTime),
-# )
-
-
-
-# exercise = Table(
-#     "exercise",
-#     metadata_obj,
-# )

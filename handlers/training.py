@@ -55,7 +55,6 @@ async def cmd_training(message: Message, state: FSMContext, session: AsyncSessio
     """
     await state.set_state(TrainingStates.select_date)
 
-    # await state.update_data(exercise_data=initialize_exercise_data())
     await state.update_data(most_frequent_exercises=await get_sorted_exercises_by_sets_count(
         session = session,
         user_id=message.from_user.id,

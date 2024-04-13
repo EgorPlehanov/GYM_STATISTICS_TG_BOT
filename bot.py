@@ -7,9 +7,11 @@ from aiogram.client.bot import DefaultBotProperties
 from config_reader import config
 from handlers import (
     start,
+    bot_member,
+    user_member,
     help,
+    redirect,
     training,
-    bot_memder,
 )
 from db.queries.core import create_tables_async, create_tables_sync
 
@@ -23,9 +25,11 @@ async def main():
 
     dp = Dispatcher()
     dp.include_routers(
-        bot_memder.router,
         start.router,
         help.router,
+        bot_member.router,
+        user_member.router,
+        redirect.router,
         training.router
     )
 

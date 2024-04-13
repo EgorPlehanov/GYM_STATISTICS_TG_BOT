@@ -30,7 +30,7 @@ async def cmd_training(message: Message, state: FSMContext, session: AsyncSessio
     ):
         await message.answer(
             text=(
-                f"{message.from_user.full_name}, рад что ты присоединился!\n"
+                f"{message.from_user.first_name}, рад что ты присоединился!\n"
                 "Отправь команду /help, чтобы узнать как использовать бота"
             )
         )

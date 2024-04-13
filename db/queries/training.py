@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Dict, Union
 from datetime import datetime
 
-from ..models import Exercise, Set, Training
+from ..models import Exercise, Set, Training, GroupTrainingResultMessage
 
 
 
@@ -155,12 +155,15 @@ async def update_training_data(
 async def save_training_data(
     session: AsyncSession,
     training_data: TrainingData
-) -> None:
+) -> tuple[int, bool]:
     """
     Сохраняет данные о тренировке в базу данных    
     """
+    update_flag = False
+
     training_id = training_data.get('id')
     if training_id is not None:
+        update_flag = True
         await update_training_data(session, training_data)
     else:
         training_id = await save_new_training_data(session, training_data)
@@ -175,11 +178,14 @@ async def save_training_data(
             if set_id is None:
                 set_id = await save_new_set_data(session, training_id, exercise_id, local_number, set_data)
             else:
+                update_flag = True
                 await update_set_data(session, set_data)
             sets_id.append(set_id)
 
     await delete_old_sets(session, training_id, sets_id)
     await session.commit()
+
+    return training_id, update_flag
     
 
 

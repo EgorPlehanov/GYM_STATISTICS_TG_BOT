@@ -40,3 +40,4 @@ TEST
 venv
 .env
 __pycache__
+img

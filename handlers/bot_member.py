@@ -1,8 +1,8 @@
-from aiogram import F, Router
+from aiogram import F, Router, html
 from aiogram.filters import (
     ChatMemberUpdatedFilter,
     KICKED, MEMBER,
-    JOIN_TRANSITION, LEAVE_TRANSITION, PROMOTED_TRANSITION
+    JOIN_TRANSITION, LEAVE_TRANSITION, PROMOTED_TRANSITION,
 ) 
 from aiogram.types import ChatMemberUpdated, Message
 
@@ -85,10 +85,13 @@ async def bot_joined_to_group(event: ChatMemberUpdated, session: AsyncSession):
     hello_text = (
         f"Всем привет, я помогу вам отслеживать ваши тренировки!"
         if is_created
-        else f"Я вернулся, можем продолжить тренировки вместе!"
+        else f"Я вернулась, можем продолжить тренировки вместе!"
     )
     await event.answer(
-        f"{hello_text}\nЧтобы узнать больше, переходите в @{config.TG_BOT_USERNAME}"
+        text = (
+            f"{hello_text}\n\nДля корректной работы "
+            f"{html.bold('ОБЯЗАТЕЛЬНО СДЕЛАЙТЕ БОТА АДМИНОМ.')}\n\n"
+            f"Узнать больше /help@{config.TG_BOT_USERNAME}")
     )
 
 
@@ -122,7 +125,7 @@ async def bot_joined_to_group(event: ChatMemberUpdated, session: AsyncSession):
         group_id=event.chat.id,
         is_bot_admin=True,
     )
-    await event.answer(f"{event.from_user.full_name} назначил меня АДМИНОМ!\n Теперь сосать мне будете)")
+    await event.answer(f"{event.from_user.full_name} назначил меня АДМИНОМ!\n Теперь я смогу устанавливать ваш ранг в должности админа")
 
 
 
@@ -139,7 +142,7 @@ async def bot_joined_to_group(event: ChatMemberUpdated, session: AsyncSession):
         group_id=event.chat.id,
         is_bot_admin=False,
     )
-    await event.answer(f"{event.from_user.full_name} меня разжаловали!\n Теперь я как вы)")
+    await event.answer(f"{event.from_user.full_name} меня разжаловал!\n Теперь я не смогу устанавливать ранг в должности админа")
 
 
 

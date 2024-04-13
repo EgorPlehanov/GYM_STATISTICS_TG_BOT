@@ -6,7 +6,6 @@ from .ikb_select_exercise import (
 )
 from .ikb_open_inline_search import get_ikb_open_inline_search
 
-from .keyboards_types import PaginationAction
 from .ikb_training_menu import get_ikb_training_menu
 
 from .ikb_acept_addition import get_ikb_acept_addition

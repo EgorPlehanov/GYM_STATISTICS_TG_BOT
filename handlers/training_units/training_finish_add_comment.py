@@ -1,8 +1,9 @@
-from aiogram import Router, F
+from aiogram import Router, F, Bot
 from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.context import FSMContext
+from aiogram.exceptions import TelegramBadRequest
 
-from typing import Dict, Union
+from typing import Dict, Union, List
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .training_types import TrainingStates
@@ -10,7 +11,13 @@ from utils.format_exercise_data import get_formatted_state_date
 from keyboards.training_kb import ikb_finish_add_comment
 from middlewares import DBSessionMiddleware
 from db.database import async_session_factory
-from db.queries import save_training_data
+from db.queries import (
+    save_training_data,
+    get_user_group_to_redirect,
+    create_group_training_result_message,
+    get_group_training_result_messages_id,
+    update_group_training_result_message_id,
+)
 
 
 
@@ -65,13 +72,75 @@ async def finish(callback: CallbackQuery, state: FSMContext, session: AsyncSessi
     Инлайн кнопка "Завершить"
     """
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
-    await save_training_data(
+    exercise_data = user_data.get('exercise_data')
+
+    training_id, is_update = await save_training_data(
         session=session,
-        training_data=user_data.get('exercise_data')
+        training_data=exercise_data
     )
 
+    result_text = await get_formatted_state_date(state, is_result=True)
     await callback.message.edit_text(
-        text=await get_formatted_state_date(state, is_result=True),
+        text = result_text,
     )
     await callback.message.answer("Красава жестко!")
     await state.clear()
+
+    await redirect_result_to_user_group(
+        bot = callback.message.bot,
+        session = session,
+        result_text = f"@{callback.from_user.username}\n{result_text}",
+        redirect_groups_id = await get_user_group_to_redirect(session, callback.from_user.id),
+        id_upadate = is_update,
+        training_id = training_id
+    )
+
+
+
+async def redirect_result_to_user_group(
+    bot: Bot,
+    session: AsyncSession,
+    result_text: int,
+    redirect_groups_id: List[int],
+    id_upadate: bool = False,
+    training_id: int = None,
+) -> None:
+    """
+    Отправляет результат в группы для которых пользователь настроил редирект
+    """
+    for group_id in redirect_groups_id:
+
+        if id_upadate:
+            group_result_message_id = await get_group_training_result_messages_id(
+                session = session,
+                group_id = group_id,
+                training_id = training_id
+            )
+            try:
+                await bot.edit_message_text(
+                    text = result_text,
+                    chat_id = group_id,
+                    message_id = group_result_message_id,
+                )
+            except TelegramBadRequest:
+                new_group_result_message = await bot.send_message(
+                    chat_id = group_id,
+                    text = result_text
+                )
+                await update_group_training_result_message_id(
+                    session = session,
+                    group_id = group_id,
+                    training_id = training_id,
+                    new_message_id = new_group_result_message.message_id
+                )
+        else:
+            group_result_message = await bot.send_message(
+                chat_id = group_id,
+                text = result_text
+            )
+            await create_group_training_result_message(
+                session = session,
+                group_id = group_id,
+                training_id = training_id,
+                message_id = group_result_message.message_id
+            )
