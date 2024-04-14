@@ -20,6 +20,7 @@ class TrainingStates(StatesGroup):
     select_weight           = State()   # выбор веса
     select_repetitions      = State()   # выбор повторений
     acept_addition          = State()   # подтверждение добавления упражнения/подхода
+    select_sets_count       = State()   # выбор количества подходов
     menu                    = State()   # главное меню
     add_comment             = State()   # добавление комментария
     edit_menu               = State()   # режим редактирования

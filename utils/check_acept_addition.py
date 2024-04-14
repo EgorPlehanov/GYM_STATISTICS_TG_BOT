@@ -8,7 +8,7 @@ from handlers.training_units import TrainingMode
 
 async def check_acept_addition(state: FSMContext) -> bool:
     """
-    Проверяет состояние FSM
+    Проверяет состояние можно ли добавлять подход
     """
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
 

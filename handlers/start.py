@@ -34,3 +34,5 @@ async def cmd_training(message: Message, state: FSMContext, session: AsyncSessio
                 "Отправь команду /help, чтобы узнать как использовать бота"
             )
         )
+    else:
+        await message.answer(text="🐆")

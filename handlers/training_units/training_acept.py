@@ -19,6 +19,7 @@ router = Router()
 @router.callback_query(F.data == 'acept_addition', TrainingStates.select_exercise)
 @router.callback_query(F.data == 'acept_addition', TrainingStates.select_weight)
 @router.callback_query(F.data == 'acept_addition', TrainingStates.select_repetitions)
+@router.callback_query(F.data == 'acept_addition', TrainingStates.select_sets_count)
 @router.callback_query(F.data == 'acept_addition', TrainingStates.acept_addition)
 async def acept_addition(callback: CallbackQuery, state: FSMContext):
     """
@@ -33,10 +34,12 @@ async def acept_addition(callback: CallbackQuery, state: FSMContext):
     exercise_name = user_data.get('cur_exercise_name')
     weight = user_data.get('weight')
     repetitions = user_data.get('repetitions')
+    sets_count = user_data.get('sets_count')
     time = callback.message.date
     
     add_exercise(exercise_data, exercise_id, exercise_name)
-    add_set(exercise_data, exercise_id, weight, repetitions, time)
+    for _ in range(sets_count):
+        add_set(exercise_data, exercise_id, weight, repetitions, time)
 
     await state.update_data(exercise_id=exercise_id)
     await state.update_data(exercise_name=exercise_name)
@@ -46,6 +49,7 @@ async def acept_addition(callback: CallbackQuery, state: FSMContext):
     await state.update_data(cur_exercise_name=None)
     await state.update_data(weight=None)
     await state.update_data(repetitions=None)
+    await state.update_data(sets_count=None)
     
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),

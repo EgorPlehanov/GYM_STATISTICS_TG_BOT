@@ -1,5 +1,5 @@
 from aiogram import Router, F
-from aiogram.types import Message
+from aiogram.types import Message, ReactionTypeEmoji
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.filters.callback_data import CallbackQuery
@@ -13,11 +13,12 @@ from .training_units import (
     select_exercise_router,
     select_weight_router,
     select_repetitions_router,
-    finish_add_comment_router,
+    select_sets_count_router,
     acept_router,
     edit_menu_router,
     edit_select_exercise_router,
     edit_select_set_router,
+    finish_add_comment_router,
 )
 from utils.edit_exercise_data import initialize_exercise_data
 from utils.format_exercise_data import get_formatted_state_date
@@ -39,11 +40,12 @@ router.include_routers(
     select_exercise_router,
     select_weight_router,
     select_repetitions_router,
+    select_sets_count_router,
     acept_router,
-    finish_add_comment_router,
     edit_menu_router,
     edit_select_exercise_router,
     edit_select_set_router,
+    finish_add_comment_router,
 )
 
 
@@ -84,6 +86,7 @@ async def back_to_menu(callback: CallbackQuery, state: FSMContext):
     await state.update_data(cur_exercise_name=None)
     await state.update_data(weight=None)
     await state.update_data(repetitions=None)
+    await state.update_data(sets_count=None)
 
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
     exercises = user_data.get('exercise_data')['exercises']

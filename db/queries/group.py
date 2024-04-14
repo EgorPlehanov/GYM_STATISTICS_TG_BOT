@@ -331,17 +331,17 @@ async def update_group_training_result_message_id(
     group_id: int,
     training_id: int,
     new_message_id: int
-) -> None:
+) -> bool:
     """
     Обновляет id сообщения с результатом тренировки в группе
     """
     result = await session.execute(
         update(GroupTrainingResultMessage)
+        .values(message_id = new_message_id)
         .where(
             GroupTrainingResultMessage.group_id == group_id,
             GroupTrainingResultMessage.training_id == training_id
         )
-        .values(message_id = new_message_id)
     )
-    print(result)
     await session.commit()
+    return result.rowcount > 0

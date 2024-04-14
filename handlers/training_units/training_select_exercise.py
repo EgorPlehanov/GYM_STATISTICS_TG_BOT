@@ -36,6 +36,7 @@ async def add_exercise_handler(callback: CallbackQuery, state: FSMContext):
     """
     await state.set_state(TrainingStates.select_exercise)
     await state.update_data(mode=TrainingMode.ADD_EXERCISE)
+    await state.update_data(sets_count=1)
 
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
     most_frequent_exercises = user_data.get('most_frequent_exercises', [])

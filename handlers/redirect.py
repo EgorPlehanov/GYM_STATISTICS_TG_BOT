@@ -197,8 +197,5 @@ async def redirect_quit(callback: CallbackQuery, state: FSMContext) -> None:
     Инлайн кнопка "Выход из настройки редиректа в группы" возврат в меню
     """
     await state.clear()
-    await callback.message.edit_text(
-        text = "🔄 Настройки редиректа сохранены! 💾"
-    )
-    await sleep(5)
     await callback.message.delete()
+    await callback.answer(text="✅ Настройки редиректа сохранены 💾")

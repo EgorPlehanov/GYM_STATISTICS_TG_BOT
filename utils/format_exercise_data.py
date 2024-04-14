@@ -136,6 +136,9 @@ def get_current_values(user_data: Dict[str, Union[int, Dict]]) -> str:
     Возвращает текст текущих значений
     """
     cur_values = []
+    if user_data.get('sets_count') is not None and user_data['sets_count'] > 1:
+        cur_values.append(f"💪 Кол-во подходов: {html.bold(html.underline(user_data['sets_count']))}")
+
     if user_data.get('edit_exercise_name') is not None:
         cur_values.append(f"🏋️‍♂️ Упражнение: {html.bold(html.underline(user_data['edit_exercise_name']))}")
     elif user_data.get('cur_exercise_name') is not None:
@@ -200,6 +203,7 @@ async def get_state_text(state: FSMContext) -> str:
         TrainingStates.select_weight:           "Выберите доп. вес",
         TrainingStates.select_repetitions:      "Выберите кол-во повторений",
         TrainingStates.acept_addition:          "Подтвердите добавление",
+        TrainingStates.select_sets_count:       "Выберите кол-во добавляемых подходов",
         TrainingStates.menu:                    "Что дальше",
         TrainingStates.add_comment:             "Отправить комментарий или просто заверши",
         TrainingStates.edit_menu:               "Что исправить",

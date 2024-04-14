@@ -12,6 +12,7 @@ from handlers import (
     help,
     redirect,
     training,
+    default_reaction,
 )
 from db.queries.core import create_tables_async, create_tables_sync
 
@@ -30,7 +31,8 @@ async def main():
         bot_member.router,
         user_member.router,
         redirect.router,
-        training.router
+        training.router,
+        default_reaction.router
     )
 
     # Пропускаем необработанные при отключенном боте сообщения

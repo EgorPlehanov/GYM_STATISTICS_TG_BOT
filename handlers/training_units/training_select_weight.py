@@ -43,6 +43,7 @@ async def add_set_handler(callback: CallbackQuery, state: FSMContext):
 
     await state.update_data(cur_exercise_id=user_data.get('exercise_id'))
     await state.update_data(cur_exercise_name=user_data.get('exercise_name'))
+    await state.update_data(sets_count=1)
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
@@ -126,8 +127,14 @@ async def selected_additional_weight(message: Message, state: FSMContext):
         text=await get_formatted_state_date(state),
         reply_markup=get_ikb_open_inline_search(
             entity_name = "повторения",
-            back_button_text="Вес",
-            back_button_callback_data="to_weight",
+            back_button_text = "Вес",
+            back_button_callback_data = "to_weight",
+            has_next_button = (
+                user_data.get("repetitions") is not None
+                and user_data.get("mode") != TrainingMode.EDIT_SET
+            ),
+            next_button_text = "Кол-во подходов",
+            next_button_callback_data = "to_sets_count",
             has_acept_button = await check_acept_addition(state),
             acept_button_text = acept_button.text,
             acept_button_callback_data = acept_button.callback_data,
@@ -139,19 +146,19 @@ async def selected_additional_weight(message: Message, state: FSMContext):
 
 @router.message(
     StateAtributeNotNoneFilter("exercise_id"),
-    F.text.regexp(r'^\d+([.,]?\d+)?\s*[*×xх]\s*\d+$', flags=re.IGNORECASE),
+    F.text.regexp(r'^\s*\d+([.,]?\d+)?\s*[*×xх]\s*\d+\s*([*×xх]\s*\d+\s*)?$', flags=re.IGNORECASE),
     TrainingStates.menu
 )
 @router.message(
-    F.text.regexp(r'^\d+([.,]?\d+)?\s*[*×xх]\s*\d+$', flags=re.IGNORECASE),
+    F.text.regexp(r'^\s*\d+([.,]?\d+)?\s*[*×xх]\s*\d+\s*([*×xх]\s*\d+\s*)?$', flags=re.IGNORECASE),
     TrainingStates.select_weight
 )
 @router.message(
-    F.text.regexp(r'^\d+([.,]?\d+)?\s*[*×xх]\s*\d+$', flags=re.IGNORECASE),
+    F.text.regexp(r'^\s*\d+([.,]?\d+)?\s*[*×xх]\s*\d+\s*([*×xх]\s*\d+\s*)?$', flags=re.IGNORECASE),
     TrainingStates.select_repetitions
 )
 @router.message(
-    F.text.regexp(r'^\d+([.,]?\d+)?\s*[*×xх]\s*\d+$', flags=re.IGNORECASE),
+    F.text.regexp(r'^\s*\d+([.,]?\d+)?\s*[*×xх]\s*\d+\s*([*×xх]\s*\d+\s*)?$', flags=re.IGNORECASE),
     TrainingStates.acept_addition
 )
 async def read_weight_and_repetitions(message: Message, state: FSMContext):
@@ -160,10 +167,17 @@ async def read_weight_and_repetitions(message: Message, state: FSMContext):
     """
     await message.delete()
 
-    weight, repetitions = re.split(r'\s*[*×xXхХ]\s*', message.text)
+    values = re.split(r'\s*[*×xXхХ]\s*', message.text)
+
+    if len(values) == 3:
+        weight, repetitions, sets_count = values
+    else:
+        weight, repetitions = values
+        sets_count = None
+    
     weight = float(weight.replace(',', '.'))
     repetitions = int(repetitions)
-
+    sets_count = int(sets_count) if sets_count is not None and int(sets_count) > 0 else None
 
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
 
@@ -175,10 +189,15 @@ async def read_weight_and_repetitions(message: Message, state: FSMContext):
         await state.update_data(mode=TrainingMode.ADD_SET)
         await state.update_data(cur_exercise_id=user_data.get('exercise_id'))
         await state.update_data(cur_exercise_name=user_data.get('exercise_name'))
+        await state.update_data(sets_count=1)
 
     if (
         weight == user_data.get('weight')
         and repetitions == user_data.get('repetitions')
+        and (
+            sets_count is not None and sets_count == user_data.get('sets_count')
+            or sets_count is None
+        )
         and await state.get_state() == TrainingStates.acept_addition
     ):
         return
@@ -186,6 +205,8 @@ async def read_weight_and_repetitions(message: Message, state: FSMContext):
     await state.set_state(TrainingStates.acept_addition)
 
     await state.update_data(weight=weight, repetitions=repetitions)
+    if sets_count is not None:
+        await state.update_data(sets_count=sets_count)
 
     await message.bot.edit_message_text(
         chat_id=message.chat.id,
@@ -214,11 +235,11 @@ async def to_weight(callback: CallbackQuery, state: FSMContext):
         text=await get_formatted_state_date(state),
         reply_markup = get_ikb_open_inline_search(
             entity_name = "вес",
-            back_button_text=back_button.text,
-            back_button_callback_data=back_button.callback_data,
-            has_next_button=user_data.get("weight") is not None,
-            next_button_text="Повторения",
-            next_button_callback_data="to_repetitions",
+            back_button_text = back_button.text,
+            back_button_callback_data = back_button.callback_data,
+            has_next_button = user_data.get("weight") is not None,
+            next_button_text = "Повторения",
+            next_button_callback_data = "to_repetitions",
             has_acept_button = await check_acept_addition(state),
             acept_button_text = acept_button.text,
             acept_button_callback_data = acept_button.callback_data,

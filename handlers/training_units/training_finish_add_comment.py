@@ -17,6 +17,7 @@ from db.queries import (
     create_group_training_result_message,
     get_group_training_result_messages_id,
     update_group_training_result_message_id,
+    update_group_is_bot_banned,
 )
 
 
@@ -83,6 +84,9 @@ async def finish(callback: CallbackQuery, state: FSMContext, session: AsyncSessi
     await callback.message.edit_text(
         text = result_text,
     )
+    await callback.answer(
+        text = "✅ Тренировка сохранена 💾",
+    )
     await callback.message.answer("Красава жестко!")
     await state.clear()
 
@@ -111,6 +115,7 @@ async def redirect_result_to_user_group(
     for group_id in redirect_groups_id:
 
         if id_upadate:
+            # если тренировка была обновлена
             group_result_message_id = await get_group_training_result_messages_id(
                 session = session,
                 group_id = group_id,
@@ -123,17 +128,35 @@ async def redirect_result_to_user_group(
                     message_id = group_result_message_id,
                 )
             except TelegramBadRequest:
-                new_group_result_message = await bot.send_message(
-                    chat_id = group_id,
-                    text = result_text
-                )
-                await update_group_training_result_message_id(
-                    session = session,
-                    group_id = group_id,
-                    training_id = training_id,
-                    new_message_id = new_group_result_message.message_id
-                )
+                # если сообщение было удалено из чата
+                try:
+                    new_group_result_message = await bot.send_message(
+                        chat_id = group_id,
+                        text = result_text
+                    )
+                    is_id_updated = await update_group_training_result_message_id(
+                        session = session,
+                        group_id = group_id,
+                        training_id = training_id,
+                        new_message_id = new_group_result_message.message_id
+                    )
+                    # Если запись о сообщении была удалена из бд 
+                    if not is_id_updated:
+                        await create_group_training_result_message(
+                            session = session,
+                            group_id = group_id,
+                            training_id = training_id,
+                            message_id = new_group_result_message.message_id
+                        )
+                except TelegramBadRequest:
+                    # если бот был удален из чата
+                    await update_group_is_bot_banned(
+                        session = session,
+                        group_id = group_id,
+                        is_bot_banned = True,
+                    )
         else:
+            # если тренировка была создана новая
             group_result_message = await bot.send_message(
                 chat_id = group_id,
                 text = result_text

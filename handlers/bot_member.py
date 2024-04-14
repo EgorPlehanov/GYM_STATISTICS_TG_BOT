@@ -90,7 +90,7 @@ async def bot_joined_to_group(event: ChatMemberUpdated, session: AsyncSession):
     await event.answer(
         text = (
             f"{hello_text}\n\nДля корректной работы "
-            f"{html.bold('ОБЯЗАТЕЛЬНО СДЕЛАЙТЕ БОТА АДМИНОМ.')}\n\n"
+            f"{html.bold('ОБЯЗАТЕЛЬНО СДЕЛАЙТЕ МЕНЯ АДМИНОМ.')}\n\n"
             f"Узнать больше /help@{config.TG_BOT_USERNAME}")
     )
 
