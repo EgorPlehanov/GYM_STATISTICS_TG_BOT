@@ -75,7 +75,7 @@ async def finish(callback: CallbackQuery, state: FSMContext, session: AsyncSessi
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
     exercise_data = user_data.get('exercise_data')
 
-    training_id, is_update = await save_training_data(
+    training_id, is_update, is_create = await save_training_data(
         session=session,
         training_data=exercise_data
     )
@@ -96,6 +96,7 @@ async def finish(callback: CallbackQuery, state: FSMContext, session: AsyncSessi
         result_text = f"@{callback.from_user.username}\n{result_text}",
         redirect_groups_id = await get_user_group_to_redirect(session, callback.from_user.id),
         id_upadate = is_update,
+        is_create = is_create,
         training_id = training_id
     )
 
@@ -107,13 +108,13 @@ async def redirect_result_to_user_group(
     result_text: int,
     redirect_groups_id: List[int],
     id_upadate: bool = False,
+    is_create: bool = False,
     training_id: int = None,
 ) -> None:
     """
     Отправляет результат в группы для которых пользователь настроил редирект
     """
     for group_id in redirect_groups_id:
-
         if id_upadate:
             # если тренировка была обновлена
             group_result_message_id = await get_group_training_result_messages_id(
@@ -127,7 +128,11 @@ async def redirect_result_to_user_group(
                     chat_id = group_id,
                     message_id = group_result_message_id,
                 )
-            except TelegramBadRequest:
+            except TelegramBadRequest as e:
+                if "same as a current content" in e.message:
+                    # иннорировать если сообщение с таким содержанием уже было отправлено
+                    continue
+                
                 # если сообщение было удалено из чата
                 try:
                     new_group_result_message = await bot.send_message(
@@ -155,7 +160,8 @@ async def redirect_result_to_user_group(
                         group_id = group_id,
                         is_bot_banned = True,
                     )
-        else:
+
+        if is_create:
             # если тренировка была создана новая
             group_result_message = await bot.send_message(
                 chat_id = group_id,

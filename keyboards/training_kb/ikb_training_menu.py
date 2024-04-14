@@ -11,11 +11,12 @@ def get_ikb_training_menu(
     Фабрика инлайн клавиатуры меню тренировки
     """
     builder = InlineKeyboardBuilder()
-    builder.row(
-        *[InlineKeyboardButton(text="+ Упражнение 🏋️‍♀️", callback_data="add_exercise")] + ([
-            InlineKeyboardButton(text="+ Подход 💪", callback_data="add_set")
-        ] if is_add_add_set_button else [])
-    )
+    builder.row(InlineKeyboardButton(text="+ Упражнение 🏋️‍♀️", callback_data="add_exercise"))
+    if is_add_add_set_button:
+        builder.row(
+            InlineKeyboardButton(text="+ Подход 💪", callback_data="add_set"),
+            InlineKeyboardButton(text="+ Повторить последний подход 🔁", callback_data="repeat_set"),
+        )
     if is_add_edit_button:
         builder.row(InlineKeyboardButton(text="📝 Внести исправления 📝", callback_data="to_edit_menu"))
         builder.row(InlineKeyboardButton(text="🏁 Завершить тренировку 🏁", callback_data="finish_training"))

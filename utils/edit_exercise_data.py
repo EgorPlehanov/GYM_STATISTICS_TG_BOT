@@ -113,18 +113,10 @@ def update_set(
 
 
 
-def delete_exercise(
-    exercise_data: Dict[str, Union[int, Dict]], exercise_id: str
-) -> None:
-    """
-    Удаляет упражнение со всеми подходами
-    """
-    del exercise_data["exercises"][exercise_id]
-
-
-
 def delete_set(
-    exercise_data: Dict[str, Union[int, Dict]], exercise_id: str, set_number: str
+    exercise_data: Dict[str, Union[int, Dict]],
+    exercise_id: str,
+    set_number: str
 ) -> None:
     """
     Удаляет подход
@@ -133,14 +125,7 @@ def delete_set(
     # Удаляет упражнение, если нет ни одного подхода
     if not exercise_data['exercises'][exercise_id]['sets']:
         del exercise_data['exercises'][exercise_id]
-
-
-
-def delete_all_exercises(exercise_data: Dict[str, Union[int, Dict]]) -> None:
-    """
-    Удаляет все упражнения
-    """
-    exercise_data["exercises"] = {}
+    update_indexes_exercise_data(exercise_data)
 
 
 
@@ -156,3 +141,51 @@ def delete_all_exercise_sets(
         del exercise_data["exercises"][exercise_id]["sets"]
     else:
         del exercise_data["exercises"][exercise_id]
+    update_indexes_exercise_data(exercise_data)
+
+
+
+def delete_exercise(
+    exercise_data: Dict[str, Union[int, Dict]], exercise_id: str
+) -> None:
+    """
+    Удаляет упражнение со всеми подходами
+    """
+    del exercise_data["exercises"][exercise_id]
+    update_indexes_exercise_data(exercise_data)
+
+
+
+def delete_all_exercises(exercise_data: Dict[str, Union[int, Dict]]) -> None:
+    """
+    Удаляет все упражнения
+    """
+    exercise_data["exercises"] = {}
+    update_indexes_exercise_data(exercise_data)
+
+
+
+def update_indexes_exercise_data(
+    exercise_data: Dict[str, Union[int, Dict]],
+) -> None:
+    """
+    Обновляет индексы подходов
+    """
+    all_sets = []
+    for exercise in exercise_data["exercises"].values():
+        all_sets.extend(list(exercise["sets"].values()))
+
+        local_set_counter = 0
+        sets_keys = list(exercise["sets"].keys())
+        for set_idx in sets_keys:
+            local_set_counter += 1
+            if set_idx != local_set_counter:
+                exercise["sets"][local_set_counter] = exercise["sets"].pop(set_idx)
+
+        exercise["local_set_counter"] = local_set_counter
+    
+    all_sets_sorted = sorted(all_sets, key=lambda x: x["set_number"])
+    for idx in range(len(all_sets_sorted)):
+        all_sets_sorted[idx]["set_number"] = idx + 1
+
+    exercise_data["global_set_counter"] = len(all_sets_sorted)

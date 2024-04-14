@@ -14,9 +14,9 @@ def get_ikb_acept_addition(
 
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text=f"✅ {acept_button.text} ✅", callback_data=acept_button.callback_data))
-    builder.row(InlineKeyboardButton(text="✏️ Изменить повторения 🔁", callback_data="to_repetitions"))
+    builder.row(InlineKeyboardButton(text="✏️ Изменить повторения 🔂", callback_data="to_repetitions"))
     builder.row(InlineKeyboardButton(text="✏️ Изменить вес ⚖️", callback_data="to_weight"))
     if mode == TrainingMode.ADD_EXERCISE:
         builder.row(InlineKeyboardButton(text="✏️ Изменить упражнение 🏋", callback_data="to_exercise"))
-    builder.row(InlineKeyboardButton(text="✏️ Изменить кол-во подходов 💪", callback_data="to_sets_count"))
+    builder.row(InlineKeyboardButton(text="✏️ Изменить кол-во подходов 🔁", callback_data="to_sets_count"))
     return builder.as_markup()

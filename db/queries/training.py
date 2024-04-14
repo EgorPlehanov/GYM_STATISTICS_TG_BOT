@@ -1,4 +1,4 @@
-from sqlalchemy import func, select, update, delete, and_
+from sqlalchemy import func, select, update, delete, and_, or_, Date
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from typing import List, Dict, Union
@@ -84,20 +84,33 @@ async def save_new_set_data(
 
 async def update_set_data(
     session: AsyncSession,
+    exercise_order: int,
     set_data: SetData
 ) -> None:
     """
     Обновляет данные о подходе
     """
     set_id = set_data.get('id')
-    await session.execute(
+    result = await session.execute(
         update(Set)
         .values(
-            weight=set_data.get('weight'),
-            repetitions=set_data.get('repetitions'),
+            weight = set_data.get('weight'),
+            repetitions = set_data.get('repetitions'),
+            overall_order = set_data.get('set_number'),
+            exercise_order = exercise_order,
         )
-        .where(Set.id == set_id)
+        .where(
+            Set.id == set_id,
+            or_(
+                Set.weight != set_data.get('weight'),
+                Set.repetitions != set_data.get('repetitions'),
+                Set.overall_order != set_data.get('set_number'),
+                Set.exercise_order != exercise_order
+            )
+        )
     )
+    return result.rowcount > 0
+
 
 
 async def delete_old_sets(
@@ -108,13 +121,15 @@ async def delete_old_sets(
     """
     Удаляет старые данные о подходах
     """
-    await session.execute(
+    result = await session.execute(
         delete(Set)
         .where(and_(
             Set.training_id == training_id,
             Set.id.not_in(current_sets_id)
         ))
+        .returning(Set.id)
     )
+    return sum(1 for _ in result.scalars()) > 0
 
 
 async def save_new_training_data(
@@ -142,14 +157,21 @@ async def update_training_data(
     Обновляет данные о тренировке
     """
     training_id = training_data.get('id')
-    await session.execute(
+    result = await session.execute(
         update(Training)
         .values(
             date = training_data.get('date').replace(tzinfo=None),
             comment = training_data.get('comment'),
         )
-        .where(Training.id == training_id)
+        .where(
+            Training.id == training_id,
+            or_(
+                Training.date.cast(Date) != training_data.get('date').date(),
+                Training.comment != training_data.get('comment')
+            )
+        )
     )
+    return result.rowcount > 0
 
 
 async def save_training_data(
@@ -160,13 +182,15 @@ async def save_training_data(
     Сохраняет данные о тренировке в базу данных    
     """
     update_flag = False
+    create_flag = False
 
     training_id = training_data.get('id')
-    if training_id is not None:
-        update_flag = True
-        await update_training_data(session, training_data)
-    else:
+    if training_id is None:
         training_id = await save_new_training_data(session, training_data)
+        create_flag = True
+    else:
+        is_updated = await update_training_data(session, training_data)
+        update_flag = is_updated if is_updated else update_flag
 
     sets_id = []
     exercises = training_data.get('exercises')
@@ -178,14 +202,16 @@ async def save_training_data(
             if set_id is None:
                 set_id = await save_new_set_data(session, training_id, exercise_id, local_number, set_data)
             else:
-                update_flag = True
-                await update_set_data(session, set_data)
+                is_updated = await update_set_data(session, local_number, set_data)
+                update_flag = is_updated if is_updated else update_flag
+
             sets_id.append(set_id)
 
-    await delete_old_sets(session, training_id, sets_id)
-    await session.commit()
+    is_updated = await delete_old_sets(session, training_id, sets_id)
+    update_flag = is_updated if is_updated else update_flag
 
-    return training_id, update_flag
+    await session.commit()
+    return training_id, update_flag, create_flag
     
 
 
@@ -202,6 +228,7 @@ async def check_training_exists_for_user_and_date(
         .filter(Training.user_id == user_id, func.date(Training.date) == date.date())
     )
     return bool(result.scalar())
+
 
 
 async def get_training_data_by_date_and_user(
@@ -254,16 +281,19 @@ async def get_training_data_by_date_and_user(
                 'sets': {}
             }
         
-        training_data['exercises'][exercise_id]['local_set_counter'] += 1
-        training_data['global_set_counter'] += 1
-        
-        training_data['exercises'][exercise_id]['sets'][overall_order] = {
+        training_data['exercises'][exercise_id]['sets'][exercise_order] = {
             'id': set_id,
-            'set_number': exercise_order,
+            'set_number': overall_order,
             'weight': weight,
             'repetitions': repetitions,
             'time': execution_time
         }
+    else:
+        training_data['global_set_counter'] = overall_order
+
+    for exercise in training_data['exercises'].values():
+        exercise['local_set_counter'] = max(exercise['sets'].keys())
+
     return training_data
 
 
