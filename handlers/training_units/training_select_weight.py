@@ -246,3 +246,27 @@ async def to_weight(callback: CallbackQuery, state: FSMContext):
             has_delete_set_button = user_data.get("mode") == TrainingMode.EDIT_SET
         ),
     )
+
+
+
+@router.callback_query(F.data == "repeat_set", TrainingStates.menu)
+async def repeat_set(callback: CallbackQuery, state: FSMContext):
+    """
+    Инлайн кнопка "Повторить сет"
+    """
+    await state.set_state(TrainingStates.select_weight)
+
+    await state.update_data(mode=TrainingMode.ADD_SET)
+
+    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+
+    await state.update_data(cur_exercise_id=user_data.get('exercise_id'))
+    await state.update_data(cur_exercise_name=user_data.get('exercise_name'))
+    await state.update_data(sets_count=1)
+    await state.update_data(weight=user_data.get('last_weight'))
+    await state.update_data(repetitions=user_data.get('last_repetitions'))
+
+    await callback.message.edit_text(
+        text=await get_formatted_state_date(state),
+        reply_markup = get_ikb_acept_addition(TrainingMode.ADD_SET)
+    )

@@ -84,11 +84,15 @@ async def selected_date_today(callback: CallbackQuery, state: FSMContext, sessio
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
     exercises = user_data.get('exercise_data')['exercises']
 
+    last_weight = str(user_data.get('last_weight', '')).rstrip('0').rstrip(".")
+    last_repetitions = user_data.get('last_repetitions', '')
+
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
         reply_markup = get_ikb_training_menu(
             is_add_edit_button = len(exercises) != 0,
-            is_add_add_set_button = user_data.get("exercise_id") is not None
+            is_add_add_set_button = user_data.get("exercise_id") is not None,
+            repeat_set_button_text = f"{last_weight}x{last_repetitions}"
         ),
     )
 
@@ -143,11 +147,15 @@ async def process_dialog_calendar(
         user_data: Dict[str, Union[int, Dict]] = await state.get_data()
         exercises = user_data.get('exercise_data')['exercises']
 
+        last_weight = str(user_data.get('last_weight', '')).rstrip('0').rstrip(".")
+        last_repetitions = user_data.get('last_repetitions', '')
+
         await callback.message.edit_text(
             text=await get_formatted_state_date(state),
             reply_markup = get_ikb_training_menu(
                 is_add_edit_button = len(exercises) != 0,
-                is_add_add_set_button = user_data.get("exercise_id") is not None
+                is_add_add_set_button = user_data.get("exercise_id") is not None,
+                repeat_set_button_text = f"{last_weight}x{last_repetitions}"
             ),
         )
 
@@ -212,11 +220,15 @@ async def save_and_go(callback: CallbackQuery, state: FSMContext, session: Async
     await state.set_state(TrainingStates.menu)
     exercises = changed_exercise_data.get('exercises', {})
 
+    last_weight = str(user_data.get('last_weight', '')).rstrip('0').rstrip(".")
+    last_repetitions = user_data.get('last_repetitions', '')
+
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
         reply_markup = get_ikb_training_menu(
             is_add_edit_button = len(exercises) != 0,
-            is_add_add_set_button = False
+            is_add_add_set_button = False,
+            repeat_set_button_text = f"{last_weight}x{last_repetitions}"
         ),
     )
 

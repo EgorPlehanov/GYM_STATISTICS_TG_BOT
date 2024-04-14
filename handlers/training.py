@@ -91,11 +91,15 @@ async def back_to_menu(callback: CallbackQuery, state: FSMContext):
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
     exercises = user_data.get('exercise_data')['exercises']
 
+    last_weight = str(user_data.get('last_weight', '')).rstrip('0').rstrip(".")
+    last_repetitions = user_data.get('last_repetitions', '')
+
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
         reply_markup = get_ikb_training_menu(
             is_add_edit_button = len(exercises) != 0,
-            is_add_add_set_button = user_data.get("exercise_id") is not None
+            is_add_add_set_button = user_data.get("exercise_id") is not None,
+            repeat_set_button_text = f"{last_weight}x{last_repetitions}"
         ),
     )
 

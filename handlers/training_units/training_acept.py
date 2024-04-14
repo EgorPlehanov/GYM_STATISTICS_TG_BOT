@@ -50,8 +50,13 @@ async def acept_addition(callback: CallbackQuery, state: FSMContext):
     await state.update_data(weight=None)
     await state.update_data(repetitions=None)
     await state.update_data(sets_count=None)
+    await state.update_data(last_weight=weight)
+    await state.update_data(last_repetitions=repetitions)
     
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
-        reply_markup=get_ikb_training_menu(is_add_add_set_button=True)
+        reply_markup=get_ikb_training_menu(
+            is_add_add_set_button=True,
+            repeat_set_button_text=f"{str(weight).rstrip('0').rstrip('.')}x{repetitions}",
+        )
     )

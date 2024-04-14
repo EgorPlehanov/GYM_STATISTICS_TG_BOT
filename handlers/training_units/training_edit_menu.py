@@ -145,6 +145,8 @@ async def delete_exercises_sets(callback: CallbackQuery, state: FSMContext):
     if cur_exercise_id not in exercise_data['exercises']:
         await state.update_data(exercise_id=None)
         await state.update_data(exercise_name=None)
+        await state.update_data(last_weight=None)
+        await state.update_data(last_repetitions=None)
 
     await state.update_data(state_before_delete=None)
     await state.update_data(reply_markup_before_delete=None)
