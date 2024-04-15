@@ -1,7 +1,9 @@
 from aiogram import Router, F
-from aiogram.types import InlineQueryResultArticle, InputTextMessageContent, Message
+from aiogram.types import (
+    Message, CallbackQuery, InlineQuery, 
+    InlineQueryResultArticle, InputTextMessageContent
+)
 from aiogram.fsm.context import FSMContext
-from aiogram.types import InlineQuery, CallbackQuery
 
 from typing import List, Dict, Union
 
@@ -16,6 +18,11 @@ from keyboards.training_kb import (
 
 
 router = Router()
+
+
+
+r_int = r"\d+"
+r_repetitions = rf"^\s*{r_int}\s*$"
 
 
 
@@ -64,10 +71,10 @@ async def inline_repetitions(inline_query: InlineQuery, state: FSMContext):
 
 
 @router.message(F.via_bot, TrainingStates.select_repetitions)
-@router.message(F.text.regexp(r'^\d+$'), TrainingStates.select_repetitions)
+@router.message(F.text.regexp(r_repetitions), TrainingStates.select_repetitions)
 async def selected_repetitions(message: Message, state: FSMContext):
     """
-    Инлайн выбор доп. веса: обработка выбранного значения
+    Инлайн выбор кол-ва повторений: обработка выбранного значения
     """
     await state.set_state(TrainingStates.acept_addition)
 

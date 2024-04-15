@@ -1,4 +1,8 @@
-from sqlalchemy import MetaData, Table, Column, Integer, String, DateTime, Boolean, ForeignKey, Text, func, BigInteger
+from sqlalchemy import (
+    ForeignKey, BigInteger,
+    func, 
+    CheckConstraint
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from typing import Annotated
@@ -123,3 +127,40 @@ class Set(Base):
     execution_time: Mapped[datetime | None]
 
     training: Mapped["Training"] = relationship("Training", back_populates="sets", overlaps="sets")
+
+
+
+class Rank(Base):
+    __tablename__ = "rank"
+
+    id: Mapped[intpk]
+    grade: Mapped[int]
+    name: Mapped[str_256]
+
+
+
+class ExerciseRank(Base):
+    __tablename__ = "exercise_rank"
+
+    id: Mapped[intpk]
+    exercise_id: Mapped[int] = mapped_column(ForeignKey("exercise.id"))
+    rank_id: Mapped[int] = mapped_column(ForeignKey("rank.id"))
+    level: Mapped[int]
+    grade_threshold: Mapped[float]
+
+    __table_args__ = (
+        CheckConstraint('level >= 0 AND level <= 5', name='level_check'),
+    )
+
+
+
+class UserExerciseRating(Base):
+    __tablename__ = "user_exercise_rating"
+
+    id: Mapped[intpk]
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    exercise_id: Mapped[int] = mapped_column(ForeignKey("exercise.id"))
+    rank_id: Mapped[int] = mapped_column(ForeignKey("rank.id"))
+    created_at: Mapped[created_at]
+    updated_at: Mapped[updated_at]
+    

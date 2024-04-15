@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Dict, Union
 from datetime import datetime
 
-from ..models import Exercise, Set, Training, GroupTrainingResultMessage
+from ..models import Exercise, Set, Training, User
 
 
 
@@ -12,39 +12,60 @@ async def get_sorted_exercises_by_sets_count(
     session: AsyncSession,
     user_id: int,
     page_size: int = 5,
-    page_num: int = 0
+    page_num: int = 0,
+    substring: str = None,
 ) -> List[Exercise]:
     """
     Возвращает список упражнений по количеству подходов
     """
-    offset = (page_num - 1) * page_size
-
-    result = await session.execute(select(Exercise))
-    all_exercises = result.scalars().all()
-    return all_exercises
-
-    exercise_sets_count = await session.execute(
-        select(
-            Set.exercise_id,
-            func.count(Set.id).label('set_count')
-        )
-        .join(Training, Training.id == Set.training_id)
-        .filter(Training.user_id == user_id)
-        .group_by(Set.exercise_id)
-        .order_by(func.count(Set.id).desc())
+    subquery = (
+        select(Set.id.label('set_id'), Set.exercise_id)
+        .join(Training)
+        .join(User)
+        .filter(User.id == user_id)
+        .subquery()
     )
 
-    sorted_exercises = []
-    async for exercise_id, set_count in exercise_sets_count:
-        exercise = await session.execute(
-            select(Exercise.id, Exercise.name)
-            .filter(Exercise.id == exercise_id)
-        ).first()
-        sorted_exercises.append(ExerciseSetCount(
-            id=exercise.id, name=exercise.name, count=set_count
+    stmt = (
+        select(
+            Exercise,
+        )
+        .outerjoin(subquery, subquery.c.exercise_id == Exercise.id)
+        .group_by(Exercise.id)
+        .order_by(
+            func.count(subquery.c.set_id).desc(),
+            Exercise.name
+        )
+        .limit(page_size)
+        .offset(page_size * page_num)
+    )
+
+    if substring is not None:
+        substring = substring.lower()
+        stmt = stmt.filter(or_(
+            func.lower(Exercise.name).contains(substring),
+            func.lower(Exercise.description).contains(substring)
         ))
 
-    return sorted_exercises
+    result = await session.execute(stmt)
+    exercises = result.scalars().all()
+
+    return exercises
+
+
+
+async def get_exercise_by_id(
+    session: AsyncSession,
+    exercise_id: int
+) -> Exercise:
+    """
+    Возвращает упражнение по id
+    """
+    result = await session.execute(
+        select(Exercise)
+        .where(Exercise.id == exercise_id)
+    )
+    return result.scalar()
 
 
 

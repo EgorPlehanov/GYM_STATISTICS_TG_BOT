@@ -78,7 +78,7 @@ async def cmd_group_redirect(message: Message, session: AsyncSession) -> None:
 
     await message.answer(
         text = (
-            f"🔄{'✅' if is_redirect else '❌'}"
+            f"📤{'✅' if is_redirect else '❌'}"
             f" @{message.from_user.username}, я "
             f"{html.bold('ВКЛЮЧИЛ' if is_redirect else 'ОТКЛЮЧИЛ')}"
             " редирект в эту группу! Чтобы "
@@ -115,7 +115,7 @@ async def cmd_private_redirect(message: Message, state: FSMContext, session: Asy
 
     await message.answer(
         text = (
-            "🔄 Спиок чатов в которых настроен редирект результатов тренировок:\n"
+            "📤 Спиок чатов в которых настроен редирект результатов тренировок:\n"
             f"{html.italic('(✅ - вкл | ⛔ - выкл)')}"
         ),
         reply_markup = get_ikb_redirect_groups(

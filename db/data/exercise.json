@@ -1,0 +1,50 @@
+[
+    {
+        "id": 1,
+        "name": "Жим лежа",
+        "category": "CHEST",
+        "description": "Упражнение на развитие грудных мышц",
+        "measurement_unit": "KG",
+        "image": "ссылка_на_изображение_1"
+    },
+    {
+        "id": 2,
+        "name": "Горизонтальная тяга",
+        "category": "BACK",
+        "description": "Упражнение на развитие спины",
+        "measurement_unit": "KG",
+        "image": "ссылка_на_изображение_2"
+    },
+    {
+        "id": 3,
+        "name": "Присед",
+        "category": "LEGS",
+        "description": "Упражнение на развитие ног",
+        "measurement_unit": "KG",
+        "image": "ссылка_на_изображение_3"
+    },
+    {
+        "id": 4,
+        "name": "Отжимания на брусьях",
+        "category": "TRICEPS",
+        "description": "Упражнение на развитие трицепса",
+        "measurement_unit": "KG",
+        "image": "ссылка_на_изображение_4"
+    },
+    {
+        "id": 5,
+        "name": "Подтягивания на турнике",
+        "category": "BACK",
+        "description": "Упражнение на развитие спины и бицепса",
+        "measurement_unit": "KG",
+        "image": "ссылка_на_изображение_5"
+    },
+    {
+        "id": 6,
+        "name": "Становая тяга",
+        "category": "BACK",
+        "description": "Упражнение на развитие спины и ног",
+        "measurement_unit": "KG",
+        "image": "ссылка_на_изображение_6"
+    }
+]

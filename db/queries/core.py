@@ -1,6 +1,13 @@
-from sqlalchemy import text
+from sqlalchemy import text, select, inspect
 
-from db.database import async_engine, sync_engine, Base, sync_session_factory, async_session_factory
+import json
+import os
+
+from db.database import (
+    Base,
+    async_engine, sync_engine,
+    sync_session_factory, async_session_factory
+)
 from db.models import *
 
 
@@ -13,55 +20,52 @@ async def create_tables_async():
 
 
 def create_exercises_values_sync():
-    exercises_data = [
-        {
-            'name': 'Жим лежа', 'category': 'CHEST',
-            'description': 'Упражнение на развитие грудных мышц',
-            'measurement_unit': 'KG', 'image': 'ссылка_на_изображение_1'
-        },
-        {
-            'name': 'Горизонтальная тяга', 'category': 'BACK',
-            'description': 'Упражнение на развитие спины',
-            'measurement_unit': 'KG', 'image': 'ссылка_на_изображение_2'
-        },
-        {
-            'name': 'Присед', 'category': 'LEGS',
-            'description': 'Упражнение на развитие ног',
-            'measurement_unit': 'KG', 'image': 'ссылка_на_изображение_3'
-        },
-        {
-            'name': 'Отжимания на брусьях', 'category': 'TRICEPS',
-            'description': 'Упражнение на развитие трицепса',
-            'measurement_unit': 'KG', 'image': 'ссылка_на_изображение_4'
-        },
-        {
-            'name': 'Подтягивания на турнике', 'category': 'BACK',
-            'description': 'Упражнение на развитие спины и бицепса',
-            'measurement_unit': 'KG', 'image': 'ссылка_на_изображение_5'
-        },
-        {
-            'name': 'Становая тяга', 'category': 'BACK',
-            'description': 'Упражнение на развитие спины и ног',
-            'measurement_unit': 'KG', 'image': 'ссылка_на_изображение_6'
-        }
-    ]
+    """
+    Загрузка данных из JSON-файла в базу данных
+    """
+    data_folder = 'db/data'
+    tables = [table for table  in Base.metadata.tables.values()]
+
     with sync_session_factory() as session:
-        for exercise_data in exercises_data:
-            exercise = Exercise(**exercise_data)
-            session.add(exercise)
+        for table in tables:
+            # Проверка существования таблицы в базе данных
+            if not inspect(sync_engine).has_table(table.name):
+                table.create(sync_engine)
+                
+            file_path = os.path.join(data_folder, f"{table.name}.json")
+
+            if os.path.exists(file_path):
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    data = json.load(file)
+
+                for item in data:
+                    # Генерация динамического условия для сравнения полей в таблице
+                    conditions = [
+                        getattr(table.c, key) == value
+                        for key, value in item.items()
+                        if key != 'id'
+                    ]
+
+                    select_query = select(table).where(*conditions)
+
+                    existing_record = session.execute(select_query).fetchone()
+
+                    if not existing_record:
+                        session.execute(table.insert().values(item))
 
         session.commit()
 
 
 
 def create_tables_sync():
-    Base.metadata.drop_all(sync_engine)
-    Base.metadata.create_all(sync_engine)
+    # Base.metadata.drop_all(sync_engine)
+    # Base.metadata.create_all(sync_engine)
     create_exercises_values_sync()
 
-    print('БД ПЕРЕСОЗДАНА')
+    # Создание таблиц по одной
+    # Base.metadata.create_all(sync_engine, tables=[Rank.__table__])
+    # Base.metadata.create_all(sync_engine, tables=[ExerciseRank.__table__])
+    # Base.metadata.create_all(sync_engine, tables=[UserExerciseRating.__table__])
 
-    # Создание одной таблицы
-    # Base.metadata.create_all(sync_engine, tables=[GroupTrainingResultMessage.__table__])
-
+    print('РАБОТА С БД ЗАВЕРШЕНА')
 

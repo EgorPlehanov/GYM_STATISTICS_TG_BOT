@@ -1,7 +1,9 @@
 from aiogram import Router, F
-from aiogram.types import InlineQueryResultArticle, InputTextMessageContent, Message
+from aiogram.types import (
+    Message, CallbackQuery, InlineQuery,
+    InlineQueryResultArticle, InputTextMessageContent
+)
 from aiogram.fsm.context import FSMContext
-from aiogram.types import InlineQuery, CallbackQuery
 
 from typing import List, Dict, Union
 import re
@@ -24,6 +26,14 @@ from keyboards.training_kb import (
 
 
 router = Router()
+
+
+
+r_float = r"\d+([.,]?\d+)?"
+r_int = r"\d+"
+r_separator = r"\s*[*×xх]\s*"
+r_weight = rf"^\s*{r_float}\s*$"
+r_weight_repetitions_sets = rf"^\s*{r_float}{r_separator}{r_int}({r_separator}{r_int})?\s*$"
 
 
 
@@ -105,7 +115,7 @@ async def inline_additional_weight(inline_query: InlineQuery, state: FSMContext)
 
 
 @router.message(F.via_bot, TrainingStates.select_weight)
-@router.message(F.text.regexp(r'^\d+([.,]?\d+)?$'), TrainingStates.select_weight)
+@router.message(F.text.regexp(r_weight), TrainingStates.select_weight)
 async def selected_additional_weight(message: Message, state: FSMContext):
     """
     Инлайн выбор доп. веса: обработка выбранного значения
@@ -146,19 +156,19 @@ async def selected_additional_weight(message: Message, state: FSMContext):
 
 @router.message(
     StateAtributeNotNoneFilter("exercise_id"),
-    F.text.regexp(r'^\s*\d+([.,]?\d+)?\s*[*×xх]\s*\d+\s*([*×xх]\s*\d+\s*)?$', flags=re.IGNORECASE),
+    F.text.regexp(r_weight_repetitions_sets, flags=re.IGNORECASE),
     TrainingStates.menu
 )
 @router.message(
-    F.text.regexp(r'^\s*\d+([.,]?\d+)?\s*[*×xх]\s*\d+\s*([*×xх]\s*\d+\s*)?$', flags=re.IGNORECASE),
+    F.text.regexp(r_weight_repetitions_sets, flags=re.IGNORECASE),
     TrainingStates.select_weight
 )
 @router.message(
-    F.text.regexp(r'^\s*\d+([.,]?\d+)?\s*[*×xх]\s*\d+\s*([*×xх]\s*\d+\s*)?$', flags=re.IGNORECASE),
+    F.text.regexp(r_weight_repetitions_sets, flags=re.IGNORECASE),
     TrainingStates.select_repetitions
 )
 @router.message(
-    F.text.regexp(r'^\s*\d+([.,]?\d+)?\s*[*×xх]\s*\d+\s*([*×xх]\s*\d+\s*)?$', flags=re.IGNORECASE),
+    F.text.regexp(r_weight_repetitions_sets, flags=re.IGNORECASE),
     TrainingStates.acept_addition
 )
 async def read_weight_and_repetitions(message: Message, state: FSMContext):
@@ -167,7 +177,7 @@ async def read_weight_and_repetitions(message: Message, state: FSMContext):
     """
     await message.delete()
 
-    values = re.split(r'\s*[*×xXхХ]\s*', message.text)
+    values = re.split(r_separator, message.text, flags=re.IGNORECASE)
 
     if len(values) == 3:
         weight, repetitions, sets_count = values

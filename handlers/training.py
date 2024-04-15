@@ -60,6 +60,7 @@ async def cmd_training(message: Message, state: FSMContext, session: AsyncSessio
     await state.update_data(most_frequent_exercises=await get_sorted_exercises_by_sets_count(
         session = session,
         user_id=message.from_user.id,
+        page_size=15
     ))
 
     answer = await message.answer(

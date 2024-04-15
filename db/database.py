@@ -17,7 +17,7 @@ sync_engine = create_engine(
 
 async_engine = create_async_engine(
     url=config.DB_URL_ASYNC,
-    # echo=True,
+    echo=True,
 )
 
 

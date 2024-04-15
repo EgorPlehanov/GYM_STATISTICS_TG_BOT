@@ -1,7 +1,9 @@
 from aiogram import Router, F
-from aiogram.types import InlineQueryResultArticle, InputTextMessageContent, Message
+from aiogram.types import (
+    Message, CallbackQuery, InlineQuery,
+    InlineQueryResultArticle, InputTextMessageContent, 
+)
 from aiogram.fsm.context import FSMContext
-from aiogram.types import InlineQuery, CallbackQuery
 
 from typing import List, Dict, Union
 

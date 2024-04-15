@@ -19,7 +19,7 @@ async def default_command_reaction(message: Message):
 
 
 
-@router.message()
+@router.message(~F.text.startswith('/'))
 async def default_message_reaction(message: Message):
     answer = await message.answer(text=(
         "🤔 Я тебя не понимаю"

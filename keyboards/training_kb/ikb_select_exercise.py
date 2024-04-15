@@ -37,6 +37,11 @@ def get_ikb_select_exercise_fab(
     if has_acept_addition_button:
         builder.row(InlineKeyboardButton(text="✅ Добавить ✅", callback_data="acept_addition"))
     
+    builder.row(InlineKeyboardButton(
+        text = f"🔎 Найти в поиске 🔎",
+        switch_inline_query_current_chat = ""
+    ))
+    
     for exercise in exercise_data[page * page_size:(page + 1) * page_size]:
         select_flag = " ⭐" if exercise.id == selected_exercise_id else ""
         builder.row(
@@ -49,6 +54,7 @@ def get_ikb_select_exercise_fab(
                 ).pack()
             )
         )
+
     builder.row(*([
         InlineKeyboardButton(
             text='⬅️',
@@ -68,9 +74,11 @@ def get_ikb_select_exercise_fab(
             ).pack()
         )
     ] if page < math.ceil(len(exercise_data) / page_size) - 1 else []))
+
     builder.row(
         *[InlineKeyboardButton(text=f"⬅️ Меню {'' if has_next_button else '⬅️'}", callback_data="to_menu")] + ([
             InlineKeyboardButton(text="Вес ➡️", callback_data="to_weight")
         ] if has_next_button else [])
     )
+
     return builder.as_markup()

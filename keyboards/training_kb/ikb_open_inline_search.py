@@ -18,9 +18,16 @@ def get_ikb_open_inline_search(
     builder = InlineKeyboardBuilder()
     
     if has_acept_button:
-        builder.row(InlineKeyboardButton(text=f"✅ {acept_button_text.capitalize()} ✅", callback_data=acept_button_callback_data))
+        builder.row(InlineKeyboardButton(
+            text = f"✅ {acept_button_text.capitalize()} ✅",
+            callback_data = acept_button_callback_data
+        ))
 
-    builder.row(InlineKeyboardButton(text=f"Выбрать {entity_name.lower()}", switch_inline_query_current_chat=""))
+    builder.row(InlineKeyboardButton(
+        text = f"🔎 Выбрать {entity_name.lower()} 🔎",
+        switch_inline_query_current_chat = ""
+    ))
+
     builder.row(
         *[InlineKeyboardButton(
             text = f"⬅️ {back_button_text.capitalize()} {'' if has_next_button else '⬅️'}",
@@ -30,6 +37,11 @@ def get_ikb_open_inline_search(
             callback_data = next_button_callback_data
         )] if has_next_button else [])
     )
+
     if has_delete_set_button:
-        builder.row(InlineKeyboardButton(text=f"🗑️ Удалить подход 🗑️", callback_data="delete_set"))
+        builder.row(InlineKeyboardButton(
+            text=f"🗑️ Удалить подход 🗑️",
+            callback_data="delete_set"
+        ))
+
     return builder.as_markup()
