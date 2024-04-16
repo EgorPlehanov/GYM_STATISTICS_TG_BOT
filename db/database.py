@@ -17,7 +17,7 @@ sync_engine = create_engine(
 
 async_engine = create_async_engine(
     url=config.DB_URL_ASYNC,
-    echo=True,
+    # echo=True,
 )
 
 
@@ -28,12 +28,12 @@ async_session_factory = async_sessionmaker(async_engine)
 
 
 str_256 = Annotated[str, 256]
-str_4096 = Annotated[str, 4096]
+str_2048 = Annotated[str, 2048]
 
 
 
 class Base(DeclarativeBase):
     type_annatation_map = {
         str_256: String(256),
-        str_4096: String(4096)
+        str_2048: String(2048)
     }

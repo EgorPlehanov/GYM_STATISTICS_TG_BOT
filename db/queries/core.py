@@ -1,4 +1,4 @@
-from sqlalchemy import text, select, inspect
+from sqlalchemy import text, select, inspect, DDL
 
 import json
 import os
@@ -60,7 +60,8 @@ def create_exercises_values_sync():
 def create_tables_sync():
     # Base.metadata.drop_all(sync_engine)
     # Base.metadata.create_all(sync_engine)
-    create_exercises_values_sync()
+    # create_trigger()
+    # create_exercises_values_sync()
 
     # Создание таблиц по одной
     # Base.metadata.create_all(sync_engine, tables=[Rank.__table__])

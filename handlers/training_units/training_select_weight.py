@@ -169,6 +169,10 @@ async def selected_additional_weight(message: Message, state: FSMContext):
 )
 @router.message(
     F.text.regexp(r_weight_repetitions_sets, flags=re.IGNORECASE),
+    TrainingStates.select_sets_count
+)
+@router.message(
+    F.text.regexp(r_weight_repetitions_sets, flags=re.IGNORECASE),
     TrainingStates.acept_addition
 )
 async def read_weight_and_repetitions(message: Message, state: FSMContext):

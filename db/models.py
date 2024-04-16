@@ -9,7 +9,7 @@ from typing import Annotated
 from datetime import datetime
 from enum import Enum, unique
 
-from db.database import Base, str_256, str_4096
+from db.database import Base, str_256, str_2048
 
 
 intpk = Annotated[int, mapped_column(primary_key=True)]
@@ -20,6 +20,9 @@ updated_at = Annotated[datetime, mapped_column(server_default=func.now(), onupda
 
 
 class User(Base):
+    """
+    Пользователь бота
+    """
     __tablename__ = "user"
 
     id: Mapped[bigintpk]
@@ -32,6 +35,9 @@ class User(Base):
 
 
 class Group(Base):
+    """
+    Группа в которую пригласили бота
+    """
     __tablename__ = "group"
 
     id: Mapped[bigintpk]
@@ -43,6 +49,9 @@ class Group(Base):
 
 
 class GroupUser(Base):
+    """
+    Пользователи в группе
+    """
     __tablename__ = "group_user"
 
     id: Mapped[intpk]
@@ -55,6 +64,9 @@ class GroupUser(Base):
 
 
 class GroupTrainingResultMessage(Base):
+    """
+    Сообщение с результатами тренировки в группе
+    """
     __tablename__ = "group_training_result_message"
 
     id: Mapped[intpk]
@@ -62,11 +74,15 @@ class GroupTrainingResultMessage(Base):
     training_id: Mapped[int] = mapped_column(ForeignKey("training.id", ondelete="CASCADE"))
     message_id: Mapped[int] = mapped_column(BigInteger)
     created_at: Mapped[created_at]
+    updated_at: Mapped[updated_at]
 
 
 
 @unique
 class MeasurementUnit(Enum):
+    """
+    Единицы измерения
+    """
     KG = "кг"
     SEC = "сек"
     MIN = "мин"
@@ -77,6 +93,9 @@ class MeasurementUnit(Enum):
 
 @unique
 class ExerciseCategory(Enum):
+    """
+    Категории упражнений
+    """
     NONE = None
     CHEST = "грудь"
     BACK = "спина"
@@ -89,18 +108,24 @@ class ExerciseCategory(Enum):
 
 
 class Exercise(Base):
+    """
+    Упражнение
+    """
     __tablename__ = "exercise"
 
     id: Mapped[intpk]
     name: Mapped[str_256]
     category: Mapped[ExerciseCategory | None]
-    description: Mapped[str_4096]
+    description: Mapped[str_2048]
     measurement_unit: Mapped[MeasurementUnit]
     image: Mapped[str]
 
 
 
 class Training(Base):
+    """
+    Тренировка
+    """
     __tablename__ = "training"
 
     id: Mapped[intpk]
@@ -115,6 +140,9 @@ class Training(Base):
 
 
 class Set(Base):
+    """
+    Подход на упражнение в тренировке
+    """
     __tablename__ = "set"
 
     id: Mapped[intpk]
@@ -131,6 +159,9 @@ class Set(Base):
 
 
 class Rank(Base):
+    """
+    Ранг
+    """
     __tablename__ = "rank"
 
     id: Mapped[intpk]
@@ -140,13 +171,17 @@ class Rank(Base):
 
 
 class ExerciseRank(Base):
+    """
+    Ранг упражнения
+    """
     __tablename__ = "exercise_rank"
 
     id: Mapped[intpk]
-    exercise_id: Mapped[int] = mapped_column(ForeignKey("exercise.id"))
+    exercise_id: Mapped[int | None] = mapped_column(ForeignKey("exercise.id"))
     rank_id: Mapped[int] = mapped_column(ForeignKey("rank.id"))
     level: Mapped[int]
     grade_threshold: Mapped[float]
+    is_default: Mapped[bool] = mapped_column(default=False)
 
     __table_args__ = (
         CheckConstraint('level >= 0 AND level <= 5', name='level_check'),
@@ -155,12 +190,15 @@ class ExerciseRank(Base):
 
 
 class UserExerciseRating(Base):
+    """
+    Ранг пользователя в упражнении
+    """
     __tablename__ = "user_exercise_rating"
 
     id: Mapped[intpk]
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
-    exercise_id: Mapped[int] = mapped_column(ForeignKey("exercise.id"))
-    rank_id: Mapped[int] = mapped_column(ForeignKey("rank.id"))
+    exercise_id: Mapped[int | None] = mapped_column(ForeignKey("exercise.id"))
+    exercise_rank_id: Mapped[int] = mapped_column(ForeignKey("exercise_rank.id"))
+    rating_value: Mapped[float]
     created_at: Mapped[created_at]
     updated_at: Mapped[updated_at]
-    

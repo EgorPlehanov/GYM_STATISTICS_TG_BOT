@@ -12,6 +12,7 @@ from handlers import (
     help,
     redirect,
     training,
+    statistics,
     default_reaction,
 )
 from db.queries.core import create_tables_async, create_tables_sync
@@ -32,6 +33,7 @@ async def main():
         user_member.router,
         redirect.router,
         training.router,
+        statistics.router,
         default_reaction.router
     )
 
@@ -43,5 +45,5 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
-    # asyncio.run(create_tables_async())
     # create_tables_sync()
+    # asyncio.run(create_tables_async())

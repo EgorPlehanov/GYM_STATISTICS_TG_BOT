@@ -188,7 +188,11 @@ async def update_training_data(
             Training.id == training_id,
             or_(
                 Training.date.cast(Date) != training_data.get('date').date(),
-                Training.comment != training_data.get('comment')
+                Training.comment != training_data.get('comment'),
+                and_(
+                    Training.comment.is_(None),
+                    training_data.get('comment') is not None
+                )
             )
         )
     )
@@ -222,6 +226,7 @@ async def save_training_data(
             set_id = set_data.get('id')
             if set_id is None:
                 set_id = await save_new_set_data(session, training_id, exercise_id, local_number, set_data)
+                update_flag = True
             else:
                 is_updated = await update_set_data(session, local_number, set_data)
                 update_flag = is_updated if is_updated else update_flag

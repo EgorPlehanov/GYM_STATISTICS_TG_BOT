@@ -1,5 +1,5 @@
 from aiogram import Router, F
-from aiogram.types import Message, ReactionTypeEmoji
+from aiogram.types import Message
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.filters.callback_data import CallbackQuery
@@ -20,7 +20,6 @@ from .training_units import (
     edit_select_set_router,
     finish_add_comment_router,
 )
-from utils.edit_exercise_data import initialize_exercise_data
 from utils.format_exercise_data import get_formatted_state_date
 from keyboards.training_kb import (
     get_ikb_select_date,
