@@ -10,30 +10,54 @@ from handlers.training_units import TrainingStates, TrainingMode
 
 
 
-def format_exercise_data(
+def format_exercises_data(
     exercise_data: Dict[str, Union[int, Dict]],
     edit_exercise_id: str = None,
-    edit_set_id: int = None
+    edit_set_id: int = None,
+    delete_acept_flag: bool = False,
 ) -> str:
     """
     Форматирует данные о тренировке
     (упражнения, подходы, вес, количество повторений и время выполнения)
     """
+    delete_all_acept_flag = (
+        delete_acept_flag
+        and edit_exercise_id is None
+        and edit_set_id is None
+    )
+
     text_parts = []
     for exercise_id, exercise in exercise_data['exercises'].items():
-        exercise_edit_flag = '✏️ ' if edit_exercise_id == exercise_id else ''
+        exercise_edit_flag = '✏️ ' if edit_exercise_id == exercise_id or delete_all_acept_flag else ''
 
-        text_parts.append(f"{exercise_edit_flag}◼️ {exercise['exercise_name']}:")
+        exercise_name = html.bold(exercise['exercise_name'])
+        if ((
+                delete_acept_flag
+                and edit_exercise_id == exercise_id
+                and (edit_set_id is None or len(exercise['sets']) == 1)
+            ) or delete_all_acept_flag
+        ):
+            exercise_name = html.strikethrough(exercise_name)
+        exercise_text_parts = [f"{exercise_edit_flag}◼️ {exercise_name}:"]
 
         for set_number, set_data in exercise['sets'].items():
+
             set_edit_flag = ''
             if (
                 edit_exercise_id == exercise_id
                 and (edit_set_id is None or edit_set_id == set_number)
+                or delete_all_acept_flag
             ):
                 set_edit_flag = '✏️ '
+            set_text = f"{set_number}) {format_set_data_to_text(set_data, set_id=set_number, is_add_set_number=False)}"
 
-            text_parts.append(f"{set_edit_flag}\t▫️ {set_number}) {format_set_data_to_text(set_data, False)}")
+            if delete_acept_flag and set_edit_flag or delete_all_acept_flag:
+                set_text = html.strikethrough(set_text)
+
+            exercise_text_parts.append(f"{set_edit_flag}\t▫️ {set_text}")
+        
+        # text_parts.append("\n".join(exercise_text_parts))
+        text_parts.append(html.blockquote("\n".join(exercise_text_parts)))
 
     return "\n".join(text_parts)
 
@@ -79,9 +103,13 @@ def result_format_exercise_data(exercise_data: Dict[str, Union[int, Dict]]):
     """
     text_parts = []
     for exercise_id, exercise in exercise_data['exercises'].items():
-        text_parts.append(f"◼️ {exercise['exercise_name']}:")
-
-        text_parts.append("\t▫️ " + result_format_exercise_sets(exercise['sets']))
+        exercise_text = html.blockquote((
+            f"◼️ {exercise['exercise_name']}:\n"
+            "\t▫️ " + result_format_exercise_sets(exercise['sets'])
+        ))
+        text_parts.append(exercise_text)
+        # text_parts.append(f"◼️ {exercise['exercise_name']}:")
+        # text_parts.append("\t▫️ " + result_format_exercise_sets(exercise['sets']))
 
     return "\n".join(text_parts)
 
@@ -106,25 +134,29 @@ def get_training_values(
         weekday_name = weekdays[exercise_data['date'].weekday()]
         comment = ""
         if exercise_data.get('comment'):
-            comment = f" ({html.italic(exercise_data['comment'])})"
+            # comment = f" ({html.italic(exercise_data['comment'])})"
+            comment = html.blockquote(html.italic(exercise_data['comment']))
 
         training_values.append(f"{date_edit_flag}{html.bold(weekday_name)} {html.bold(date_formatted)}{comment}")
 
         if is_result:
-            training_values.append(result_format_exercise_data(exercise_data))
+            training_values.append(f"{html.bold('Тренировка:')}\n{result_format_exercise_data(exercise_data)}")
         else:
             if exercise_data.get('exercises'):
                 edit_exercise_id = user_data.get('edit_exercise_id')
                 edit_set_id = user_data.get('edit_set_id')
 
-                format_exercise_text = format_exercise_data(
+                format_exercise_text = format_exercises_data(
                     exercise_data = exercise_data,
                     edit_exercise_id = edit_exercise_id,
-                    edit_set_id = edit_set_id
+                    edit_set_id = edit_set_id,
+                    delete_acept_flag = user_data.get('delete_acept_flag'),
                 )
-                training_values.append(f"Тренировка:\n{format_exercise_text}")
+
+                # training_values.append(f"{html.bold('Тренировка:')}\n{html.blockquote(format_exercise_text)}")
+                training_values.append(f"{html.bold('Тренировка:')}\n{format_exercise_text}")
             else:
-                training_values.append("Тренировка:\n❗Добавьте упражнения❗")
+                training_values.append(f"{html.bold('Тренировка:')}\n{html.blockquote('❗Добавьте упражнения❗')}")
 
     if len(training_values) > 0:
         return "\n".join(training_values)
@@ -157,7 +189,7 @@ def get_current_values(user_data: Dict[str, Union[int, Dict]]) -> str:
         cur_values.append(f"🔂 Повторения: {html.bold(html.underline(user_data['repetitions']))}")
     
     if len(cur_values) > 0: 
-        return "Текущие значения:\n" + "\n".join(cur_values)
+        return "Текущие значения:\n" + html.blockquote("\n".join(cur_values))
     return None
 
 
@@ -170,14 +202,13 @@ async def get_delete_object_text(state: FSMContext) -> str:
     edit_exercise_id = user_data.get('edit_exercise_id')
     edit_exercise_name = user_data.get('edit_exercise_name')
     edit_set_id = user_data.get('edit_set_id')
-    edit_set_number = user_data.get('edit_set_number')
     
     if edit_exercise_id is None:
         return "Всех упражнений с подходами"
     elif edit_set_id is None:
         return f"Всех подходов упражнения {html.underline(edit_exercise_name)}"
     else:
-        return f"Подхода {html.underline(edit_set_number)} упражнения {html.underline(edit_exercise_name)}"
+        return f"Подхода упражнения {html.underline(edit_exercise_name)}"
 
 
 
@@ -220,7 +251,7 @@ async def get_state_text(state: FSMContext) -> str:
 
     adition_text = state_to_adition_text.get(cur_state, '')
     if adition_text != '':
-        adition_text = f"\n❗❗❗ {html.bold(adition_text)} ❗❗❗"
+        adition_text = html.blockquote(f"\n❗❗❗ {html.bold(adition_text)} ❗❗❗")
 
     return f"⬇️ {state_to_text[cur_state]} ⬇️" + adition_text
 
@@ -255,4 +286,4 @@ async def get_formatted_state_date(state: FSMContext, is_result: bool = False) -
 
         text_list.append(await get_state_text(state))
     
-    return "\n\n".join(text_list)
+    return "\n".join(text_list)

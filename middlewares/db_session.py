@@ -6,6 +6,10 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 
 
 class DBSessionMiddleware(BaseMiddleware):
+    """
+    Миддлвейр для работы с базой данных
+    Возвращает асинхронную сессию с базой данных
+    """
     def __init__(self, session_pool: async_sessionmaker):
         self.session_pool = session_pool
 

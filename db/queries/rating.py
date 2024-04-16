@@ -82,12 +82,14 @@ async def update_or_create_user_exercise_rating(
 
 
 
-statistic = namedtuple('statistic', ['exercise_id', 'exercise_name', 'rank_name', 'rank_level', 'rating_value'])
+StatisticData = namedtuple('statistic', [
+    'exercise_id', 'exercise_name', 'rank_name', 'rank_level', 'rating_value'
+])
 
 async def get_user_exercise_rating(
     session: AsyncSession,
     user_id: int
-) -> List[statistic]:
+) -> List[StatisticData]:
     """
     Возвращает рейтинг пользователя
     """
@@ -105,6 +107,96 @@ async def get_user_exercise_rating(
         .where(UserExerciseRating.user_id == user_id)
         .order_by(Rank.grade.desc(), ExerciseRank.level.desc())
     )
-    return [
-        statistic(*row) for row in result.all()
-    ]
+    return [StatisticData(*row) for row in result.all()]
+
+
+
+ExportData = namedtuple('export_data', [
+# Set current
+    'date',
+    'comment',
+    'exercise_name',
+    'overall_order',
+    'exercise_order',
+    'weight',
+    'repetitions',
+# Training current
+    'training_exercise_weight_sum',
+    'training_exercise_repetitions_sum',
+    'training_exercise_sets_count',
+    'training_sets_count',
+# Exercise all
+    'exercise_all_weight_sum',
+    'exercise_all_repetitions_sum',
+    'exercise_all_sets_count',
+# Exercise rank
+    'exercise_rank_value',
+    'exercise_rank_name',
+    'exercise_rank_star_count',
+    'exercise_rank_star_level',
+# All
+    'all_sets_count'
+])
+
+async def get_export_data(
+    session: AsyncSession,
+    user_id: int
+) -> List[ExportData]:
+    """
+    Возвращает данные для экспорта
+    """
+    result = await session.execute(
+        select(
+            # Set current
+            Training.date.cast(Date).label('date'),         # Дата тренировки
+            Training.comment.label('comment'),              # Комментарий
+            Exercise.name.label('exercise_name'),           # Название упражнения
+            Set.overall_order.label('overall_order'),       # № подхода в тренировке
+            Set.exercise_order.label('exercise_order'),     # № подхода в упражнении на тренировке
+            Set.weight.label('weight'),                     # Вес в подходе
+            Set.repetitions.label('repetitions'),           # Повторения в подходе
+            # Training current
+            func.sum(Set.weight * Set.repetitions).over(    # Сумма весов всех подходов упражнения на тренировке
+                partition_by = [Training.id, Exercise.id],
+            ),
+            func.sum(Set.repetitions).over(                 # Сумма повторений всех подходов упражнения на тренировке
+                partition_by = [Training.id, Exercise.id],
+            ),
+            func.count().over(                              # Количество подходов упражнения на тренировке
+                partition_by = [Training.id, Exercise.id],
+            ),
+            func.count().over(                              # Количество подходов на тренировке
+                partition_by = [Training.id],
+            ),
+            # Exercise all
+            func.sum(Set.weight * Set.repetitions).over(    # Сумма весов всех подходов упражнения всех тренировок
+                partition_by = [Exercise.id],
+            ),
+            func.sum(Set.repetitions).over(                 # Сумма повторений всех подходов упражнения всех тренировок
+                partition_by = [Exercise.id],
+            ),
+            func.count().over(                              # Количество подходов упражнения всех тренировок
+                partition_by = [Exercise.id],
+            ),
+            # Exercise rank
+            UserExerciseRating.rating_value.label('exercise_rank_value'),  # максимальное значение веса в упражнении
+            Rank.name.label('exercise_rank_name'),                         # Название ранга в упражнении
+            ExerciseRank.level.label('exercise_rank_star_count'),          # Количество звезд в ранге в упражнении
+            func.repeat('⭐', ExerciseRank.level).label('exercise_rank_star_level'),  # Звезды в ранге в упражнении
+            # All
+            func.count().over(                              # Количество подходов всех тренировок
+                partition_by = [],
+            ),
+        )
+        .join (Set, Set.training_id == Training.id)
+        .join (Exercise, Exercise.id == Set.exercise_id)
+        .outerjoin(UserExerciseRating, and_(
+            UserExerciseRating.exercise_id == Set.exercise_id,
+            UserExerciseRating.user_id == Training.user_id
+        ))
+        .join(ExerciseRank, ExerciseRank.id == UserExerciseRating.exercise_rank_id)
+        .join(Rank, Rank.id == ExerciseRank.rank_id)
+        .where(Training.user_id == user_id)
+        .order_by(Training.date.cast(Date), Exercise.name, Set.exercise_order)
+    )
+    return [ExportData(*row) for row in result.all()]

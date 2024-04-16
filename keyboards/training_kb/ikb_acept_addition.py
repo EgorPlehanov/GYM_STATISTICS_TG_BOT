@@ -19,4 +19,5 @@ def get_ikb_acept_addition(
     if mode == TrainingMode.ADD_EXERCISE:
         builder.row(InlineKeyboardButton(text="✏️ Изменить упражнение 🏋", callback_data="to_exercise"))
     builder.row(InlineKeyboardButton(text="✏️ Изменить кол-во подходов 🔁", callback_data="to_sets_count"))
+    builder.row(InlineKeyboardButton(text="❌ Отменить и вернуться в меню ❌", callback_data="to_menu"))
     return builder.as_markup()

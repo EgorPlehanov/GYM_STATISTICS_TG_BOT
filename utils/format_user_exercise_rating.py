@@ -1,6 +1,7 @@
+from aiogram import html
 from typing import List
 
-from db.queries import statistic
+from db.queries import StatisticData
 
 
 
@@ -10,33 +11,34 @@ def get_prize_message(place):
     """
     match place:
         case 1:
-            return "🥇 "
+            return "🥇"
         case 2:
-            return "🥈 "
+            return "🥈"
         case 3:
-            return "🥉 "
+            return "🥉"
         case _:
             return "🏅"
 
 
 
-def format_user_exercise_rating(statistics: List[statistic]) -> str:
+def format_user_exercise_rating(statistics: List[StatisticData]) -> str:
     """
     Форматирует рейтинг пользователя в красивый текст сообщения.
     """
-    stats_text = f"📈 Твоя статистика:\n"
-
     if len(statistics) == 0:
         return "🏆 Добавляй тренировки и тут будут появляться твои лучшие результаты!"
-
+    
+    stats_text = ''
     cur_rank = ''
+    rank_str = ''
     for i, stat in enumerate(statistics):
-        rank_str = f"{stat.rank_name} {''.join(['⭐️' for _ in range(stat.rank_level)])}"
+       
+        rank_str += f"{get_prize_message(i + 1)} {stat.exercise_name}: {html.bold(stat.rating_value)}\n"
 
-        if rank_str != cur_rank:
-            stats_text += f"\n{rank_str}\n"
-            cur_rank = rank_str
+        rank_str_name = f"{stat.rank_name} {''.join(['⭐️' for _ in range(stat.rank_level)])}"
+        if rank_str_name != cur_rank:
+            stats_text += html.blockquote(html.spoiler(f"{html.bold(rank_str_name)}\n{rank_str}"))
+            cur_rank = rank_str_name
+            rank_str = ''
 
-        stats_text += f"{get_prize_message(i + 1)} {stat.exercise_name}: {stat.rating_value}\n"
-
-    return stats_text
+    return f"📈 {html.bold(html.underline('Твои лучшие результаты:'))}\n{stats_text}"

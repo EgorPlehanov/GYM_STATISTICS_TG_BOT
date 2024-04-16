@@ -1,7 +1,15 @@
 from aiogram.fsm.state import StatesGroup, State
 
+from typing import Dict, Union
+from datetime import datetime
 from enum import Enum
 from collections import namedtuple
+
+
+
+SetData = Dict[str, Union[int, float, datetime, str]]  # Тип для данных о подходе
+ExerciseData = Dict[str, Union[str, int, Dict[int, SetData]]]  # Тип для данных об упражнении
+TrainingData = Dict[str, Union[int, Dict[int, ExerciseData]]]  # Тип для данных о тренировке
 
 
 

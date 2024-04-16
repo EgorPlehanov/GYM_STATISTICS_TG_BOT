@@ -13,6 +13,8 @@ from handlers import (
     redirect,
     training,
     statistics,
+    export_data,
+    main_admin,
     default_reaction,
 )
 from db.queries.core import create_tables_async, create_tables_sync
@@ -27,6 +29,7 @@ async def main():
 
     dp = Dispatcher()
     dp.include_routers(
+        main_admin.router,
         start.router,
         help.router,
         bot_member.router,
@@ -34,6 +37,7 @@ async def main():
         redirect.router,
         training.router,
         statistics.router,
+        export_data.router,
         default_reaction.router
     )
 

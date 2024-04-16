@@ -1,4 +1,4 @@
-from aiogram import Router
+from aiogram import Router, html
 from aiogram.types import Message
 from aiogram.filters import Command, StateFilter
 
@@ -25,5 +25,8 @@ async def cmd_statistics(message: Message, session: AsyncSession) -> None:
         user_id = message.from_user.id
     )
     await message.answer(
-        text=format_user_exercise_rating(statistics)
+        text = (
+            f"{format_user_exercise_rating(statistics)}\n"
+            f"🗄️ {html.italic('Выгрузить все данные о тренировках:')} /export_data"
+        )
     )

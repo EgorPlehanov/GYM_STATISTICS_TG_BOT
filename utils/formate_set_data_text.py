@@ -4,6 +4,7 @@ from typing import Dict
 
 def format_set_data_to_text(
     set_data: Dict[str, int],
+    set_id: int = None,
     is_add_set_number: bool = True
 ) -> str:
     """
@@ -12,9 +13,10 @@ def format_set_data_to_text(
     str_parts = []
 
     if is_add_set_number:
-        set_number = set_data['set_number']
-        if set_number is not None:
-            str_parts.append(f"{set_number})")
+        # set_number = set_data['set_number']
+        # if set_number is not None:
+        #     str_parts.append(f"{set_number})")
+        str_parts.append(f"{set_id})")
 
     time = set_data['time'].strftime('%H:%M')
     if time is not None:

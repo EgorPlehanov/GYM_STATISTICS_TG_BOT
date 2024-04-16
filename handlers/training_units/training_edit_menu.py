@@ -89,6 +89,8 @@ async def delete_acept(callback: CallbackQuery, state: FSMContext):
     """
     state_before_delete = await state.get_state()
 
+    await state.update_data(delete_acept_flag=True)
+
     await state.update_data(state_before_delete=state_before_delete)
     await state.update_data(reply_markup_before_delete=callback.message.reply_markup)
 
@@ -111,6 +113,8 @@ async def delete_cancel(callback: CallbackQuery, state: FSMContext):
     reply_markup_before_delete = user_data.get('reply_markup_before_delete')
 
     await state.set_state(state_before_delete)
+
+    await state.update_data(delete_acept_flag=None)
     
     await state.update_data(state_before_delete=None)
     await state.update_data(reply_markup_before_delete=None)
@@ -148,6 +152,7 @@ async def delete_exercises_sets(callback: CallbackQuery, state: FSMContext):
         await state.update_data(last_weight=None)
         await state.update_data(last_repetitions=None)
 
+    await state.update_data(delete_acept_flag=None)
     await state.update_data(state_before_delete=None)
     await state.update_data(reply_markup_before_delete=None)
     await state.update_data(mode=None)

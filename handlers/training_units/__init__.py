@@ -1,10 +1,5 @@
-from .training_types import (
-    TrainingMode,
-    TrainingStates,
-    exercise_button_by_mode,
-    weight_back_button_by_mode,
-    acept_button_by_mode
-)
+from .training_types import *
+
 from .training_select_date import router as select_date_router
 from .training_select_exercise import router as select_exercise_router
 from .training_select_weight import router as select_weight_router

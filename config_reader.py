@@ -3,6 +3,8 @@ from pydantic import SecretStr
 
 
 class Settings(BaseSettings):
+    MAIN_ADMIN_ID: SecretStr
+
     TG_BOT_TOKEN: SecretStr
     TG_BOT_USERNAME: str
 

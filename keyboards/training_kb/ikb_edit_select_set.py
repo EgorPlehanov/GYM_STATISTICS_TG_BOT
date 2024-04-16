@@ -14,7 +14,6 @@ class EditTrainingSetPagination(CallbackData, prefix='ed_set_pag'):
     """
     CallbackData для пагинации выбора упражнения
     """
-    
     action: PaginationAction
     page: int
     set_id: int
@@ -36,7 +35,10 @@ def get_ikb_edit_select_set_fab(
             break
         builder.row(
             InlineKeyboardButton(
-                text=format_set_data_to_text(list(exercise_sets_data.values())[i]),
+                text=format_set_data_to_text(
+                    set_data = list(exercise_sets_data.values())[i],
+                    set_id = list(exercise_sets_data.keys())[i]
+                ),
                 callback_data=EditTrainingSetPagination(
                     action=PaginationAction.SET,
                     page=page,

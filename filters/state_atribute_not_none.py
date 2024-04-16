@@ -1,5 +1,3 @@
-from typing import Union
-
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
@@ -9,6 +7,9 @@ from typing import Dict, Union
 
 
 class StateAtributeNotNoneFilter(BaseFilter):
+    """
+    Проверяет что атрибут состояния не равен None
+    """
     def __init__(self, atribute_name: str):
         self.atribute_name = atribute_name
 

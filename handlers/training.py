@@ -25,7 +25,10 @@ from keyboards.training_kb import (
     get_ikb_select_date,
     get_ikb_training_menu,
 )
-from middlewares import DBSessionMiddleware
+from middlewares import (
+    DBSessionMiddleware,
+    ChatActionMiddleware,
+)
 from db.database import async_session_factory
 from db.queries import get_sorted_exercises_by_sets_count
 
@@ -34,6 +37,7 @@ from db.queries import get_sorted_exercises_by_sets_count
 router = Router()
 router.message.filter(F.chat.type == "private")
 router.message.middleware(DBSessionMiddleware(async_session_factory))
+router.message.middleware(ChatActionMiddleware())
 router.include_routers(
     select_date_router,
     select_exercise_router,
@@ -73,8 +77,9 @@ async def cmd_training(message: Message, state: FSMContext, session: AsyncSessio
 @router.callback_query(F.data == 'to_menu', TrainingStates.select_date)
 @router.callback_query(F.data == 'to_menu', TrainingStates.select_exercise)
 @router.callback_query(F.data == 'to_menu', TrainingStates.select_weight)
-@router.callback_query(F.data == 'to_menu', TrainingStates.add_comment)
+@router.callback_query(F.data == 'to_menu', TrainingStates.acept_addition)
 @router.callback_query(F.data == 'to_menu', TrainingStates.edit_menu)
+@router.callback_query(F.data == 'to_menu', TrainingStates.add_comment)
 async def back_to_menu(callback: CallbackQuery, state: FSMContext):
     """
     Инлайн кнопка "Назад" возврат в меню
