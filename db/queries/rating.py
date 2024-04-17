@@ -69,6 +69,7 @@ async def update_or_create_user_exercise_rating(
         )
         if record:
             record.exercise_rank_id = exercise_rank_id
+            record.rating_value = max_weight
         else:
             record = UserExerciseRating(
                 user_id = user_id,
