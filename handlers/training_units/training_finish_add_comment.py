@@ -1,5 +1,8 @@
 from aiogram import Router, F
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import (
+    CallbackQuery, Message, InlineQuery,
+    InlineQueryResultArticle, InputTextMessageContent
+)
 from aiogram.fsm.context import FSMContext
 
 from typing import Dict, Union
@@ -8,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .training_types import TrainingStates
 from utils.format_exercise_data import get_formatted_state_date
 from utils.redirect_result_to_user_group import redirect_result_to_user_group
-from keyboards.training_kb import ikb_finish_add_comment
+from keyboards.training_kb import get_ikb_finish_add_comment
 from middlewares import DBSessionMiddleware
 from db.database import async_session_factory
 from db.queries import (
@@ -34,29 +37,56 @@ async def finish_training(callback: CallbackQuery, state: FSMContext):
     """
     await state.set_state(TrainingStates.add_comment)
 
+    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
-        reply_markup=ikb_finish_add_comment,
+        reply_markup = get_ikb_finish_add_comment(
+            current_comment = user_data.get('exercise_data').get('comment')
+        ),
+    )
+
+
+
+@router.inline_query(TrainingStates.add_comment)
+async def inline_exercise(inline_query: InlineQuery):
+    """
+    Инлайн выбор упражнения: возвращает список значений
+    """
+    await inline_query.answer(
+        [
+            InlineQueryResultArticle(
+                id = str(1),
+                title = inline_query.query,
+                input_message_content = InputTextMessageContent(
+                    message_text = inline_query.query
+                ),
+            )
+        ] if inline_query.query else [],
+        cache_time = 0,
+        is_personal = True
     )
 
 
 
 @router.message(TrainingStates.add_comment)
+@router.message(F.via_bot, TrainingStates.add_comment)
 async def add_comment(message: Message, state: FSMContext):
     """
     Ввод комментария
     """
-    # await state.update_data(comment=message.text)
     await message.delete()
 
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
-    user_data['exercise_data']['comment'] = message.text
+    user_data['exercise_data']['comment'] = message.text[:2000]
 
     await message.bot.edit_message_text(
         chat_id=message.chat.id,
         message_id=user_data.get('message_id'),
         text=await get_formatted_state_date(state),
-        reply_markup = ikb_finish_add_comment,
+        reply_markup = get_ikb_finish_add_comment(
+            current_comment = message.text[:2000]
+        ),
     )
 
 

@@ -179,8 +179,8 @@ def get_current_values(user_data: Dict[str, Union[int, Dict]]) -> str:
     elif user_data.get('exercise_name') is not None:
         cur_values.append(f"🏋️‍♂️ Упражнение: {html.bold(html.underline(user_data['exercise_name']))}")
 
-    if user_data.get('edit_set_number') is not None:
-        cur_values.append(f"🔢 Подход: {html.bold(html.underline(user_data['edit_set_number']))}")
+    if user_data.get('edit_set_id') is not None:
+        cur_values.append(f"🔢 Подход: {html.bold(html.underline(user_data['edit_set_id']))}")
 
     if user_data.get('weight') is not None:
         cur_values.append(f"⚖️ Вес: {html.bold(html.underline(user_data['weight']))} кг")

@@ -27,13 +27,21 @@ async def cmd_export_data(message: Message, session: AsyncSession) -> None:
     """
     Команда /export_data
     """
+    waitig_answer = await message.answer("🗂️")
+
     file_buffer = await get_export_data_file(
         session = session,
         user_id = message.from_user.id
     )
+    
     await message.reply_document(
         document = BufferedInputFile(
             file=file_buffer,
             filename="export_data.xlsx"
+        ),
+        caption = (
+            "📄 Файл уже готов!\n"
+            "🗄️ Я собрала всю нужную информацию и поместила ее в этот файл!"
         )
     )
+    await waitig_answer.delete()

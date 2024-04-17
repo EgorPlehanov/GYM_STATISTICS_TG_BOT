@@ -72,6 +72,7 @@ async def redirect_result_to_user_group(
                         group_id = group_id,
                         is_bot_banned = True,
                     )
+            continue
 
         if is_create:
             # если тренировка была создана новая

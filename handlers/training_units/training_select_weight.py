@@ -268,7 +268,7 @@ async def repeat_set(callback: CallbackQuery, state: FSMContext):
     """
     Инлайн кнопка "Повторить сет"
     """
-    await state.set_state(TrainingStates.select_weight)
+    await state.set_state(TrainingStates.acept_addition)
 
     await state.update_data(mode=TrainingMode.ADD_SET)
 
