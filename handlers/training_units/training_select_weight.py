@@ -18,6 +18,7 @@ from .training_types import (
 from filters import StateAtributeNotNoneFilter
 from utils.check_acept_addition import check_acept_addition
 from utils.format_exercise_data import get_formatted_state_date
+from utils.weight_repetitions_modes import get_weight_repetitions_modes_values
 from keyboards.training_kb import (
     get_ikb_open_inline_search,
     get_ikb_acept_addition,
@@ -62,7 +63,11 @@ async def add_set_handler(callback: CallbackQuery, state: FSMContext):
             has_next_button = user_data.get("weight") is not None,
             next_button_text = "Повторения",
             next_button_callback_data = "to_repetitions",
-            has_delete_set_button = False
+            has_delete_set_button = False,
+            switch_inline_query = get_weight_repetitions_modes_values(
+                user_data = await state.get_data(),
+                is_weight = True
+            )
         ),
     )
 
@@ -148,7 +153,10 @@ async def selected_additional_weight(message: Message, state: FSMContext):
             has_acept_button = await check_acept_addition(state),
             acept_button_text = acept_button.text,
             acept_button_callback_data = acept_button.callback_data,
-            has_delete_set_button = user_data.get("mode") == TrainingMode.EDIT_SET
+            has_delete_set_button = user_data.get("mode") == TrainingMode.EDIT_SET,
+            switch_inline_query = get_weight_repetitions_modes_values(
+                user_data, is_repetitions=True
+            )
         ),
     )
 
@@ -228,7 +236,7 @@ async def read_weight_and_repetitions(message: Message, state: FSMContext):
         text=await get_formatted_state_date(state),
         reply_markup=get_ikb_acept_addition(mode)
     )
-
+        
 
 
 @router.callback_query(F.data == "to_weight", TrainingStates.select_exercise)
@@ -257,7 +265,10 @@ async def to_weight(callback: CallbackQuery, state: FSMContext):
             has_acept_button = await check_acept_addition(state),
             acept_button_text = acept_button.text,
             acept_button_callback_data = acept_button.callback_data,
-            has_delete_set_button = user_data.get("mode") == TrainingMode.EDIT_SET
+            has_delete_set_button = user_data.get("mode") == TrainingMode.EDIT_SET,
+            switch_inline_query = get_weight_repetitions_modes_values(
+                user_data, is_weight=True
+            )
         ),
     )
 

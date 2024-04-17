@@ -10,6 +10,7 @@ from .training_types import (
     acept_button_by_mode,
 )
 from utils.format_exercise_data import get_formatted_state_date
+from utils.weight_repetitions_modes import get_weight_repetitions_modes_values
 from keyboards.keyboards_types import PaginationAction
 from keyboards.training_kb import (
     EditTrainingSetPagination,
@@ -88,15 +89,19 @@ async def selected_set(
         text=await get_formatted_state_date(state),
         reply_markup = get_ikb_open_inline_search(
             entity_name = "вес",
-            back_button_text="Подход",
-            back_button_callback_data="to_edit_menu_set",
-            has_next_button=True,
-            next_button_text="Повторения",
-            next_button_callback_data="to_repetitions",
+            back_button_text = "Подход",
+            back_button_callback_data = "to_edit_menu_set",
+            has_next_button = True,
+            next_button_text = "Повторения",
+            next_button_callback_data = "to_repetitions",
             has_acept_button = await check_acept_addition(state),
             acept_button_text = acept_button.text,
             acept_button_callback_data = acept_button.callback_data,
-            has_delete_set_button = True
+            has_delete_set_button = True,
+            switch_inline_query = get_weight_repetitions_modes_values(
+                user_data = await state.get_data(),
+                is_weight = True
+            )
         ),
     )
 

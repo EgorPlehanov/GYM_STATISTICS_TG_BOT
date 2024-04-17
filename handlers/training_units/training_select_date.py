@@ -92,7 +92,7 @@ async def selected_date_today(callback: CallbackQuery, state: FSMContext, sessio
         reply_markup = get_ikb_training_menu(
             is_add_edit_button = len(exercises) != 0,
             is_add_add_set_button = user_data.get("exercise_id") is not None,
-            repeat_set_button_text = f"{last_weight}x{last_repetitions}"
+            repeat_set_button_text = f"{last_weight}×{last_repetitions}"
         ),
     )
 
@@ -155,7 +155,7 @@ async def process_dialog_calendar(
             reply_markup = get_ikb_training_menu(
                 is_add_edit_button = len(exercises) != 0,
                 is_add_add_set_button = user_data.get("exercise_id") is not None,
-                repeat_set_button_text = f"{last_weight}x{last_repetitions}"
+                repeat_set_button_text = f"{last_weight}×{last_repetitions}"
             ),
         )
 
@@ -228,7 +228,7 @@ async def save_and_go(callback: CallbackQuery, state: FSMContext, session: Async
         reply_markup = get_ikb_training_menu(
             is_add_edit_button = len(exercises) != 0,
             is_add_add_set_button = False,
-            repeat_set_button_text = f"{last_weight}x{last_repetitions}"
+            repeat_set_button_text = f"{last_weight}×{last_repetitions}"
         ),
     )
 

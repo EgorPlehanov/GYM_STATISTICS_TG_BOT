@@ -14,6 +14,7 @@ def get_ikb_open_inline_search(
     acept_button_text: str = "Добавить",
     acept_button_callback_data: str = "acept_addition",
     has_delete_set_button: bool = False,
+    switch_inline_query: str = "",
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     
@@ -25,7 +26,7 @@ def get_ikb_open_inline_search(
 
     builder.row(InlineKeyboardButton(
         text = f"🔎 Выбрать {entity_name.lower()} 🔎",
-        switch_inline_query_current_chat = ""
+        switch_inline_query_current_chat = switch_inline_query
     ))
 
     builder.row(

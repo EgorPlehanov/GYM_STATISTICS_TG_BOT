@@ -10,6 +10,7 @@ from typing import List, Dict, Union
 from .training_types import TrainingStates, TrainingMode, acept_button_by_mode
 from utils.format_exercise_data import get_formatted_state_date
 from utils.check_acept_addition import check_acept_addition
+from utils.weight_repetitions_modes import get_weight_repetitions_modes_values
 from keyboards.training_kb import (
     get_ikb_open_inline_search,
     get_ikb_acept_addition,
@@ -120,6 +121,9 @@ async def to_repetitions(callback: CallbackQuery, state: FSMContext):
             has_acept_button = await check_acept_addition(state),
             acept_button_text = acept_button.text,
             acept_button_callback_data = acept_button.callback_data,
-            has_delete_set_button = user_data.get("mode") == TrainingMode.EDIT_SET
+            has_delete_set_button = user_data.get("mode") == TrainingMode.EDIT_SET,
+            switch_inline_query = get_weight_repetitions_modes_values(
+                user_data, is_repetitions=True
+            )
         ),
     )

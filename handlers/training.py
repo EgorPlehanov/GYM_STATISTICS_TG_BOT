@@ -30,7 +30,10 @@ from middlewares import (
     ChatActionMiddleware,
 )
 from db.database import async_session_factory
-from db.queries import get_sorted_exercises_by_sets_count
+from db.queries import (
+    get_sorted_exercises_by_sets_count,
+    get_exercises_weight_repetitions_modes
+)
 
 
 
@@ -62,8 +65,13 @@ async def cmd_training(message: Message, state: FSMContext, session: AsyncSessio
 
     await state.update_data(most_frequent_exercises=await get_sorted_exercises_by_sets_count(
         session = session,
-        user_id=message.from_user.id,
-        page_size=15
+        user_id = message.from_user.id,
+        page_size = 15
+    ))
+    await state.update_data(weight_repetitions_modes = await get_exercises_weight_repetitions_modes(
+        session = session,
+        user_id = message.from_user.id,
+        last_training_count = 12
     ))
 
     answer = await message.answer(
@@ -104,7 +112,7 @@ async def back_to_menu(callback: CallbackQuery, state: FSMContext):
         reply_markup = get_ikb_training_menu(
             is_add_edit_button = len(exercises) != 0,
             is_add_add_set_button = user_data.get("exercise_id") is not None,
-            repeat_set_button_text = f"{last_weight}x{last_repetitions}"
+            repeat_set_button_text = f"{last_weight}×{last_repetitions}"
         ),
     )
 

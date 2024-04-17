@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from typing import List, Dict, Union
 from datetime import datetime
+from collections import namedtuple
 
 from ..models import Exercise, Set, Training, User
 
@@ -16,7 +17,7 @@ async def get_sorted_exercises_by_sets_count(
     substring: str = None,
 ) -> List[Exercise]:
     """
-    Возвращает список упражнений по количеству подходов
+    Возвращает список упражнений отсортированный по количеству подходов
     """
     subquery = (
         select(Set.id.label('set_id'), Set.exercise_id)
@@ -51,6 +52,48 @@ async def get_sorted_exercises_by_sets_count(
     exercises = result.scalars().all()
 
     return exercises
+
+
+
+async def get_exercises_weight_repetitions_modes(
+    session: AsyncSession,
+    user_id: int,
+    last_training_count: int = 12
+) -> Dict[int, Dict[str, Union[int, Dict[str, Union[int, float]]]]]:
+    """
+    Возвращает список id упражнений c модой веса и количества повторений для каждого подхода
+    """
+    result = await session.execute(
+        select(
+            Set.exercise_id,
+            Set.exercise_order,
+            func.mode().within_group(Set.weight.desc()).label('weight_mode'),
+            func.mode().within_group(Set.repetitions.desc()).label('repetitions_mode'),
+            func.max(Set.exercise_order).over(partition_by=Set.exercise_id).label('max_exercise_order')
+        )
+        .where(
+            Set.training_id.in_(
+                select(Training.id)
+                .where(Training.user_id == user_id)
+                .order_by(Training.date.desc())
+                .limit(last_training_count)
+            )
+        )
+        .group_by(Set.exercise_id, Set.exercise_order)
+        .order_by(Set.exercise_id, Set.exercise_order)
+    )
+    weight_repetitions_modes = {}
+    for row in result.all():
+        if row.exercise_id not in weight_repetitions_modes:
+            weight_repetitions_modes[row.exercise_id] = {
+                'max_exercise_order': row.max_exercise_order,
+                'sets_modes': {},
+            }
+        weight_repetitions_modes[row.exercise_id]['sets_modes'][row.exercise_order] = {
+            'weight_mode': row.weight_mode,
+            'repetitions_mode': row.repetitions_mode
+        }
+    return weight_repetitions_modes
 
 
 

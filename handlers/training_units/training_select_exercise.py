@@ -15,14 +15,15 @@ from .training_types import (
     exercise_button_by_mode,
     Button
 )
-from utils.format_exercise_data import get_formatted_state_date
 from keyboards.keyboards_types import PaginationAction
 from keyboards.training_kb import (
     get_ikb_select_exercise_fab,
     TrainingExercisePagination,
     get_ikb_open_inline_search,
 )
+from utils.format_exercise_data import get_formatted_state_date
 from utils.check_acept_addition import check_acept_addition
+from utils.weight_repetitions_modes import get_weight_repetitions_modes_values
 from middlewares import DBSessionMiddleware
 from db.database import async_session_factory
 from db.models import Exercise
@@ -138,12 +139,16 @@ async def selected_exercise(
         text=await get_formatted_state_date(state),
         reply_markup = get_ikb_open_inline_search(
             entity_name = "вес",
-            back_button_text=back_button.text,
-            back_button_callback_data=back_button.callback_data,
-            has_next_button=user_data.get("weight") is not None,
-            next_button_text="Повторения",
-            next_button_callback_data="to_repetitions",
-            has_delete_set_button = user_data.get("mode") == TrainingMode.EDIT_SET
+            back_button_text = back_button.text,
+            back_button_callback_data = back_button.callback_data,
+            has_next_button = user_data.get("weight") is not None,
+            next_button_text = "Повторения",
+            next_button_callback_data = "to_repetitions",
+            has_delete_set_button = user_data.get("mode") == TrainingMode.EDIT_SET,
+            switch_inline_query = get_weight_repetitions_modes_values(
+                user_data = await state.get_data(),
+                is_weight = True
+            )
         ),
     )
 
@@ -257,6 +262,10 @@ async def inline_selected_exercise(
             has_next_button = user_data.get("weight") is not None,
             next_button_text = "Повторения",
             next_button_callback_data = "to_repetitions",
-            has_delete_set_button = user_data.get("mode") == TrainingMode.EDIT_SET
+            has_delete_set_button = user_data.get("mode") == TrainingMode.EDIT_SET,
+            switch_inline_query = get_weight_repetitions_modes_values(
+                user_data = await state.get_data(),
+                is_weight = True
+            )
         ),
     )
