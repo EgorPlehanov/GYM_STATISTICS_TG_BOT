@@ -32,8 +32,9 @@ def format_user_exercise_rating(statistics: List[StatisticData]) -> str:
     cur_rank = ''
     rank_str = ''
     for i, stat in enumerate(statistics):
-       
-        rank_str += f"{get_prize_message(i + 1)} {stat.exercise_name}: {html.bold(stat.rating_value)}\n"
+
+        rating_value = html.bold(str(stat.rating_value).rstrip('0').rstrip("."))
+        rank_str += f"{get_prize_message(i + 1)} {stat.exercise_name}: {rating_value}\n"
 
         rank_str_name = f"{stat.rank_name} {''.join(['⭐️' for _ in range(stat.rank_level)])}"
         if rank_str_name != cur_rank:

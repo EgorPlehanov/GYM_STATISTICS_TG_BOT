@@ -135,7 +135,7 @@ def get_training_values(
         comment = ""
         if exercise_data.get('comment'):
             # comment = f" ({html.italic(exercise_data['comment'])})"
-            comment = html.blockquote(html.italic(exercise_data['comment']))
+            comment = f"\n{html.blockquote(html.italic(exercise_data['comment']))}"
 
         training_values.append(f"{date_edit_flag}{html.bold(weekday_name)} {html.bold(date_formatted)}{comment}")
 
@@ -218,7 +218,7 @@ async def get_formatted_other_date(state: FSMContext) -> str:
     """
     user_data = await state.get_data()
     canged_exercise_data = user_data.get('changed_exercise_data')
-    return f"\n{get_training_values({'exercise_data': canged_exercise_data}, is_result=True)}\n"
+    return get_training_values({'exercise_data': canged_exercise_data}, is_result=True)
     
 
 
@@ -251,7 +251,7 @@ async def get_state_text(state: FSMContext) -> str:
 
     adition_text = state_to_adition_text.get(cur_state, '')
     if adition_text != '':
-        adition_text = html.blockquote(f"\n❗❗❗ {html.bold(adition_text)} ❗❗❗")
+        adition_text = html.blockquote(f"\n❗❗❗\n{html.bold(adition_text)}\n❗❗❗")
 
     return f"⬇️ {state_to_text[cur_state]} ⬇️" + adition_text
 

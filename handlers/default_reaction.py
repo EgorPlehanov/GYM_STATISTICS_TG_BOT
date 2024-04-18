@@ -24,7 +24,7 @@ async def default_message_reaction(message: Message):
     answer = await message.answer(text=(
         "🤔 Я тебя не понимаю"
     ))
-    await sleep(5)
+    await sleep(3)
     await message.delete()
     await answer.delete()
 

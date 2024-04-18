@@ -1,0 +1,24 @@
+version: "3.7"
+services:
+  postgres:
+    image: postgres
+    restart: always
+    env_file:
+      - ./.env
+    ports:
+      - "6500:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  bot:
+    build: .
+    restart: always
+    volumes:
+      - .:/app
+    env_file:
+      - ./.env
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata: 

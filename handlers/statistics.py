@@ -27,6 +27,6 @@ async def cmd_statistics(message: Message, session: AsyncSession) -> None:
     await message.answer(
         text = (
             f"{format_user_exercise_rating(statistics)}\n"
-            f"🗄️ {html.italic('Выгрузить все данные о тренировках:')} /export_data"
+            f"🗄️ {html.italic('Выгрузить все данные о тренировках:')} /export_data" if len(statistics) > 0 else ''
         )
     )

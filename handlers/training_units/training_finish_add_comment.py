@@ -69,7 +69,7 @@ async def inline_exercise(inline_query: InlineQuery):
 
 
 
-@router.message(TrainingStates.add_comment)
+@router.message(F.text, TrainingStates.add_comment)
 @router.message(F.via_bot, TrainingStates.add_comment)
 async def add_comment(message: Message, state: FSMContext):
     """
@@ -78,6 +78,10 @@ async def add_comment(message: Message, state: FSMContext):
     await message.delete()
 
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    
+    if user_data['exercise_data']['comment'] == message.text[:2000]:
+        return
+    
     user_data['exercise_data']['comment'] = message.text[:2000]
 
     await message.bot.edit_message_text(

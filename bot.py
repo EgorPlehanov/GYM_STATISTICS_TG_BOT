@@ -1,4 +1,3 @@
-import sys
 import asyncio
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
@@ -17,6 +16,7 @@ from handlers import (
     export_data,
     main_admin,
     default_reaction,
+    error
 )
 from db.queries.core import create_tables_async, create_tables_sync
 
@@ -40,7 +40,8 @@ async def main():
         training.router,
         statistics.router,
         export_data.router,
-        default_reaction.router
+        default_reaction.router,
+        error.router
     )
 
     # Пропускаем необработанные при отключенном боте сообщения

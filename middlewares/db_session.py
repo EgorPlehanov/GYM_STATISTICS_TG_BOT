@@ -1,7 +1,10 @@
-from typing import Callable, Dict, Any, Awaitable
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject
 from sqlalchemy.ext.asyncio import async_sessionmaker
+
+from typing import Callable, Dict, Any, Awaitable
+
+from config_reader import config
 
 
 
@@ -23,3 +26,4 @@ class DBSessionMiddleware(BaseMiddleware):
         async with self.session_pool() as session:
             data['session'] = session
             return await handler(event, data)
+            

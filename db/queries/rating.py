@@ -26,6 +26,7 @@ async def update_or_create_user_exercise_rating(
             FROM set s
                 JOIN training t ON t.id = s.training_id
             WHERE t.user_id = :user_id
+              AND s.repetitions > 0
             
             GROUP BY t.user_id, s.training_id, s.exercise_id, s.weight
         )
@@ -52,7 +53,7 @@ async def update_or_create_user_exercise_rating(
         'user_id': user_id,
         # 'start_date': datetime(2024, 1, 1),
         # 'end_date': datetime(2024, 1, 5)
-        # --AND t.date BETWEEN :start_date AND :end_date
+        # /*AND t.date BETWEEN :start_date AND :end_date*/
     }
 
     new_ratings = await session.execute(
