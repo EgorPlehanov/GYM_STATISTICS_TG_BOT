@@ -18,7 +18,6 @@ from handlers import (
     default_reaction,
     error
 )
-from db.queries.core import create_tables_async, create_tables_sync
 
 
 
@@ -52,5 +51,3 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
-    # create_tables_sync()
-    # asyncio.run(create_tables_async())
