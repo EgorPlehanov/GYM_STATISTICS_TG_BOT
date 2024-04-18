@@ -7,9 +7,10 @@ from aiogram.fsm.context import FSMContext
 
 from typing import Dict, Union
 from sqlalchemy.ext.asyncio import AsyncSession
+from asyncio import sleep
 
 from .training_types import TrainingStates
-from utils.format_exercise_data import get_formatted_state_date
+from utils.format_training_data import get_formatted_state_date
 from utils.redirect_result_to_user_group import redirect_result_to_user_group
 from keyboards.training_kb import get_ikb_finish_add_comment
 from middlewares import DBSessionMiddleware
@@ -77,22 +78,30 @@ async def add_comment(message: Message, state: FSMContext):
     """
     await message.delete()
 
+    new_comment = message.text[:500]
+
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
     
-    if user_data['exercise_data']['comment'] == message.text[:2000]:
+    if user_data['exercise_data']['comment'] == new_comment:
         return
     
-    user_data['exercise_data']['comment'] = message.text[:2000]
+    user_data['exercise_data']['comment'] = new_comment
 
     await message.bot.edit_message_text(
         chat_id=message.chat.id,
         message_id=user_data.get('message_id'),
         text=await get_formatted_state_date(state),
         reply_markup = get_ikb_finish_add_comment(
-            current_comment = message.text[:2000]
+            current_comment = new_comment
         ),
     )
-
+    if len(message.text) > 500:
+        warning = await message.answer(
+            text = "❗ Комментарий сокращён до 500 символов."
+        )
+        await sleep(3)
+        await warning.delete()
+    
 
 
 @router.callback_query(

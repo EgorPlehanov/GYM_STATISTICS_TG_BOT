@@ -11,12 +11,15 @@ from db.database import async_session_factory
 from middlewares import DBSessionMiddleware
 from .main_admin_units import *
 from utils.plotly_table import get_plotly_table_bytes
+from utils.split_message import split_message_with_tags
+from middlewares import ChatActionMiddleware
 
 
 
 router = Router()
 router.message.filter(MainAdminFilter())
 router.message.middleware(DBSessionMiddleware(async_session_factory))
+router.message.middleware(ChatActionMiddleware())
 
 
 
@@ -57,7 +60,10 @@ async def check_db_connection(message: Message):
 
 
 
-@router.message(Command("db_monitoring"))
+@router.message(
+    Command("db_monitoring"),
+    flags={'chat_action': 'upload_document'}
+)
 async def db_monitoring(message: Message, command: CommandObject, session: AsyncSession):
     """
     Функции мониторинга базы данных
@@ -66,7 +72,7 @@ async def db_monitoring(message: Message, command: CommandObject, session: Async
     if command.args is not None:
         args = command.args.split()
         filename = args[0]
-        args = args[1:] 
+        args = args[1:]
 
     file_datas: Dict[str, FileData] = get_db_monitoring_sql_queries(current_filename=filename)
 
@@ -80,7 +86,7 @@ async def db_monitoring(message: Message, command: CommandObject, session: Async
         await message.answer(
             text=(
                 f"🗄️📊 {html.bold(html.underline('Комманды мониторинга базы данных:'))}\n"
-                f"{commands_text}"
+                f"{commands_text}\n"
                 f"🍕 Добавьте:\n"
                 f"🔹 {html.code('disc')} - чтобы получить описание\n"
                 f"🔹 {html.code('sql')} - чтобы получить запрос\n"
@@ -88,23 +94,30 @@ async def db_monitoring(message: Message, command: CommandObject, session: Async
         )
         
     else:
+        args_text = " ".join(args)
         result_text = f"🔧 {html.underline(html.bold(file_datas[filename].name))}\n"
         if 'disc' in args:
             result_text += f"{html.blockquote(file_datas[filename].comment)}\n"
         if 'sql' in args:
             result_text += f"{html.pre_language(html.quote(file_datas[filename].query), 'sql')}\n"
         result_text += (
-            f"{html.blockquote(html.code(f'/db_monitoring {filename}'))}\n"
+            f"{html.blockquote(html.code(f'/db_monitoring {filename} {args_text}'))}\n"
             f"🗄️📊 {html.italic('Список всех комманд мониторинга /db_monitoring')}"
         )
         
         result_query = await session.execute(text(file_datas[filename].query))
         table_photo_buffer = get_plotly_table_bytes(result_query)
+        
+        result_text_parts = split_message_with_tags(result_text, True)
 
-        await message.answer_photo(
-            photo = BufferedInputFile(
+        # print(list(map(len, result_text_parts)))
+
+        await message.answer_document(
+            document = BufferedInputFile(
                 file = table_photo_buffer,
-                filename = f"{file_datas[filename].comment.split('.')[0]}.png"
+                filename = f"{file_datas[filename].name.split('.')[0]}.png"
             ),
-            caption = result_text
+            caption = result_text_parts[0]
         )
+        for part in result_text_parts[1:]:
+            await message.answer(part)

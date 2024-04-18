@@ -108,8 +108,6 @@ def result_format_exercise_data(exercise_data: Dict[str, Union[int, Dict]]):
             "\t▫️ " + result_format_exercise_sets(exercise['sets'])
         ))
         text_parts.append(exercise_text)
-        # text_parts.append(f"◼️ {exercise['exercise_name']}:")
-        # text_parts.append("\t▫️ " + result_format_exercise_sets(exercise['sets']))
 
     return "\n".join(text_parts)
 
@@ -134,8 +132,7 @@ def get_training_values(
         weekday_name = weekdays[exercise_data['date'].weekday()]
         comment = ""
         if exercise_data.get('comment'):
-            # comment = f" ({html.italic(exercise_data['comment'])})"
-            comment = f"\n{html.blockquote(html.italic(exercise_data['comment']))}"
+            comment = f"\n{html.blockquote(html.italic(html.quote(exercise_data['comment'])))}"
 
         training_values.append(f"{date_edit_flag}{html.bold(weekday_name)} {html.bold(date_formatted)}{comment}")
 
@@ -253,7 +250,7 @@ async def get_state_text(state: FSMContext) -> str:
     if adition_text != '':
         adition_text = html.blockquote(f"\n❗❗❗\n{html.bold(adition_text)}\n❗❗❗")
 
-    return f"⬇️ {state_to_text[cur_state]} ⬇️" + adition_text
+    return f"⬇️ {html.bold(html.underline(state_to_text[cur_state]))} ⬇️" + adition_text
 
 
 
@@ -286,4 +283,4 @@ async def get_formatted_state_date(state: FSMContext, is_result: bool = False) -
 
         text_list.append(await get_state_text(state))
     
-    return "\n".join(text_list)
+    return "\n".join(text_list) + "\n(" + str(len("\n".join(text_list))) + ")"

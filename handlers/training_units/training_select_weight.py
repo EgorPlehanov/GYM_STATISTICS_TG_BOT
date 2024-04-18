@@ -17,7 +17,7 @@ from .training_types import (
 )
 from filters import StateAtributeNotNoneFilter
 from utils.check_acept_addition import check_acept_addition
-from utils.format_exercise_data import get_formatted_state_date
+from utils.format_training_data import get_formatted_state_date
 from utils.weight_repetitions_modes import get_weight_repetitions_modes_values
 from keyboards.training_kb import (
     get_ikb_open_inline_search,

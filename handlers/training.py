@@ -20,7 +20,7 @@ from .training_units import (
     edit_select_set_router,
     finish_add_comment_router,
 )
-from utils.format_exercise_data import get_formatted_state_date
+from utils.format_training_data import get_formatted_state_date
 from keyboards.training_kb import (
     get_ikb_select_date,
     get_ikb_training_menu,

@@ -19,11 +19,13 @@ from aiogram.types import (
     CallbackQuery
 )
 
+from collections import namedtuple
 import traceback
 from io import BytesIO
+from typing import List
 
 from config_reader import config
-
+from utils.split_message import split_message_with_tags
 
 
 router = Router()
@@ -105,13 +107,13 @@ async def error_handler(event: ErrorEvent):
 
     bot: Bot = obj.bot
     if bot is not None:
-        if obj.chat.id == config.MAIN_ADMIN_ID.get_secret_value():
+        if obj.chat.id != config.MAIN_ADMIN_ID.get_secret_value():
             await bot.send_message(
                 chat_id = obj.chat.id,
                 text=(
-                    f"❗ При обрабтке события {event.update.event_type} произошла ошибка :\n\n"
-                    f"{event.exception}\n\n"
-                    f"❗ Пожалуйста сделайте скриншот и опишите администратору контекст в котором произошла ошибка"
+                    f"❗{html.bold(f' При обрабтке события {html.underline(event.update.event_type)} произошла ошибка :')}\n"
+                    f"{html.pre_language(html.quote(str(type(event.exception))), 'python')}\n"
+                    f"❗{html.bold(' Пожалуйста сделайте скриншот и опишите администратору контекст в котором произошла ошибка')}"
                 )
             )
 
@@ -119,21 +121,28 @@ async def error_handler(event: ErrorEvent):
                 f"{html.bold('Произошла при обрабтке события:')}\n"
                 f"{html.blockquote(html.quote(event.update.event_type))}\n"
                 f"{html.bold('Тип ошибки:')}\n"
-                f"{html.blockquote(html.code(html.quote(str(type(event.exception)))))}\n"
+                f"{html.pre_language(html.quote(str(type(event.exception))), 'python')}\n"
                 f"{html.bold('Ошибка:')}\n"
-                f"{html.blockquote(html.code(html.quote(str(event.exception))))}\n"
+                f"{html.pre_language(html.quote(str(event.exception)), 'python')}\n"
         )
         if event.exception.args:
             exception_text += (
                 f"{html.bold('Аргументы:')}\n"
-                f"{html.blockquote(html.code(html.quote(str(event.exception.args))))}\n"
+                f"{html.pre_language(html.quote(str(event.exception.args)), 'python')}\n"
             )
+        exception_text = (
+            "❗❗❗❗❗\n"
+            f"{exception_text}"
+            "❗❗❗❗❗"
+        )
 
         traceback_str = traceback.format_exc()
         buffer = BytesIO()
         buffer.write(traceback_str.encode())
         buffer.seek(0)
         traceback_buffer = buffer.getvalue()
+        
+        text_parts = split_message_with_tags(exception_text, True)
 
         await bot.send_document(
             chat_id = config.MAIN_ADMIN_ID.get_secret_value(),
@@ -141,9 +150,10 @@ async def error_handler(event: ErrorEvent):
                 file = traceback_buffer,
                 filename = "traceback.txt"
             ),
-            caption = (
-                "❗❗❗❗❗\n"
-                f"{exception_text}"
-                "❗❗❗❗❗"
-            )
+            caption = text_parts[0]
         )
+        for text_part in text_parts[1:]:
+            await bot.send_message(
+                chat_id = config.MAIN_ADMIN_ID.get_secret_value(),
+                text = text_part
+            )

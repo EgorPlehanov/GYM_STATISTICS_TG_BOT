@@ -21,7 +21,7 @@ from keyboards.training_kb import (
     TrainingExercisePagination,
     get_ikb_open_inline_search,
 )
-from utils.format_exercise_data import get_formatted_state_date
+from utils.format_training_data import get_formatted_state_date
 from utils.check_acept_addition import check_acept_addition
 from utils.weight_repetitions_modes import get_weight_repetitions_modes_values
 from middlewares import DBSessionMiddleware

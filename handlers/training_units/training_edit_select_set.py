@@ -9,7 +9,7 @@ from .training_types import (
     TrainingMode,
     acept_button_by_mode,
 )
-from utils.format_exercise_data import get_formatted_state_date
+from utils.format_training_data import get_formatted_state_date
 from utils.weight_repetitions_modes import get_weight_repetitions_modes_values
 from keyboards.keyboards_types import PaginationAction
 from keyboards.training_kb import (

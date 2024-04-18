@@ -35,8 +35,17 @@ def get_plotly_table_bytes(
             font_size=12,
         )
     )])
+    
+    fig.update_layout(
+        autosize=True,  # Автоматически подбирать размер столбцов
+    )
 
     buffer = BytesIO()
-    fig.write_image(buffer, format="png")
+    fig.write_image(
+        buffer,
+        format="png",
+        width=200 * len(cells) + 300,
+        height=20 * (len(cells[0]) if len(cells) > 0 else 0) + 300,
+    )
     buffer.seek(0)
     return buffer.getvalue()

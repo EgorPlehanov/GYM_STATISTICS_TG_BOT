@@ -8,7 +8,7 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .training_types import TrainingStates, TrainingMode
-from utils.format_exercise_data import get_formatted_state_date
+from utils.format_training_data import get_formatted_state_date
 from utils.edit_exercise_data import initialize_exercise_data
 from keyboards.training_kb import (
     get_ikb_training_menu,

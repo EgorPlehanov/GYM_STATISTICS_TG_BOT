@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 from typing import Dict, Union
 
 from .training_types import TrainingStates
-from utils.format_exercise_data import get_formatted_state_date
+from utils.format_training_data import get_formatted_state_date
 from keyboards.keyboards_types import PaginationAction
 from keyboards.training_kb import (
     EditTrainingExercisePagination,
