@@ -24,9 +24,14 @@ async def cmd_statistics(message: Message, session: AsyncSession) -> None:
         session = session,
         user_id = message.from_user.id
     )
-    await message.answer(
+    if len(statistics) == 0:
+        text = "🏆 Добавляй тренировки и тут будут появляться твои лучшие результаты!"
+    else:
         text = (
             f"{format_user_exercise_rating(statistics)}\n"
-            f"🗄️ {html.italic('Выгрузить все данные о тренировках:')} /export_data" if len(statistics) > 0 else ''
+            f"🗄️ {html.italic('Выгрузить все данные о тренировках:')} /export_data"
         )
+
+    await message.answer(
+        text = text
     )

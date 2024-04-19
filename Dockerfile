@@ -7,9 +7,6 @@ WORKDIR /app
 # Скопируйте файлы приложения в контейнер
 COPY . /app
 
-# Копируем entrypoint скрипт
-# COPY entrypoint.sh /app/entrypoint.sh
-
 # Даем права на выполнение
 RUN chmod +x /app/entrypoint.sh
 

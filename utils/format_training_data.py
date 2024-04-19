@@ -283,4 +283,4 @@ async def get_formatted_state_date(state: FSMContext, is_result: bool = False) -
 
         text_list.append(await get_state_text(state))
     
-    return "\n".join(text_list) + "\n(" + str(len("\n".join(text_list))) + ")"
+    return "\n".join(text_list) #+ "\n(" + str(len("\n".join(text_list))) + ")"
