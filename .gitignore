@@ -38,6 +38,8 @@ Thumbs.db
 
 TEST
 venv
+.venv
+.uv-python
 .env
 __pycache__
 img

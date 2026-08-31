@@ -10,11 +10,12 @@ COPY . /app
 # Даем права на выполнение
 RUN chmod +x /app/entrypoint.sh
 
-# Установите зависимости
-RUN pip install --no-cache-dir -r requirements.txt
+# Установите зависимости через uv
+RUN pip install --no-cache-dir uv \
+    && uv sync --frozen --no-dev
 
 # Устанавливаем entrypoint
 ENTRYPOINT ["/app/entrypoint.sh"]
 
 # Запустите приложение
-CMD ["python", "bot.py"]
+CMD ["uv", "run", "python", "bot.py"]

@@ -28,12 +28,14 @@ Backlog фиксирует крупные задачи перехода на н�
 
 ## 3. Backend Core
 
-- [ ] Перенести конфигурацию в `app/core/config.py`.
-- [ ] Добавить настройки окружений `dev`, `test`, `prod`.
+- [x] Перенести конфигурацию в `app/core/config.py`.
+- [x] Добавить настройки окружений `dev`, `test`, `prod`.
+- [x] Перейти с `requirements.txt` на `pyproject.toml` и `uv`.
+- [x] Сгенерировать `uv.lock`.
 - [ ] Добавить централизованное логирование.
 - [ ] Добавить базовые project exceptions.
 - [ ] Добавить security helpers для cookies, tokens и Telegram validation.
-- [ ] Создать `.env.example`.
+- [x] Создать `.env.example`.
 
 ## 4. Database
 

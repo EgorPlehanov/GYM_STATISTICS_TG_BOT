@@ -7,12 +7,77 @@
 Планируемые команды:
 
 ```text
+uv sync
 docker compose up db
-uvicorn app.api.main:app --reload
-python -m app.bot.main
-python -m app.workers.main
+uv run uvicorn app.api.main:app --reload
+uv run python -m app.bot.main
+uv run python -m app.workers.main
 cd web && npm run dev
 ```
+
+## Зависимости
+
+Python-зависимости управляются через `uv`.
+
+Текущая backend-часть проекта зафиксирована на Python 3.10:
+
+```text
+requires-python = ">=3.10,<3.11"
+```
+
+Ограничение связано с совместимостью текущих версий `aiogram` и `aiogram3-calendar`.
+
+Источник прямых зависимостей:
+
+```text
+pyproject.toml
+```
+
+Lock-файл:
+
+```text
+uv.lock
+```
+
+Базовые команды:
+
+```text
+uv sync
+uv add package-name
+uv add --dev package-name
+uv run pytest
+uv run ruff check .
+```
+
+Если в текущей Windows-сессии команда `uv` еще не подхватилась в `PATH`, можно использовать форму:
+
+```text
+python -m uv sync
+python -m uv run pytest
+```
+
+`requirements.txt` больше не используется как источник зависимостей.
+
+## Конфигурация
+
+Единая точка конфигурации:
+
+```text
+app/core/config.py
+```
+
+Старый модуль `config_reader.py` временно оставлен как совместимая обертка для существующего кода.
+
+Пример переменных окружения находится в `.env.example`.
+
+Обязательные группы настроек:
+
+- приложение и окружение;
+- Telegram Bot;
+- PostgreSQL;
+- Backend API;
+- Web frontend;
+- sessions and cookies.
 
 ## Принципы разработки
 
@@ -30,4 +95,3 @@ cd web && npm run dev
 - `docs/architecture.md`;
 - соответствующий ADR в `docs/decisions/`;
 - `docs/backlog.md`, если меняется состав задач.
-
