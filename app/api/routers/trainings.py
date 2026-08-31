@@ -1,2 +1,1 @@
-"""Trainings router placeholder."""
-
+"""Router тренировок."""

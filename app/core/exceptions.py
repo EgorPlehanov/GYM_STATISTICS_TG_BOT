@@ -1,6 +1,5 @@
-"""Project-level exceptions."""
+"""Исключения уровня проекта."""
 
 
 class AppError(Exception):
-    """Base exception for expected application errors."""
-
+    """Базовое исключение для ожидаемых ошибок приложения."""

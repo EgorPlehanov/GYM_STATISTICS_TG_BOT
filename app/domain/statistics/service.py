@@ -1,6 +1,5 @@
-"""Statistics service placeholder."""
+"""Сервис статистики."""
 
 
 class StatisticsService:
-    """Business scenarios for statistics."""
-
+    """Бизнес-сценарии для статистики."""

@@ -1,6 +1,5 @@
-"""User service placeholder."""
+"""Сервис пользователей."""
 
 
 class UsersService:
-    """Business scenarios for users."""
-
+    """Бизнес-сценарии для пользователей."""

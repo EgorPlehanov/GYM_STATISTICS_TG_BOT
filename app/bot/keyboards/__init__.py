@@ -1,2 +1,1 @@
-"""Telegram bot keyboards."""
-
+"""Клавиатуры Telegram-бота."""

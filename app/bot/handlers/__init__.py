@@ -1,2 +1,1 @@
-"""Telegram bot handlers."""
-
+"""Обработчики Telegram-бота."""

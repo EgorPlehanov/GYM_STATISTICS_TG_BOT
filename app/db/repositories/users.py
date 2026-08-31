@@ -1,6 +1,5 @@
-"""User repository placeholder."""
+"""Репозиторий пользователей."""
 
 
 class UserRepository:
-    """Database access for users."""
-
+    """Доступ к данным пользователей."""

@@ -1,6 +1,5 @@
-"""Group repository placeholder."""
+"""Репозиторий Telegram-групп."""
 
 
 class GroupRepository:
-    """Database access for Telegram groups."""
-
+    """Доступ к данным Telegram-групп."""

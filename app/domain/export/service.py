@@ -1,6 +1,5 @@
-"""Export service placeholder."""
+"""Сервис экспорта данных."""
 
 
 class ExportService:
-    """Business scenarios for data export."""
-
+    """Бизнес-сценарии для экспорта данных."""

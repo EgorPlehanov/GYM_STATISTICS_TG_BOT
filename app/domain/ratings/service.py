@@ -1,6 +1,5 @@
-"""Rating service placeholder."""
+"""Сервис пользовательских рейтингов."""
 
 
 class RatingsService:
-    """Business scenarios for user ratings."""
-
+    """Бизнес-сценарии для пользовательских рейтингов."""

@@ -1,2 +1,1 @@
-"""Statistics domain package."""
-
+"""Домен статистики."""

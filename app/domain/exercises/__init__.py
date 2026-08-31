@@ -1,2 +1,1 @@
-"""Exercise domain package."""
-
+"""Домен упражнений."""

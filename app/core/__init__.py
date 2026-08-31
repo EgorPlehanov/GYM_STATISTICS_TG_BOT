@@ -1,2 +1,1 @@
-"""Core application settings and infrastructure helpers."""
-
+"""Настройки приложения и общая инфраструктура."""

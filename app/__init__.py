@@ -1,2 +1,1 @@
-"""Application package for the gym statistics platform."""
-
+"""Пакет приложения для платформы учета тренировок."""

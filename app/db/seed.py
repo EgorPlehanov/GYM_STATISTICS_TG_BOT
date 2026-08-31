@@ -1,10 +1,9 @@
-"""Seed data command placeholder."""
+"""Команда загрузки справочных данных."""
 
 
 def main() -> None:
-    raise NotImplementedError("Seed command will be implemented during database refactoring.")
+    raise NotImplementedError("Команда загрузки справочников будет реализована на этапе рефакторинга БД.")
 
 
 if __name__ == "__main__":
     main()
-

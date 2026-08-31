@@ -1,6 +1,5 @@
-"""Export repository placeholder."""
+"""Репозиторий экспорта."""
 
 
 class ExportRepository:
-    """Database access for export datasets."""
-
+    """Доступ к данным для экспорта."""

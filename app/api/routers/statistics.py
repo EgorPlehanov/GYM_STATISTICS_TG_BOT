@@ -1,2 +1,1 @@
-"""Statistics router placeholder."""
-
+"""Router статистики."""

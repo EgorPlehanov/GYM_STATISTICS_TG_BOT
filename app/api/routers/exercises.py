@@ -1,2 +1,1 @@
-"""Exercises router placeholder."""
-
+"""Router упражнений."""

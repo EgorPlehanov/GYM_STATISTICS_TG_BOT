@@ -1,9 +1,8 @@
-"""Telegram bot entrypoint placeholder.
+"""Точка входа Telegram-бота.
 
-The current bot entrypoint remains `bot.py` until the Telegram refactoring step.
+Текущая точка входа остается в `bot.py` до этапа рефакторинга Telegram-бота.
 """
 
 
 async def main() -> None:
-    raise NotImplementedError("Bot entrypoint will be moved here during bot refactoring.")
-
+    raise NotImplementedError("Точка входа бота будет перенесена сюда на этапе рефакторинга бота.")

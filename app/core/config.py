@@ -1,10 +1,9 @@
-"""Application configuration entrypoint.
+"""Точка входа для конфигурации приложения.
 
-The real settings currently live in the legacy `config_reader` module.
-They will be moved here during the backend core refactoring step.
+Сейчас реальные настройки находятся в старом модуле `config_reader`.
+Они будут перенесены сюда на этапе рефакторинга backend core.
 """
 
 from config_reader import Settings, config
 
 __all__ = ["Settings", "config"]
-

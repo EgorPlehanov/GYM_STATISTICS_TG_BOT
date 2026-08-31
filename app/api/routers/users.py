@@ -1,2 +1,1 @@
-"""Users router placeholder."""
-
+"""Router пользователей."""

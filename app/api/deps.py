@@ -1,2 +1,1 @@
-"""FastAPI dependencies placeholder."""
-
+"""Зависимости FastAPI."""

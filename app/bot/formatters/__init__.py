@@ -1,2 +1,1 @@
-"""Telegram message formatters."""
-
+"""Форматирование сообщений Telegram-бота."""

@@ -1,6 +1,5 @@
-"""Exercise repository placeholder."""
+"""Репозиторий упражнений."""
 
 
 class ExerciseRepository:
-    """Database access for exercises."""
-
+    """Доступ к данным упражнений."""

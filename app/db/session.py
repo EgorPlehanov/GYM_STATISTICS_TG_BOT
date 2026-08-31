@@ -1,7 +1,7 @@
-"""Database session entrypoint.
+"""Точка входа для подключения к базе данных.
 
-Session setup currently lives in the legacy `db.database` module and will be
-moved here during the database refactoring step.
+Сейчас настройка сессий находится в старом модуле `db.database`.
+Она будет перенесена сюда на этапе рефакторинга слоя базы данных.
 """
 
 from db.database import (
@@ -17,4 +17,3 @@ __all__ = [
     "sync_engine",
     "sync_session_factory",
 ]
-

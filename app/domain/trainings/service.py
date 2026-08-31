@@ -1,6 +1,5 @@
-"""Training service placeholder."""
+"""Сервис тренировок."""
 
 
 class TrainingsService:
-    """Business scenarios for trainings."""
-
+    """Бизнес-сценарии для тренировок."""

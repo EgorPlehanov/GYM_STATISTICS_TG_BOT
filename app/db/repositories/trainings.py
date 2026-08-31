@@ -1,6 +1,5 @@
-"""Training repository placeholder."""
+"""Репозиторий тренировок."""
 
 
 class TrainingRepository:
-    """Database access for trainings and sets."""
-
+    """Доступ к данным тренировок и подходов."""

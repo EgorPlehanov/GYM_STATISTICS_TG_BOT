@@ -1,6 +1,5 @@
-"""Rating repository placeholder."""
+"""Репозиторий рейтингов."""
 
 
 class RatingRepository:
-    """Database access for user ratings."""
-
+    """Доступ к данным пользовательских рейтингов."""

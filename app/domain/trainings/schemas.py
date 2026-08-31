@@ -1,2 +1,1 @@
-"""Training domain schemas placeholder."""
-
+"""Доменные схемы тренировок."""

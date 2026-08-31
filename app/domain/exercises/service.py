@@ -1,6 +1,5 @@
-"""Exercise service placeholder."""
+"""Сервис упражнений."""
 
 
 class ExercisesService:
-    """Business scenarios for exercises."""
-
+    """Бизнес-сценарии для упражнений."""

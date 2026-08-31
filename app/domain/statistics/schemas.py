@@ -1,2 +1,1 @@
-"""Statistics domain schemas placeholder."""
-
+"""Доменные схемы статистики."""

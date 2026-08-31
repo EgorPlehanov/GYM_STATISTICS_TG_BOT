@@ -1,6 +1,5 @@
-"""Backend API client for the Telegram bot placeholder."""
+"""Клиент backend API для Telegram-бота."""
 
 
 class BotApiClient:
-    """HTTP client used by the Telegram bot to call the backend API."""
-
+    """HTTP-клиент, через который Telegram-бот обращается к backend API."""

@@ -1,8 +1,7 @@
-"""Database models entrypoint.
+"""Точка входа для моделей базы данных.
 
-Models currently live in the legacy `db.models` module and will be moved
-here during the database refactoring step.
+Сейчас модели находятся в старом модуле `db.models`.
+Они будут перенесены сюда на этапе рефакторинга слоя базы данных.
 """
 
 from db.models import *  # noqa: F401,F403
-

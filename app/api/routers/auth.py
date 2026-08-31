@@ -1,2 +1,1 @@
-"""Auth router placeholder."""
-
+"""Router авторизации."""

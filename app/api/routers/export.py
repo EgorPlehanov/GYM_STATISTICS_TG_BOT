@@ -1,2 +1,1 @@
-"""Export router placeholder."""
-
+"""Router экспорта данных."""

@@ -1,7 +1,6 @@
-"""FastAPI application entrypoint placeholder."""
+"""Точка входа FastAPI-приложения."""
 
 
 def create_app():
-    """Create and return the FastAPI app after API dependencies are added."""
-    raise NotImplementedError("FastAPI app will be implemented during API setup.")
-
+    """Создает и возвращает FastAPI-приложение после подключения API-зависимостей."""
+    raise NotImplementedError("FastAPI-приложение будет реализовано на этапе настройки API.")

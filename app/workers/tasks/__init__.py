@@ -1,2 +1,1 @@
-"""Background worker tasks."""
-
+"""Фоновые задачи worker-процесса."""

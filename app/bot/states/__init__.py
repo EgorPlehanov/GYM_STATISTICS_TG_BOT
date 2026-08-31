@@ -1,2 +1,1 @@
-"""Telegram bot FSM states."""
-
+"""FSM-состояния Telegram-бота."""
