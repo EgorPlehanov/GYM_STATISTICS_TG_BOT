@@ -1,0 +1,2 @@
+"""Auth router placeholder."""
+

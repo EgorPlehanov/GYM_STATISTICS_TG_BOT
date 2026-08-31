@@ -14,15 +14,15 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Зафиксировать ключевые архитектурные решения в ADR.
 - [ ] Описать правила импортов между слоями.
 - [ ] Описать lifecycle запроса от web/bot до базы.
-- [ ] Обновить корневой README после создания новой структуры.
+- [x] Обновить корневой README после создания новой структуры.
 
 ## 2. Структура проекта
 
-- [ ] Создать каталог `app/`.
-- [ ] Создать каталог `web/`.
-- [ ] Создать каталог `docker/`.
-- [ ] Создать каталог `tests/`.
-- [ ] Создать каталог `migrations/`.
+- [x] Создать каталог `app/`.
+- [x] Создать каталог `web/`.
+- [x] Создать каталог `docker/`.
+- [x] Создать каталог `tests/`.
+- [x] Создать каталог `migrations/`.
 - [ ] Перенести старые Telegram-модули в `app/bot/`.
 - [ ] Перенести текущие `utils` по назначению: bot formatters, domain helpers, shared utils.
 
@@ -48,37 +48,37 @@ Backlog фиксирует крупные задачи перехода на н�
 
 ## 5. Repositories
 
-- [ ] Создать `app/db/repositories/users.py`.
-- [ ] Создать `app/db/repositories/groups.py`.
-- [ ] Создать `app/db/repositories/exercises.py`.
-- [ ] Создать `app/db/repositories/trainings.py`.
-- [ ] Создать `app/db/repositories/ratings.py`.
-- [ ] Создать `app/db/repositories/export.py`.
+- [x] Создать `app/db/repositories/users.py`.
+- [x] Создать `app/db/repositories/groups.py`.
+- [x] Создать `app/db/repositories/exercises.py`.
+- [x] Создать `app/db/repositories/trainings.py`.
+- [x] Создать `app/db/repositories/ratings.py`.
+- [x] Создать `app/db/repositories/export.py`.
 - [ ] Перенести SQL-запросы из старого `db/queries`.
 - [ ] Убрать Telegram/UI-логику из слоя работы с данными.
 
 ## 6. Domain Services
 
-- [ ] Создать `UsersService`.
-- [ ] Создать `ExercisesService`.
-- [ ] Создать `TrainingsService`.
-- [ ] Создать `StatisticsService`.
-- [ ] Создать `RatingsService`.
-- [ ] Создать `ExportService`.
+- [x] Создать `UsersService`.
+- [x] Создать `ExercisesService`.
+- [x] Создать `TrainingsService`.
+- [x] Создать `StatisticsService`.
+- [x] Создать `RatingsService`.
+- [x] Создать `ExportService`.
 - [ ] Перенести сценарии создания, обновления и удаления тренировок.
 - [ ] Перенести сценарии получения статистики.
 - [ ] Подготовить постановку задач на пересчет рейтинга через worker.
 
 ## 7. FastAPI API
 
-- [ ] Создать `app/api/main.py`.
-- [ ] Создать dependency layer в `app/api/deps.py`.
-- [ ] Создать router `auth`.
-- [ ] Создать router `users`.
-- [ ] Создать router `exercises`.
-- [ ] Создать router `trainings`.
-- [ ] Создать router `statistics`.
-- [ ] Создать router `export`.
+- [x] Создать `app/api/main.py`.
+- [x] Создать dependency layer в `app/api/deps.py`.
+- [x] Создать router `auth`.
+- [x] Создать router `users`.
+- [x] Создать router `exercises`.
+- [x] Создать router `trainings`.
+- [x] Создать router `statistics`.
+- [x] Создать router `export`.
 - [ ] Настроить CORS для web frontend.
 - [ ] Настроить OpenAPI metadata.
 - [ ] Описать базовый API contract.
@@ -96,7 +96,7 @@ Backlog фиксирует крупные задачи перехода на н�
 ## 9. Telegram Bot
 
 - [ ] Перенести entrypoint в `app/bot/main.py`.
-- [ ] Создать API client для бота.
+- [x] Создать API client для бота.
 - [ ] Перенести handlers.
 - [ ] Перенести keyboards.
 - [ ] Перенести middlewares.
@@ -108,7 +108,7 @@ Backlog фиксирует крупные задачи перехода на н�
 ## 10. Worker
 
 - [ ] Выбрать механизм фоновых задач.
-- [ ] Создать `app/workers/main.py`.
+- [x] Создать `app/workers/main.py`.
 - [ ] Реализовать задачу пересчета рейтинга пользователя.
 - [ ] Вызывать постановку задачи после create/update/delete training.
 - [ ] Описать retry/error handling.
@@ -175,4 +175,3 @@ Backlog фиксирует крупные задачи перехода на н�
 - [ ] Выбрать Caddy или Nginx для VPS.
 - [ ] Выбрать механизм фоновых задач: простой async worker, task queue, Redis/RQ, Celery, Dramatiq или другой вариант.
 - [ ] Решить, нужен ли отдельный API token для bot-service при обращении к backend.
-

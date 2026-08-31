@@ -1,0 +1,2 @@
+"""Telegram bot FSM states."""
+

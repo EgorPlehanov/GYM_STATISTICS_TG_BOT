@@ -1,0 +1,2 @@
+"""Training domain schemas placeholder."""
+

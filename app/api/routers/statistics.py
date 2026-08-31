@@ -1,0 +1,2 @@
+"""Statistics router placeholder."""
+

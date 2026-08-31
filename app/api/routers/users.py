@@ -1,0 +1,2 @@
+"""Users router placeholder."""
+

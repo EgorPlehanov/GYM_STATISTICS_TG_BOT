@@ -1,0 +1,2 @@
+"""Statistics domain schemas placeholder."""
+
