@@ -1,12 +1,11 @@
 """Репозиторий рейтингов."""
 
 from collections import namedtuple
-from typing import List
 
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Exercise, ExerciseRank, Rank, Set, Training, UserExerciseRating
+from app.db.models import Exercise, ExerciseRank, Rank, Training, UserExerciseRating
 from app.db.repositories.users import get_internal_user_id_by_telegram_id
 
 
@@ -97,7 +96,7 @@ async def update_or_create_user_exercise_rating(
 async def get_user_exercise_rating(
     session: AsyncSession,
     user_id: int,
-) -> List[StatisticData]:
+) -> list[StatisticData]:
     """Возвращает рейтинг пользователя с Telegram id."""
     internal_user_id = await get_internal_user_id_by_telegram_id(session, user_id)
     if internal_user_id is None:

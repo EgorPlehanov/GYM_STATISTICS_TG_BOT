@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.middlewares import DBSessionMiddleware
 from app.db.session import async_session_factory
-from app.db.repositories import create_user_if_not_exists
+from app.domain.users.service import create_user_if_not_exists
 
 
 

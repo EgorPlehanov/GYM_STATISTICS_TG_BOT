@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from typing import List
 
-from app.db.repositories import (
+from app.domain.groups.service import (
     create_group_training_result_message,
     get_group_training_result_messages_id,
     update_group_training_result_message_id,

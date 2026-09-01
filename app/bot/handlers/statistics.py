@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.middlewares import DBSessionMiddleware
 from app.db.session import async_session_factory
-from app.db.repositories import get_user_exercise_rating
+from app.domain.statistics.service import get_user_exercise_rating
 from app.bot.utils.format_user_exercise_rating import format_user_exercise_rating
 
 

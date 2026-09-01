@@ -1,7 +1,7 @@
 from aiogram import html
 from typing import List
 
-from app.db.repositories import StatisticData
+from app.domain.statistics.service import StatisticData
 
 
 

@@ -11,13 +11,13 @@ from asyncio import sleep
 from app.core.config import config
 from app.bot.middlewares import DBSessionMiddleware
 from app.db.session import async_session_factory
-from app.db.repositories import (
-    is_user_in_database,
-    update_redirect_to_group,
+from app.domain.groups.service import (
     create_group_user,
+    get_all_user_redirect_groups,
     get_group_user_by_user_id_and_group_id,
-    get_all_user_redirect_groups
+    update_redirect_to_group,
 )
+from app.domain.users.service import is_user_in_database
 from app.bot.keyboards.keyboards_types import PaginationAction
 from app.bot.keyboards.redirect_kb import (
     get_ikb_redirect_groups,

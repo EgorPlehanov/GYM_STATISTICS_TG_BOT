@@ -30,7 +30,7 @@ from app.bot.middlewares import (
     ChatActionMiddleware,
 )
 from app.db.session import async_session_factory
-from app.db.repositories import (
+from app.domain.trainings.service import (
     get_sorted_exercises_by_sets_count,
     get_exercises_weight_repetitions_modes
 )

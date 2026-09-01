@@ -1,7 +1,6 @@
 """Репозиторий экспорта."""
 
 from collections import namedtuple
-from typing import List
 
 from sqlalchemy import Date, and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -43,7 +42,7 @@ ExportData = namedtuple(
 async def get_export_data(
     session: AsyncSession,
     user_id: int,
-) -> List[ExportData]:
+) -> list[ExportData]:
     """Возвращает данные для экспорта тренировок пользователя с Telegram id."""
     internal_user_id = await get_internal_user_id_by_telegram_id(session, user_id)
     if internal_user_id is None:

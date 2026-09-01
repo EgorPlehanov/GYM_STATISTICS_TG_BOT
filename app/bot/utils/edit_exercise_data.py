@@ -2,7 +2,7 @@ from typing import Dict, Union
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.repositories import (
+from app.domain.trainings.service import (
     check_training_exists_for_user_and_date,
     get_training_data_by_date_and_user
 )

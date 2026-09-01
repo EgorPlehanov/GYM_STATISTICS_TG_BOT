@@ -12,13 +12,13 @@ from asyncio import sleep
 from app.core.config import config
 from app.bot.middlewares import DBSessionMiddleware
 from app.db.session import async_session_factory
-from app.db.repositories import (
-    update_user_private_chat_banned,
+from app.domain.groups.service import (
     create_group_if_not_exists,
-    update_group_is_bot_banned,
     update_group_is_bot_admin,
+    update_group_is_bot_banned,
     update_group_to_supergroup,
 )
+from app.domain.users.service import update_user_private_chat_banned
 from app.bot.utils.migration_cache import cache
 # from app.bot.utils.get_chat_members import get_chat_members
 

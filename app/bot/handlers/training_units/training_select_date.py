@@ -19,7 +19,11 @@ from app.bot.keyboards.training_kb import (
 )
 from app.bot.middlewares import DBSessionMiddleware
 from app.db.session import async_session_factory
-from app.db.repositories import save_training_data, delete_training_by_id, get_training_date_by_user_id
+from app.domain.trainings.service import (
+    delete_training_by_id,
+    get_training_date_by_user_id,
+    save_training_data,
+)
 
 
 

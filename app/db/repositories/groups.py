@@ -1,7 +1,6 @@
 """Репозиторий Telegram-групп."""
 
 from collections import namedtuple
-from typing import List
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert
@@ -192,7 +191,7 @@ async def update_redirect_to_group(
 async def get_all_user_redirect_groups(
     session: AsyncSession,
     user_id: int,
-) -> List[RedirectGroup]:
+) -> list[RedirectGroup]:
     """Возвращает группы пользователя с Telegram id, доступные для настройки редиректа."""
     internal_user_id = await get_internal_user_id_by_telegram_id(session, user_id)
     if internal_user_id is None:
@@ -225,7 +224,7 @@ async def get_all_user_redirect_groups(
 async def get_user_group_to_redirect(
     session: AsyncSession,
     user_id: int,
-) -> List[int]:
+) -> list[int]:
     """Возвращает id групп, куда включен редирект результатов пользователя."""
     internal_user_id = await get_internal_user_id_by_telegram_id(session, user_id)
     if internal_user_id is None:

@@ -11,9 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.middlewares import DBSessionMiddleware
 from app.db.session import async_session_factory
-from app.db.repositories import (
-    update_group_user_is_admin,
+from app.domain.groups.service import (
     delete_group_user,
+    update_group_user_is_admin,
 )
 
 

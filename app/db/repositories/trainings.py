@@ -1,7 +1,6 @@
 """Репозиторий тренировок."""
 
 from datetime import datetime
-from typing import Dict, List, Union
 
 from sqlalchemy import Date, and_, delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,9 +13,9 @@ class TrainingRepository:
     """Доступ к данным тренировок и подходов."""
 
 
-SetData = Dict[str, Union[int, float, datetime, str]]
-ExerciseData = Dict[str, Union[str, int, Dict[int, SetData]]]
-TrainingData = Dict[str, Union[int, datetime, str, Dict[int, ExerciseData]]]
+SetData = dict[str, int | float | datetime | str]
+ExerciseData = dict[str, str | int | dict[int, SetData]]
+TrainingData = dict[str, int | datetime | str | dict[int, ExerciseData]]
 
 
 async def get_sorted_exercises_by_sets_count(
@@ -25,7 +24,7 @@ async def get_sorted_exercises_by_sets_count(
     page_size: int = 5,
     page_num: int = 0,
     substring: str | None = None,
-) -> List[Exercise]:
+) -> list[Exercise]:
     """Возвращает упражнения, отсортированные по частоте использования пользователем.
 
     `user_id` сохраняет старый контракт бота и означает Telegram user id.
@@ -67,7 +66,7 @@ async def get_exercises_weight_repetitions_modes(
     session: AsyncSession,
     user_id: int,
     last_training_count: int = 12,
-) -> Dict[int, Dict[str, Union[int, Dict[str, Union[int, float]]]]]:
+) -> dict[int, dict[str, int | dict[str, int | float]]]:
     """Возвращает модальные вес и повторения по подходам последних тренировок.
 
     `user_id` - Telegram user id. Если пользователь не найден, возвращается пустой словарь.
@@ -110,15 +109,6 @@ async def get_exercises_weight_repetitions_modes(
             "repetitions_mode": row.repetitions_mode,
         }
     return weight_repetitions_modes
-
-
-async def get_exercise_by_id(
-    session: AsyncSession,
-    exercise_id: int,
-) -> Exercise | None:
-    """Возвращает упражнение по id."""
-    result = await session.execute(select(Exercise).where(Exercise.id == exercise_id))
-    return result.scalar()
 
 
 async def save_new_set_data(
@@ -173,7 +163,7 @@ async def update_set_data(
 async def delete_old_sets(
     session: AsyncSession,
     training_id: int,
-    current_sets_id: List[int],
+    current_sets_id: list[int],
 ) -> bool:
     """Удаляет подходы тренировки, которых нет в текущем наборе данных."""
     result = await session.execute(
@@ -401,7 +391,7 @@ async def delete_training_by_id(
 async def get_training_date_by_user_id(
     session: AsyncSession,
     user_id: int,
-) -> List[datetime]:
+) -> list[datetime]:
     """Возвращает даты тренировок пользователя с Telegram id."""
     internal_user_id = await get_internal_user_id_by_telegram_id(session, user_id)
     if internal_user_id is None:

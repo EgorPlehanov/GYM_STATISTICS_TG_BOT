@@ -15,11 +15,9 @@ from app.bot.utils.redirect_result_to_user_group import redirect_result_to_user_
 from app.bot.keyboards.training_kb import get_ikb_finish_add_comment
 from app.bot.middlewares import DBSessionMiddleware
 from app.db.session import async_session_factory
-from app.db.repositories import (
-    save_training_data,
-    get_user_group_to_redirect,
-    update_or_create_user_exercise_rating,
-)
+from app.domain.groups.service import get_user_group_to_redirect
+from app.domain.ratings.service import update_or_create_user_exercise_rating
+from app.domain.trainings.service import save_training_data
 
 
 

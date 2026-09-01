@@ -27,10 +27,8 @@ from app.bot.utils.weight_repetitions_modes import get_weight_repetitions_modes_
 from app.bot.middlewares import DBSessionMiddleware
 from app.db.session import async_session_factory
 from app.db.models import Exercise
-from app.db.repositories import (
-    get_sorted_exercises_by_sets_count,
-    get_exercise_by_id
-)
+from app.domain.exercises.service import get_exercise_by_id
+from app.domain.trainings.service import get_sorted_exercises_by_sets_count
 
 
 

@@ -4,7 +4,7 @@ from openpyxl.worksheet.table import Table, TableStyleInfo
 from io import BytesIO
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.repositories import get_export_data
+from app.domain.export.service import get_export_data
 
 
 async def get_export_data_file(
