@@ -25,3 +25,4 @@ async def get_chat_members(chat_id):
 
     await app.stop()
     return chat_members
+

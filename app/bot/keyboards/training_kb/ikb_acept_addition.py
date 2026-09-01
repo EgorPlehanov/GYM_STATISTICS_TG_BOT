@@ -21,3 +21,4 @@ def get_ikb_acept_addition(
     builder.row(InlineKeyboardButton(text="✏️ Изменить кол-во подходов 🔁", callback_data="to_sets_count"))
     builder.row(InlineKeyboardButton(text="❌ Отменить и вернуться в меню ❌", callback_data="to_menu"))
     return builder.as_markup()
+

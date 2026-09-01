@@ -10,8 +10,8 @@ from asyncio import sleep
 
 from app.core.config import config
 from app.bot.middlewares import DBSessionMiddleware
-from db.database import async_session_factory
-from db.queries import (
+from app.db.session import async_session_factory
+from app.db.repositories import (
     is_user_in_database,
     update_redirect_to_group,
     create_group_user,
@@ -199,3 +199,4 @@ async def redirect_quit(callback: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
     await callback.message.delete()
     await callback.answer(text="✅ Настройки редиректа сохранены 💾")
+

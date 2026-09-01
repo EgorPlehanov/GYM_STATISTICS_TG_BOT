@@ -7,3 +7,4 @@ def number_to_emojis(number):
         '5': '5️⃣', '6': '6️⃣', '7': '7️⃣', '8': '8️⃣', '9': '9️⃣',
     }
     return ''.join([emoji_map[digit] for digit in str(number)])
+

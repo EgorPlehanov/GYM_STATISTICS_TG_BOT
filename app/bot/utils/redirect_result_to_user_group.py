@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from typing import List
 
-from db.queries import (
+from app.db.repositories import (
     create_group_training_result_message,
     get_group_training_result_messages_id,
     update_group_training_result_message_id,
@@ -86,4 +86,5 @@ async def redirect_result_to_user_group(
                 training_id = training_id,
                 message_id = group_result_message.message_id
             )
+
 

@@ -4,7 +4,7 @@ from openpyxl.worksheet.table import Table, TableStyleInfo
 from io import BytesIO
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from db.queries import get_export_data
+from app.db.repositories import get_export_data
 
 
 async def get_export_data_file(
@@ -72,3 +72,4 @@ async def get_export_data_file(
     buffer = BytesIO()
     workbook.save(buffer)
     return buffer.getvalue()
+

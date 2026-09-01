@@ -1,7 +1,7 @@
 from aiogram import html
 from typing import List
 
-from db.queries import StatisticData
+from app.db.repositories import StatisticData
 
 
 
@@ -40,3 +40,4 @@ def format_user_exercise_rating(statistics: List[StatisticData]) -> str:
             rank_str = ''
 
     return f"📈 {html.bold(html.underline('Твои лучшие результаты:'))}\n{stats_text}"
+

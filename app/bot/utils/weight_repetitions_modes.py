@@ -78,3 +78,4 @@ def get_weight_repetitions_modes_values(
         return str(weight)
     if is_repetitions:
         return str(repetitions)
+

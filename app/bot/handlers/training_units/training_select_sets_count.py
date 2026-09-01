@@ -111,3 +111,4 @@ async def to_repetitions(callback: CallbackQuery, state: FSMContext):
             has_delete_set_button = user_data.get("mode") == TrainingMode.EDIT_SET
         ),
     )
+

@@ -63,3 +63,4 @@ def get_ikb_redirect_groups(
 
     builder.row(InlineKeyboardButton(text="⬅️ Сохранить и выйти ⬅️", callback_data="redirect_quit"))
     return builder.as_markup()
+

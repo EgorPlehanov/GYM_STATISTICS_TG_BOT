@@ -170,3 +170,4 @@ async def delete_exercises_sets(callback: CallbackQuery, state: FSMContext):
         ),
     )
     
+

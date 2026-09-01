@@ -44,3 +44,4 @@ class SimpleCalendarCallback(CallbackData, prefix='simple_calendar'):
     month: int
     day: int
 
+

@@ -59,8 +59,8 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Создать `app/db/repositories/trainings.py`.
 - [x] Создать `app/db/repositories/ratings.py`.
 - [x] Создать `app/db/repositories/export.py`.
-- [ ] Перенести SQL-запросы из старого `db/queries`.
-- [ ] Убрать Telegram/UI-логику из слоя работы с данными.
+- [x] Перенести SQL-запросы из старого `db/queries`.
+- [x] Убрать Telegram/UI-логику из слоя работы с данными.
 
 ## 6. Domain Services
 

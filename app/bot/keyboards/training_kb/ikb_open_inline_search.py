@@ -46,3 +46,4 @@ def get_ikb_open_inline_search(
         ))
 
     return builder.as_markup()
+

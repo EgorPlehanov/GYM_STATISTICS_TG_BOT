@@ -119,3 +119,4 @@ async def back_to_edit_exercise(callback: CallbackQuery, state: FSMContext):
         text=await get_formatted_state_date(state),
         reply_markup=get_ikb_edit_select_exercise_fab(exercises),
     )
+

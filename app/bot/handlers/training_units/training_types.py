@@ -62,3 +62,4 @@ acept_button_by_mode = {
     TrainingMode.ADD_SET: Button("Добавить", "acept_addition"),
     TrainingMode.EDIT_SET: Button("Подтвердить изменения", "acept_edit"),
 }
+

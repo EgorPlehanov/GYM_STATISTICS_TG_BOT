@@ -14,3 +14,4 @@ class RedirectGroup:
     group_name: str
     is_redirect_to_group: bool
 
+

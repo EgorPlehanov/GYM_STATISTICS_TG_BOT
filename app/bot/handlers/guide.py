@@ -19,3 +19,4 @@ async def cmd_guide(message: Message) -> None:
             f"👨‍💻 Скоро он появится!"
         ),
     )
+

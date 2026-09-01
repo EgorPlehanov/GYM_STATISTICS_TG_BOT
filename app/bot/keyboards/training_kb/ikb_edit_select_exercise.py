@@ -66,3 +66,4 @@ def get_ikb_edit_select_exercise_fab(
     builder.row(InlineKeyboardButton(text="🗑️ Удалить все упражнения 🗑️", callback_data="delete_all_exercises"))
     return builder.as_markup()
 
+

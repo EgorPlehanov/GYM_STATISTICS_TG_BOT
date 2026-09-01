@@ -49,3 +49,4 @@ def get_plotly_table_bytes(
     )
     buffer.seek(0)
     return buffer.getvalue()
+

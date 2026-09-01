@@ -41,3 +41,4 @@ async def check_acept_addition(state: FSMContext) -> bool:
         case _:
             return False
     
+

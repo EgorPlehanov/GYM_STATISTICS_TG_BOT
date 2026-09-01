@@ -60,3 +60,4 @@ async def acept_addition(callback: CallbackQuery, state: FSMContext):
             repeat_set_button_text=f"{str(weight).rstrip('0').rstrip('.')}×{repetitions}",
         )
     )
+

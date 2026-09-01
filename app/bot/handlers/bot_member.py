@@ -11,8 +11,8 @@ from asyncio import sleep
 
 from app.core.config import config
 from app.bot.middlewares import DBSessionMiddleware
-from db.database import async_session_factory
-from db.queries import (
+from app.db.session import async_session_factory
+from app.db.repositories import (
     update_user_private_chat_banned,
     create_group_if_not_exists,
     update_group_is_bot_banned,
@@ -157,3 +157,4 @@ async def migrate_group_to_supergroup(message: Message, session: AsyncSession):
         group_id=message.migrate_from_chat_id,
         supergroup_id=message.chat.id
     )
+

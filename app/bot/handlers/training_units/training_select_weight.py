@@ -295,3 +295,4 @@ async def repeat_set(callback: CallbackQuery, state: FSMContext):
         text=await get_formatted_state_date(state),
         reply_markup = get_ikb_acept_addition(TrainingMode.ADD_SET)
     )
+

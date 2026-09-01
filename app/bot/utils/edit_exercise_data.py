@@ -2,7 +2,7 @@ from typing import Dict, Union
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.queries import (
+from app.db.repositories import (
     check_training_exists_for_user_and_date,
     get_training_data_by_date_and_user
 )
@@ -189,3 +189,4 @@ def update_indexes_exercise_data(
         all_sets_sorted[idx]["set_number"] = idx + 1
 
     exercise_data["global_set_counter"] = len(all_sets_sorted)
+

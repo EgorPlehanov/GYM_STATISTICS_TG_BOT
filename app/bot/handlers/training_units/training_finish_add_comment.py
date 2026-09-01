@@ -14,8 +14,8 @@ from app.bot.utils.format_training_data import get_formatted_state_date
 from app.bot.utils.redirect_result_to_user_group import redirect_result_to_user_group
 from app.bot.keyboards.training_kb import get_ikb_finish_add_comment
 from app.bot.middlewares import DBSessionMiddleware
-from db.database import async_session_factory
-from db.queries import (
+from app.db.session import async_session_factory
+from app.db.repositories import (
     save_training_data,
     get_user_group_to_redirect,
     update_or_create_user_exercise_rating,
@@ -144,3 +144,4 @@ async def finish(callback: CallbackQuery, state: FSMContext, session: AsyncSessi
         session = session,
         user_id = callback.from_user.id,
     )
+

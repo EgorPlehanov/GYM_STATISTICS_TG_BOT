@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Dict
 
 from app.bot.filters.main_admin import MainAdminFilter
-from db.database import async_session_factory
+from app.db.session import async_session_factory
 from app.bot.middlewares import DBSessionMiddleware
 from .main_admin_units import *
 from app.bot.utils.plotly_table import get_plotly_table_bytes
@@ -121,3 +121,4 @@ async def db_monitoring(message: Message, command: CommandObject, session: Async
         )
         for part in result_text_parts[1:]:
             await message.answer(part)
+

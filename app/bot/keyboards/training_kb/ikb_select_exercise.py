@@ -6,7 +6,7 @@ from typing import List, Dict
 import math
 
 from ..keyboards_types import PaginationAction
-from db.models import Exercise
+from app.db.models import Exercise
 
 
 
@@ -82,4 +82,5 @@ def get_ikb_select_exercise_fab(
     )
 
     return builder.as_markup()
+
 

@@ -10,8 +10,8 @@ from aiogram.filters import (
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.middlewares import DBSessionMiddleware
-from db.database import async_session_factory
-from db.queries import (
+from app.db.session import async_session_factory
+from app.db.repositories import (
     update_group_user_is_admin,
     delete_group_user,
 )
@@ -95,4 +95,5 @@ async def admin_demoted(event: ChatMemberUpdated, session: AsyncSession):
         user_id=event.new_chat_member.user.id,
         is_admin=False
     )
+
 

@@ -27,3 +27,4 @@ def get_ikb_training_menu(
     else:
         builder.row(InlineKeyboardButton(text="❌ Отменить тренировку ❌", callback_data="cancel"))
     return builder.as_markup()
+

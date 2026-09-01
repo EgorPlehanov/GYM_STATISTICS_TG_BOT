@@ -84,3 +84,4 @@ async def test_process_selection(callback_data, expected):
         query=query, data=SimpleCalendarCallback(**callback_data))
     assert result == expected
 
+

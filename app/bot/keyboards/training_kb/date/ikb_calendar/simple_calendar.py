@@ -163,3 +163,4 @@ class SimpleCalendar:
         # at some point user clicks DAY button, returning date
         return return_data
 
+

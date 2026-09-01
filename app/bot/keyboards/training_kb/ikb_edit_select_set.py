@@ -69,3 +69,4 @@ def get_ikb_edit_select_set_fab(
     builder.row(InlineKeyboardButton(text="🗑️ Удалить все подходы 🗑️", callback_data="delete_all_sets"))
     return builder.as_markup()
 
+

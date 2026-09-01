@@ -27,3 +27,4 @@ class DBSessionMiddleware(BaseMiddleware):
             data['session'] = session
             return await handler(event, data)
             
+

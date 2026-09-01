@@ -11,3 +11,4 @@ from .training_edit_select_exercise import router as edit_select_exercise_router
 from .training_edit_select_set import router as edit_select_set_router
 from .training_finish_add_comment import router as finish_add_comment_router
 
+

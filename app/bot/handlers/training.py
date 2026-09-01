@@ -29,8 +29,8 @@ from app.bot.middlewares import (
     DBSessionMiddleware,
     ChatActionMiddleware,
 )
-from db.database import async_session_factory
-from db.queries import (
+from app.db.session import async_session_factory
+from app.db.repositories import (
     get_sorted_exercises_by_sets_count,
     get_exercises_weight_repetitions_modes
 )
@@ -128,4 +128,5 @@ async def cancel_trainings(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
 
     await callback.message.answer("Слабак🫵, попробуй ещё раз 🤣")
+
 

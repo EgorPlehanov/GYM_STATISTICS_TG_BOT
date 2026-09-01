@@ -19,3 +19,4 @@ def get_ikb_select_date(
     else:
         builder.row(InlineKeyboardButton(text="❌ Отменить тренировку ❌", callback_data="cancel"))
     return builder.as_markup()
+

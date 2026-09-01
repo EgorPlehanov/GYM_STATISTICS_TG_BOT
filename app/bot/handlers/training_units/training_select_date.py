@@ -18,8 +18,8 @@ from app.bot.keyboards.training_kb import (
     get_ikb_canged_date,
 )
 from app.bot.middlewares import DBSessionMiddleware
-from db.database import async_session_factory
-from db.queries import save_training_data, delete_training_by_id, get_training_date_by_user_id
+from app.db.session import async_session_factory
+from app.db.repositories import save_training_data, delete_training_by_id, get_training_date_by_user_id
 
 
 
@@ -261,3 +261,4 @@ async def canged_to_current_date(callback: CallbackQuery, state: FSMContext, ses
         text=await get_formatted_state_date(state),
         reply_markup=get_ikb_select_date(is_back_to_menu=True),
     )
+

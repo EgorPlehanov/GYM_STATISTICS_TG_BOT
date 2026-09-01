@@ -8,7 +8,7 @@ from app.bot.middlewares import (
     DBSessionMiddleware,
     ChatActionMiddleware,
 )
-from db.database import async_session_factory
+from app.db.session import async_session_factory
 from app.bot.utils.data_export import get_export_data_file
 
 
@@ -45,3 +45,4 @@ async def cmd_export_data(message: Message, session: AsyncSession) -> None:
         )
     )
     await waitig_answer.delete()
+

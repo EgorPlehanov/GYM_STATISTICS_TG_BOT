@@ -122,3 +122,4 @@ def split_message_with_tags(
         result_parts.append(text)
 
     return result_parts
+

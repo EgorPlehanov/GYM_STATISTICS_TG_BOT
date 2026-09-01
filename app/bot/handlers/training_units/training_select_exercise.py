@@ -25,9 +25,9 @@ from app.bot.utils.format_training_data import get_formatted_state_date
 from app.bot.utils.check_acept_addition import check_acept_addition
 from app.bot.utils.weight_repetitions_modes import get_weight_repetitions_modes_values
 from app.bot.middlewares import DBSessionMiddleware
-from db.database import async_session_factory
-from db.models import Exercise
-from db.queries import (
+from app.db.session import async_session_factory
+from app.db.models import Exercise
+from app.db.repositories import (
     get_sorted_exercises_by_sets_count,
     get_exercise_by_id
 )
@@ -269,3 +269,4 @@ async def inline_selected_exercise(
             )
         ),
     )
+

@@ -31,3 +31,4 @@ def format_set_data_to_text(
         str_parts.append(f"× {repetitions}")
 
     return ' '.join(str_parts)
+

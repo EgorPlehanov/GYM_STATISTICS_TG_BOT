@@ -35,3 +35,4 @@ async def default_callback_reaction(callback: CallbackQuery):
     await callback.answer(text=(
         "🚫 Эта кнопка уже не активнва)"
     ))
+

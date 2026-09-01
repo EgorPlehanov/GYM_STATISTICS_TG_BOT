@@ -103,6 +103,7 @@ docker compose --profile tools run --rm db-reset
 db/database.py
 db/models.py
 db/init_db.py
+db/queries/
 ```
 
 Новый код должен импортировать сущности из `app.db`.

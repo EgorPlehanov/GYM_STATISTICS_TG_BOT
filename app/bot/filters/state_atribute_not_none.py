@@ -20,3 +20,4 @@ class StateAtributeNotNoneFilter(BaseFilter):
 
         return user_data.get(self.atribute_name) is not None
         
+

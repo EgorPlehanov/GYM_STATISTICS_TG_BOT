@@ -157,3 +157,4 @@ async def error_handler(event: ErrorEvent):
                 chat_id = config.MAIN_ADMIN_ID.get_secret_value(),
                 text = text_part
             )
+

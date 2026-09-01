@@ -47,3 +47,4 @@ class ChatActionMiddleware(BaseMiddleware):
             chat_id = event.chat.id
         ):
             return await handler(event, data)
+

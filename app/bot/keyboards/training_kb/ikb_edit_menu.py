@@ -13,3 +13,4 @@ def get_ikb_edit_menu(has_edit_exercise_button: bool = False) -> InlineKeyboardM
     builder.row(InlineKeyboardButton(text="✏️ Исправить дату 🗓️", callback_data="edit_date"))
     builder.row(InlineKeyboardButton(text="⬅️ Меню ⬅️", callback_data="to_menu"))
     return builder.as_markup()
+

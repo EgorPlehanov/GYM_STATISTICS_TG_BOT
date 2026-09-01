@@ -24,3 +24,4 @@ async def cmd_training(message: Message) -> None:
             f"▶️ /start - запустить бота (доступно в личке бота)\n\n"
         ),
     )
+

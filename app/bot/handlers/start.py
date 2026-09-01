@@ -6,8 +6,8 @@ from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.middlewares import DBSessionMiddleware
-from db.database import async_session_factory
-from db.queries import create_user_if_not_exists
+from app.db.session import async_session_factory
+from app.db.repositories import create_user_if_not_exists
 
 
 
@@ -36,3 +36,4 @@ async def cmd_training(message: Message, state: FSMContext, session: AsyncSessio
         )
     else:
         await message.answer(text="🐆")
+
