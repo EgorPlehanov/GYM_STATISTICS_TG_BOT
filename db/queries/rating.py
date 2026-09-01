@@ -202,3 +202,4 @@ async def get_export_data(
         .order_by(Training.date.cast(Date), Exercise.name, Set.exercise_order)
     )
     return [ExportData(*row) for row in result.all()]
+

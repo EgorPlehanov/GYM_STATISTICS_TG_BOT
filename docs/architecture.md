@@ -103,6 +103,7 @@ GYM_STATISTICS_TG_BOT/
       filters/
       states/
       formatters/
+      utils/
 
     workers/
       main.py
@@ -271,4 +272,3 @@ reverse-proxy
 ```
 
 В роли reverse proxy можно использовать Caddy или Nginx. Конкретный выбор будет зафиксирован отдельным решением перед настройкой production-деплоя.
-

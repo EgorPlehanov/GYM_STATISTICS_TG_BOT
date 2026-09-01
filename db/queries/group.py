@@ -6,7 +6,7 @@ from typing import List
 from collections import namedtuple
 
 from ..models import Group, GroupUser, User, GroupTrainingResultMessage
-from handlers.redirect_units import RedirectGroup
+from app.bot.handlers.redirect_units import RedirectGroup
 
 
 

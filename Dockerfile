@@ -12,4 +12,4 @@ RUN pip install --no-cache-dir uv \
     && uv sync --frozen --no-dev
 
 # Запустите приложение
-CMD ["uv", "run", "python", "bot.py"]
+CMD ["uv", "run", "python", "-m", "app.bot.main"]

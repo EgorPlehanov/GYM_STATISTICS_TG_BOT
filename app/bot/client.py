@@ -3,3 +3,4 @@
 
 class BotApiClient:
     """HTTP-клиент, через который Telegram-бот обращается к backend API."""
+

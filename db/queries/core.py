@@ -54,3 +54,4 @@ def create_exercises_values_sync():
                         session.execute(table.insert().values(item))
 
         session.commit()
+

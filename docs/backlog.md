@@ -23,8 +23,8 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Создать каталог `docker/`.
 - [x] Создать каталог `tests/`.
 - [x] Создать каталог `migrations/`.
-- [ ] Перенести старые Telegram-модули в `app/bot/`.
-- [ ] Перенести текущие `utils` по назначению: bot formatters, domain helpers, shared utils.
+- [x] Перенести старые Telegram-модули в `app/bot/`.
+- [~] Перенести текущие `utils` по назначению: bot formatters, domain helpers, shared utils.
 
 ## 3. Backend Core
 
@@ -100,13 +100,13 @@ Backlog фиксирует крупные задачи перехода на н�
 
 ## 9. Telegram Bot
 
-- [ ] Перенести entrypoint в `app/bot/main.py`.
+- [x] Перенести entrypoint в `app/bot/main.py`.
 - [x] Создать API client для бота.
-- [ ] Перенести handlers.
-- [ ] Перенести keyboards.
-- [ ] Перенести middlewares.
-- [ ] Перенести filters.
-- [ ] Перенести FSM states.
+- [x] Перенести handlers.
+- [x] Перенести keyboards.
+- [x] Перенести middlewares.
+- [x] Перенести filters.
+- [x] Перенести FSM states.
 - [ ] Перевести основные сценарии бота на вызовы FastAPI API.
 - [ ] Добавить сценарий генерации одноразового кода для web login.
 

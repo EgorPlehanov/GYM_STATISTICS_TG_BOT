@@ -1,1 +1,1 @@
-"""Фильтры Telegram-бота."""
+from .state_atribute_not_none import StateAtributeNotNoneFilter
