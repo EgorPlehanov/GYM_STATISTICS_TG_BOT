@@ -1,0 +1,91 @@
+# База данных
+
+## Назначение слоя
+
+Слой базы данных находится в `app/db` и отвечает за:
+
+- SQLAlchemy metadata;
+- модели;
+- подключение к PostgreSQL;
+- фабрики sync/async-сессий;
+- миграции Alembic;
+- загрузку справочных данных;
+- repositories для запросов.
+
+## Структура
+
+```text
+app/db/
+  base.py
+  session.py
+  models.py
+  seed.py
+  seed_data/
+  repositories/
+
+migrations/
+  env.py
+  script.py.mako
+  versions/
+```
+
+## Пользовательская модель
+
+Пользователь имеет внутренний primary key:
+
+```text
+user.id
+```
+
+Telegram id хранится отдельно:
+
+```text
+user.telegram_id
+```
+
+Это нужно, чтобы в будущем можно было добавить другие способы авторизации без привязки всей базы к Telegram id.
+
+## Миграции
+
+Структура базы управляется через Alembic.
+
+Применение миграций:
+
+```text
+uv run alembic upgrade head
+```
+
+Создание новой миграции:
+
+```text
+uv run alembic revision --autogenerate -m "описание изменения"
+```
+
+## Справочники
+
+Seed-данные находятся в:
+
+```text
+app/db/seed_data/
+```
+
+Загрузка справочников:
+
+```text
+uv run python -m app.db.seed
+```
+
+Seed-команда добавляет только отсутствующие записи. Проверка существования выполняется по значениям полей, кроме `id`.
+
+## Совместимость со старым кодом
+
+Старые модули временно оставлены как compatibility wrappers:
+
+```text
+db/database.py
+db/models.py
+db/init_db.py
+```
+
+Новый код должен импортировать сущности из `app.db`.
+

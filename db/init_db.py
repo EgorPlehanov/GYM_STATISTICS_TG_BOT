@@ -1,25 +1,16 @@
-import sys
-import os
+"""Совместимая команда инициализации БД для старого Docker entrypoint.
 
-# Добавить путь к вашему проекту в переменную PYTHONPATH
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_dir = os.path.dirname(current_dir)
-sys.path.append(project_dir)
+Новая production-схема должна использовать Alembic-миграции и `app.db.seed`.
+"""
 
-from db.database import Base, sync_engine
-from db.queries.core import create_exercises_values_sync
-
-
+from app.db.base import Base
+from app.db.seed import seed_reference_data
+from app.db.session import sync_engine, sync_session_factory
 
 def create_tables_sync():
-    # Base.metadata.drop_all(sync_engine)
     Base.metadata.create_all(sync_engine)
-    create_exercises_values_sync()
-
-    # Создание таблиц по одной
-    # Base.metadata.create_all(sync_engine, tables=[Rank.__table__])
-    # Base.metadata.create_all(sync_engine, tables=[ExerciseRank.__table__])
-    # Base.metadata.create_all(sync_engine, tables=[UserExerciseRating.__table__])
+    with sync_session_factory() as session:
+        seed_reference_data(session)
 
     print('РАБОТА С БД ЗАВЕРШЕНА')
 

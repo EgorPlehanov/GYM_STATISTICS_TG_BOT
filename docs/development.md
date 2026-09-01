@@ -15,6 +15,13 @@ uv run python -m app.workers.main
 cd web && npm run dev
 ```
 
+Планируемая подготовка базы:
+
+```text
+uv run alembic upgrade head
+uv run python -m app.db.seed
+```
+
 ## Зависимости
 
 Python-зависимости управляются через `uv`.

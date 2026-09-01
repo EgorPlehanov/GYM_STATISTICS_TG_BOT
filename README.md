@@ -19,6 +19,7 @@ Telegram-бот и web-приложение для учета тренирово
 - [Backlog](docs/backlog.md)
 - [Разработка](docs/development.md)
 - [Деплой](docs/deployment.md)
+- [База данных](docs/database.md)
 - [Telegram Mini App](docs/telegram-mini-app.md)
 - [Архитектурные решения](docs/decisions)
 

@@ -8,6 +8,7 @@
 - [backlog.md](backlog.md) - backlog архитектурного перехода и дальнейшей разработки.
 - [development.md](development.md) - правила локальной разработки.
 - [deployment.md](deployment.md) - план деплоя на VPS.
+- [database.md](database.md) - слой базы данных, миграции и справочники.
 - [telegram-mini-app.md](telegram-mini-app.md) - особенности Telegram Web App / Mini App.
 
 ## Архитектурные решения
@@ -18,4 +19,3 @@
 - [0002-auth-strategy.md](decisions/0002-auth-strategy.md) - стратегия авторизации.
 - [0003-frontend-stack.md](decisions/0003-frontend-stack.md) - React/Vite SPA.
 - [0004-background-workers.md](decisions/0004-background-workers.md) - фоновые задачи через worker.
-

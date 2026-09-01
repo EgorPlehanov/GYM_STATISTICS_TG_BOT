@@ -39,14 +39,14 @@ Backlog фиксирует крупные задачи перехода на н�
 
 ## 4. Database
 
-- [ ] Перенести SQLAlchemy session setup в `app/db/session.py`.
-- [ ] Перенести модели в `app/db/models.py`.
-- [ ] Изменить модель пользователя: внутренний `id` плюс уникальный `telegram_id`.
-- [ ] Настроить Alembic.
-- [ ] Создать начальную миграцию.
-- [ ] Перенести seed JSON в `app/db/seed_data/`.
-- [ ] Реализовать seed-команду для справочников.
-- [ ] Убрать production-зависимость от `Base.metadata.create_all()`.
+- [x] Перенести SQLAlchemy session setup в `app/db/session.py`.
+- [x] Перенести модели в `app/db/models.py`.
+- [x] Изменить модель пользователя: внутренний `id` плюс уникальный `telegram_id`.
+- [x] Настроить Alembic.
+- [x] Создать начальную миграцию.
+- [x] Перенести seed JSON в `app/db/seed_data/`.
+- [x] Реализовать seed-команду для справочников.
+- [x] Убрать production-зависимость от `Base.metadata.create_all()`.
 
 ## 5. Repositories
 
