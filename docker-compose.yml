@@ -23,5 +23,32 @@ services:
     depends_on:
       - db
 
+  migrate:
+    build: .
+    container_name: migrate-container
+    profiles:
+      - tools
+    volumes:
+      - .:/app
+    env_file:
+      - ./.env
+    depends_on:
+      - db
+    command: >
+      sh -c "uv run alembic upgrade head && uv run python -m app.db.seed"
+
+  db-reset:
+    build: .
+    container_name: db-reset-container
+    profiles:
+      - tools
+    volumes:
+      - .:/app
+    env_file:
+      - ./.env
+    depends_on:
+      - db
+    command: uv run python -m app.db.reset
+
 volumes:
   pgdata: 

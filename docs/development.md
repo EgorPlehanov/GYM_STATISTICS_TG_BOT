@@ -22,6 +22,15 @@ uv run alembic upgrade head
 uv run python -m app.db.seed
 ```
 
+Через Docker Compose:
+
+```text
+docker compose --profile tools run --rm migrate
+docker compose --profile tools run --rm db-reset
+```
+
+`db-reset` полностью пересоздает схему БД и разрешен только при `APP_ENV=dev`.
+
 ## Зависимости
 
 Python-зависимости управляются через `uv`.

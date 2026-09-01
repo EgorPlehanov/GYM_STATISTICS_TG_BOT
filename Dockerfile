@@ -7,15 +7,9 @@ WORKDIR /app
 # Скопируйте файлы приложения в контейнер
 COPY . /app
 
-# Даем права на выполнение
-RUN chmod +x /app/entrypoint.sh
-
 # Установите зависимости через uv
 RUN pip install --no-cache-dir uv \
     && uv sync --frozen --no-dev
-
-# Устанавливаем entrypoint
-ENTRYPOINT ["/app/entrypoint.sh"]
 
 # Запустите приложение
 CMD ["uv", "run", "python", "bot.py"]
