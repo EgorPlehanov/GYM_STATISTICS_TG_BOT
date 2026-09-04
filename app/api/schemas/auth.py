@@ -15,6 +15,12 @@ class TelegramLoginRequest(BaseModel):
     photo_url: str | None = None
 
 
+class TelegramMiniAppLoginRequest(BaseModel):
+    """Raw initData Telegram Mini App, которые frontend отправляет в API."""
+
+    init_data: str
+
+
 class CurrentUserResponse(BaseModel):
     """Данные текущего авторизованного пользователя для frontend."""
 

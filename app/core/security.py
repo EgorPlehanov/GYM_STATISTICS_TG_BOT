@@ -4,6 +4,7 @@ import hashlib
 import hmac
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from urllib.parse import parse_qsl
 
 import jwt
 
@@ -98,6 +99,61 @@ def is_telegram_login_hash_valid(auth_data: dict[str, Any], bot_token: str) -> b
     """Проверяет, что данные Telegram Login Widget подписаны Telegram."""
     expected_hash = calculate_telegram_login_hash(auth_data, bot_token)
     received_hash = str(auth_data.get("hash", ""))
+    return hmac.compare_digest(expected_hash, received_hash)
+
+
+def parse_telegram_mini_app_init_data(init_data: str) -> dict[str, str]:
+    """Парсит raw `Telegram.WebApp.initData` в словарь строковых параметров.
+
+    Вход:
+        init_data: query string из `Telegram.WebApp.initData`.
+
+    Выход:
+        словарь параметров после URL-decoding.
+    """
+    return dict(parse_qsl(init_data, keep_blank_values=True, strict_parsing=True))
+
+
+def build_telegram_mini_app_data_check_string(init_data_values: dict[str, str]) -> str:
+    """Собирает строку проверки Telegram Mini App initData.
+
+    Вход:
+        init_data_values: распарсенные параметры `Telegram.WebApp.initData`.
+
+    Выход:
+        строки `key=value`, отсортированные по ключу и разделенные `\n`.
+        Поля `hash` и `signature` исключаются из строки проверки.
+    """
+    return "\n".join(
+        f"{key}={value}"
+        for key, value in sorted(init_data_values.items())
+        if key not in {"hash", "signature"}
+    )
+
+
+def calculate_telegram_mini_app_hash(init_data_values: dict[str, str], bot_token: str) -> str:
+    """Рассчитывает hash для проверки Telegram Mini App initData.
+
+    Алгоритм отличается от Telegram Login Widget: промежуточный secret key
+    получается через HMAC-SHA-256 от bot token с ключом `WebAppData`.
+    """
+    data_check_string = build_telegram_mini_app_data_check_string(init_data_values)
+    secret_key = hmac.new(
+        b"WebAppData",
+        bot_token.encode(),
+        hashlib.sha256,
+    ).digest()
+    return hmac.new(
+        secret_key,
+        data_check_string.encode(),
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def is_telegram_mini_app_hash_valid(init_data_values: dict[str, str], bot_token: str) -> bool:
+    """Проверяет, что Mini App initData подписаны Telegram."""
+    expected_hash = calculate_telegram_mini_app_hash(init_data_values, bot_token)
+    received_hash = init_data_values.get("hash", "")
     return hmac.compare_digest(expected_hash, received_hash)
 
 

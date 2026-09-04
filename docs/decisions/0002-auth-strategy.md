@@ -33,6 +33,7 @@ telegram_id
 На первом этапе API реализует:
 
 - проверку Telegram Login Widget по HMAC-SHA-256;
+- проверку Telegram Mini App `initData` по HMAC-SHA-256;
 - создание или обновление пользователя по Telegram id;
 - stateless web-сессию через подписанный JWT в `httpOnly` cookie;
 - endpoint `GET /api/auth/me`;
@@ -41,7 +42,7 @@ telegram_id
 JWT не должен хранить Telegram id. В текущей реализации payload содержит только внутренний `sub`
 пользователя и технические claims времени жизни.
 
-Telegram Mini App `initData` validation и одноразовый код через бота остаются следующими шагами.
+Одноразовый код через бота остается следующим способом входа.
 
 ## Последствия
 

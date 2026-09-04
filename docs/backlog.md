@@ -93,7 +93,7 @@ Backlog фиксирует крупные задачи перехода на н�
 
 ## 8. Авторизация
 
-- [ ] Реализовать Telegram Mini App `initData` validation.
+- [x] Реализовать Telegram Mini App `initData` validation.
 - [x] Реализовать Telegram Login Widget validation.
 - [ ] Реализовать одноразовый код через бота.
 - [x] Реализовать безопасную web-сессию через `httpOnly` cookie.
@@ -141,7 +141,7 @@ Backlog фиксирует крупные задачи перехода на н�
 ## 12. Telegram Mini App
 
 - [ ] Добавить определение Telegram Mini App режима.
-- [ ] Передавать `initData` на backend.
+- [x] Передавать `initData` на backend.
 - [ ] Поддержать Telegram theme params.
 - [ ] Поддержать Telegram BackButton.
 - [ ] Продумать MainButton для ключевых действий.

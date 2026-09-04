@@ -2,8 +2,10 @@
 
 import hashlib
 import hmac
+import json
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
+from urllib.parse import urlencode
 
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
@@ -18,6 +20,22 @@ def _build_telegram_hash(auth_data: dict[str, object], bot_token: str) -> str:
     )
     secret_key = hashlib.sha256(bot_token.encode()).digest()
     return hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+
+
+def _build_telegram_mini_app_init_data(init_data: dict[str, str], bot_token: str) -> str:
+    """Собирает тестовый raw initData Telegram Mini App с корректным hash."""
+    data_check_string = "\n".join(
+        f"{key}={value}"
+        for key, value in sorted(init_data.items())
+        if key not in {"hash", "signature"}
+    )
+    secret_key = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
+    init_data["hash"] = hmac.new(
+        secret_key,
+        data_check_string.encode(),
+        hashlib.sha256,
+    ).hexdigest()
+    return urlencode(init_data)
 
 
 def test_telegram_login_hash_validation(monkeypatch):
@@ -42,6 +60,41 @@ def test_telegram_login_hash_validation(monkeypatch):
     auth_data["first_name"] = "Changed"
 
     assert not is_telegram_login_hash_valid(auth_data, bot_token)
+
+
+def test_telegram_mini_app_hash_validation(monkeypatch):
+    """Проверяет валидную и невалидную подпись Telegram Mini App initData."""
+    _set_required_env(monkeypatch)
+
+    from app.core.security import (
+        is_telegram_mini_app_hash_valid,
+        parse_telegram_mini_app_init_data,
+    )
+
+    bot_token = "1:test"
+    init_data = {
+        "query_id": "AAHdF6IQAAAAAN0XohDhrOrc",
+        "user": json.dumps(
+            {
+                "id": 123456789,
+                "first_name": "Egor",
+                "last_name": "Test",
+                "username": "egor_test",
+                "language_code": "ru",
+                "is_premium": True,
+            },
+            separators=(",", ":"),
+        ),
+        "auth_date": str(int(datetime.now(timezone.utc).timestamp())),
+    }
+    raw_init_data = _build_telegram_mini_app_init_data(init_data, bot_token)
+    parsed_init_data = parse_telegram_mini_app_init_data(raw_init_data)
+
+    assert is_telegram_mini_app_hash_valid(parsed_init_data, bot_token)
+
+    parsed_init_data["query_id"] = "changed"
+
+    assert not is_telegram_mini_app_hash_valid(parsed_init_data, bot_token)
 
 
 def test_session_token_round_trip(monkeypatch):
@@ -153,6 +206,55 @@ def test_telegram_login_sets_http_only_cookie(monkeypatch):
     client = TestClient(app)
 
     response = client.post("/api/auth/telegram-login", json=payload)
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json()["telegram_id"] == 123456789
+    assert config.SESSION_COOKIE_NAME in response.cookies
+    assert "httponly" in response.headers["set-cookie"].lower()
+
+
+def test_telegram_mini_app_login_sets_http_only_cookie(monkeypatch):
+    """Проверяет, что Mini App login endpoint устанавливает session cookie."""
+    _set_required_env(monkeypatch)
+
+    from app.api.deps import get_db_session
+    from app.api.main import app
+    from app.api.routers import auth as auth_router
+    from app.core.config import config
+
+    monkeypatch.setattr(
+        auth_router.config,
+        "SESSION_SECRET_KEY",
+        SecretStr("test-secret-with-at-least-32-bytes"),
+    )
+
+    async def fake_authenticate_telegram_mini_app(session, init_data):
+        """Возвращает пользователя без обращения к базе данных."""
+        return SimpleNamespace(
+            id=7,
+            telegram_id=123456789,
+            name="Egor",
+            language_code="ru",
+        )
+
+    async def fake_db_session():
+        """Возвращает тестовую заглушку DB-сессии."""
+        yield object()
+
+    monkeypatch.setattr(
+        auth_router,
+        "authenticate_telegram_mini_app",
+        fake_authenticate_telegram_mini_app,
+    )
+    app.dependency_overrides[get_db_session] = fake_db_session
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/auth/telegram-mini-app",
+        json={"init_data": "query_id=test&auth_date=1&hash=fake"},
+    )
 
     app.dependency_overrides.clear()
 

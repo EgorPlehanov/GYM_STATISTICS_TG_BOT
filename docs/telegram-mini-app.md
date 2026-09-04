@@ -17,6 +17,14 @@ Frontend получает `window.Telegram.WebApp.initData` и отправля�
 React/Vite -> POST /api/auth/telegram-mini-app -> FastAPI
 ```
 
+Тело запроса:
+
+```json
+{
+  "init_data": "query_id=...&user=...&auth_date=...&hash=..."
+}
+```
+
 Backend проверяет подпись `initData` через `TG_BOT_TOKEN`. Только после серверной проверки пользователь считается авторизованным.
 
 `initDataUnsafe` можно использовать только для UI-подсказок на клиенте. Его нельзя считать доверенным источником.
@@ -36,4 +44,3 @@ Frontend должен учитывать:
 ## Настройка
 
 Инструкция настройки Mini App через BotFather будет добавлена после появления frontend-сборки и публичного URL.
-
