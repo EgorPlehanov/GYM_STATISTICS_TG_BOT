@@ -95,17 +95,4 @@ docker compose --profile tools run --rm db-reset
 
 `db-reset` удаляет схему `public`, применяет миграции и загружает справочники. Команда защищена проверкой `APP_ENV=dev` и не должна использоваться в production.
 
-## Совместимость со старым кодом
-
-Старые модули временно оставлены как compatibility wrappers:
-
-```text
-db/database.py
-db/models.py
-db/init_db.py
-db/queries/
-```
-
-Новый код должен импортировать сущности из `app.db`.
-
 Бизнес-слой и UI-слои не должны вызывать repositories напрямую. Для сценариев приложения используется `app.domain`.
