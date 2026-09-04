@@ -29,7 +29,7 @@ Backend API является центральной точкой доступа 
 Telegram-бот не должен напрямую обращаться к базе или доменному слою. Он должен работать как API-клиент:
 
 ```text
-bot -> FastAPI API -> domain -> repositories -> db
+bot -> internal FastAPI API -> domain -> repositories -> db
 ```
 
 Веб-версия и Telegram Mini App работают по той же схеме:
@@ -146,6 +146,17 @@ GYM_STATISTICS_TG_BOT/
 
 FastAPI предоставляет внешний контракт для всех клиентов.
 
+API делится на два типа HTTP-входов:
+
+```text
+/api/*       публичный пользовательский API для web и Telegram Mini App
+/internal/*  служебный API для bot-service и worker
+```
+
+`/api/*` использует пользовательскую web-сессию. `/internal/*` должен использовать service-to-service авторизацию и не должен быть доступен из интернета.
+
+Public и internal routes могут отличаться DTO и способом авторизации, но не должны дублировать бизнес-логику. Для одинаковых сценариев они вызывают один и тот же domain service.
+
 Технический endpoint:
 
 ```text
@@ -223,7 +234,7 @@ Telegram Bot является API-клиентом.
 - состояния aiogram FSM;
 - Telegram-кнопки;
 - форматирование сообщений;
-- вызовы FastAPI API.
+- вызовы internal FastAPI API.
 
 Бот не должен содержать основную бизнес-логику.
 

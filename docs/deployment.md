@@ -26,6 +26,35 @@ api service
 
 Telegram Bot работает отдельным процессом и обращается к `api service`.
 
+## Public и internal API
+
+В production API-контейнер не должен публиковать порт напрямую наружу через Docker `ports`.
+Доступ из интернета должен идти только через reverse proxy.
+
+Reverse proxy публикует:
+
+```text
+/api/*
+/health
+web static files
+```
+
+Reverse proxy не должен публиковать:
+
+```text
+/internal/*
+```
+
+Bot и worker обращаются к internal API по приватной Docker network:
+
+```text
+bot -> http://api:8000/internal/...
+worker -> http://api:8000/internal/...
+```
+
+Все `/internal/*` endpoints должны дополнительно требовать service token.
+Этот token хранится только в backend-окружении и не передается во frontend.
+
 Минимальный API-сервис в Docker Compose запускается командой:
 
 ```text
@@ -64,5 +93,6 @@ docker compose --profile tools run --rm db-reset
 - backup PostgreSQL;
 - restart policy;
 - healthchecks на уровне Docker/reverse proxy;
+- правила reverse proxy для запрета `/internal/*` снаружи;
 - логи;
 - стратегия обновления контейнеров.
