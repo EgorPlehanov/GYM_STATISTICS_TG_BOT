@@ -14,14 +14,12 @@ SESSION_TOKEN_ALGORITHM = "HS256"
 
 def create_session_token(
     user_id: int,
-    telegram_id: int,
     expires_delta: timedelta | None = None,
 ) -> str:
     """Создает подписанный токен web-сессии.
 
     Вход:
         user_id: внутренний id пользователя.
-        telegram_id: внешний Telegram user id.
         expires_delta: срок жизни токена. Если не передан, используется настройка проекта.
 
     Выход:
@@ -35,7 +33,6 @@ def create_session_token(
     )
     payload = {
         "sub": str(user_id),
-        "telegram_id": telegram_id,
         "iat": int(now.timestamp()),
         "exp": int(expires_at.timestamp()),
     }

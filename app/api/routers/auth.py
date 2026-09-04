@@ -45,7 +45,6 @@ async def telegram_login(
 
     session_token = create_session_token(
         user_id=user.id,
-        telegram_id=user.telegram_id,
     )
     response.set_cookie(
         key=config.SESSION_COOKIE_NAME,

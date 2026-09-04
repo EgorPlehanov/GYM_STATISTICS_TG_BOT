@@ -100,6 +100,8 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Добавить logout.
 - [x] Добавить `GET /api/auth/me`.
 - [x] Добавить тесты на validation Telegram auth.
+- [ ] Перейти на server-side sessions через таблицу сессий или Redis.
+- [ ] Использовать случайный `sid` в cookie/session token вместо пользовательских идентификаторов.
 
 ## 9. Telegram Bot
 

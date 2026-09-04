@@ -38,6 +38,9 @@ telegram_id
 - endpoint `GET /api/auth/me`;
 - endpoint `POST /api/auth/logout`.
 
+JWT не должен хранить Telegram id. В текущей реализации payload содержит только внутренний `sub`
+пользователя и технические claims времени жизни.
+
 Telegram Mini App `initData` validation и одноразовый код через бота остаются следующими шагами.
 
 ## Последствия
@@ -46,3 +49,5 @@ Telegram Mini App `initData` validation и одноразовый код чер�
 - Сессионные данные меньше доступны JavaScript-коду в браузере.
 - Нужно аккуратно настроить cookie, CORS, CSRF-защиту и окружения dev/prod.
 - Stateless session token проще внедрить на текущем этапе, но logout удаляет только cookie на клиенте.
+- В будущем нужно перейти на server-side sessions через таблицу сессий или Redis и хранить в токене
+  случайный `sid`, а не пользовательские идентификаторы.

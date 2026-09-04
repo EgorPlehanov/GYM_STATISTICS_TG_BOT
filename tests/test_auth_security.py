@@ -57,11 +57,11 @@ def test_session_token_round_trip(monkeypatch):
     )
     monkeypatch.setattr(security.config, "SESSION_TTL_SECONDS", 3600)
 
-    token = security.create_session_token(user_id=42, telegram_id=123456789)
+    token = security.create_session_token(user_id=42)
     payload = security.decode_session_token(token)
 
     assert payload["sub"] == "42"
-    assert payload["telegram_id"] == 123456789
+    assert "telegram_id" not in payload
 
 
 def test_auth_me_requires_session(monkeypatch):
