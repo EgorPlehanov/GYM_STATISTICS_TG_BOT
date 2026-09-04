@@ -162,13 +162,15 @@ Backlog фиксирует крупные задачи перехода на н�
 
 ## 14. Docker и деплой
 
-- [ ] Подготовить Dockerfile для backend/bot/worker.
+- [x] Подготовить Dockerfile для backend/bot.
 - [ ] Подготовить Dockerfile для web.
 - [x] Обновить `docker-compose.yml`.
 - [x] Добавить сервис `api`.
-- [ ] Добавить сервис `bot`.
+- [x] Добавить сервис `bot`.
 - [ ] Добавить сервис `worker`.
 - [ ] Добавить сервис `web`.
+- [x] Добавить `.dockerignore`.
+- [x] Зафиксировать major-версию PostgreSQL Docker image.
 - [ ] Добавить reverse proxy.
 - [ ] Запретить внешний доступ к `/internal/*` на уровне reverse proxy.
 - [ ] В production заменить публикацию API-порта через `ports` на внутренний `expose`.

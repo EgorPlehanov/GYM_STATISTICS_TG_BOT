@@ -25,12 +25,24 @@ uv run python -m app.db.seed
 Через Docker Compose:
 
 ```text
-docker compose up api
+docker compose build
+docker compose up -d db
 docker compose --profile tools run --rm migrate
+docker compose up api
+docker compose up bot
 docker compose --profile tools run --rm db-reset
 ```
 
 `db-reset` полностью пересоздает схему БД и разрешен только при `APP_ENV=dev`.
+
+Для Docker-запуска значения PostgreSQL и API должны указывать на имена сервисов Docker Compose:
+
+```text
+POSTGRES_HOST=db
+POSTGRES_PORT=5432
+BOT_API_BASE_URL=http://api:8000
+API_BASE_URL=http://api:8000
+```
 
 ## Зависимости
 

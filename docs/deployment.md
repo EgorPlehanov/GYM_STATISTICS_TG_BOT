@@ -13,6 +13,14 @@ web
 reverse-proxy
 ```
 
+Версии инфраструктурных образов нужно фиксировать явно. PostgreSQL использует
+`postgres:18-alpine`, а не `postgres:latest`, чтобы обновление Docker image не
+поменяло major-версию базы без отдельного плана миграции.
+
+Для PostgreSQL 18 volume монтируется в `/var/lib/postgresql`, а не в
+`/var/lib/postgresql/data`. Такой layout соответствует актуальному Docker image
+PostgreSQL и оставляет место для version-specific директорий данных.
+
 ## Базовая схема
 
 ```text
@@ -65,6 +73,9 @@ X-Internal-Api-Key: <INTERNAL_API_TOKEN>
 ```text
 uv run uvicorn app.api.main:app --host 0.0.0.0 --port 8000
 ```
+
+Обычные сервисы Compose запускаются из собранного Docker image без bind mount исходников.
+Это ближе к VPS-режиму и не подмешивает локальное `.venv` внутрь Linux-контейнера.
 
 Базовая техническая проверка доступна по адресу:
 

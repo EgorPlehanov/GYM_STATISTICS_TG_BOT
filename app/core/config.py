@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     INTERNAL_API_TOKEN: SecretStr = SecretStr("dev-only-internal-token")
 
     WEB_APP_URL: str = "http://localhost:5173"
-    BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:5173"]
+    BACKEND_CORS_ORIGINS: str = "http://localhost:5173"
 
     SESSION_SECRET_KEY: SecretStr = SecretStr("dev-only-change-me")
     SESSION_COOKIE_NAME: str = "gym_statistics_session"
@@ -47,18 +47,6 @@ class Settings(BaseSettings):
     COOKIE_SECURE: bool = False
     COOKIE_SAMESITE: Literal["lax", "strict", "none"] = "lax"
 
-    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
-    @classmethod
-    def parse_cors_origins(cls, value: str | list[str]) -> list[str]:
-        """Преобразует CORS origins из строки `.env` в список.
-
-        Вход: строка с адресами через запятую или уже готовый список строк.
-        Выход: список origin-адресов без пробелов и пустых значений.
-        """
-        if isinstance(value, str):
-            return [origin.strip() for origin in value.split(",") if origin.strip()]
-        return value
-
     @field_validator("COOKIE_DOMAIN", mode="before")
     @classmethod
     def parse_cookie_domain(cls, value: str | None) -> str | None:
@@ -66,6 +54,19 @@ class Settings(BaseSettings):
         if value == "":
             return None
         return value
+
+    @property
+    def backend_cors_origins(self) -> list[str]:
+        """Возвращает список разрешенных CORS origins.
+
+        Вход берется из `BACKEND_CORS_ORIGINS`: одна строка или несколько адресов
+        через запятую. Выход используется FastAPI CORS middleware.
+        """
+        return [
+            origin.strip()
+            for origin in self.BACKEND_CORS_ORIGINS.split(",")
+            if origin.strip()
+        ]
 
     @model_validator(mode="after")
     def validate_production_secrets(self) -> "Settings":
