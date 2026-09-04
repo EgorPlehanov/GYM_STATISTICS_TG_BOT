@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     API_PORT: int = 8000
     API_BASE_URL: str = "http://api:8000"
     BOT_API_BASE_URL: str = "http://api:8000"
+    INTERNAL_API_TOKEN: SecretStr = SecretStr("dev-only-internal-token")
 
     WEB_APP_URL: str = "http://localhost:5173"
     BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:5173"]
@@ -74,6 +75,11 @@ class Settings(BaseSettings):
             and self.SESSION_SECRET_KEY.get_secret_value() == "dev-only-change-me"
         ):
             raise ValueError("SESSION_SECRET_KEY должен быть задан для prod-окружения")
+        if (
+            self.APP_ENV == "prod"
+            and self.INTERNAL_API_TOKEN.get_secret_value() == "dev-only-internal-token"
+        ):
+            raise ValueError("INTERNAL_API_TOKEN должен быть задан для prod-окружения")
         return self
 
     @property

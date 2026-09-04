@@ -91,8 +91,8 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Настроить базовый CORS для web frontend.
 - [x] Настроить базовую OpenAPI metadata.
 - [ ] Описать базовый API contract.
-- [ ] Создать `/internal/*` router group для bot-service и worker.
-- [ ] Добавить service-to-service auth для `/internal/*`.
+- [x] Создать `/internal/*` router group для bot-service и worker.
+- [x] Добавить service-to-service auth для `/internal/*`.
 
 ## 8. Авторизация
 

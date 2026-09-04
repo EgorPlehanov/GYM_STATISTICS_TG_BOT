@@ -1,10 +1,11 @@
 """Зависимости FastAPI."""
 
+import hmac
 from collections.abc import AsyncGenerator
 from typing import Annotated
 
 import jwt
-from fastapi import Cookie, Depends, HTTPException, status
+from fastapi import Cookie, Depends, Header, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import config
@@ -26,6 +27,7 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
 
 DbSession = Annotated[AsyncSession, Depends(get_db_session)]
 SessionTokenCookie = Annotated[str | None, Cookie(alias=config.SESSION_COOKIE_NAME)]
+InternalApiTokenHeader = Annotated[str | None, Header(alias="X-Internal-Api-Key")]
 
 
 async def get_current_user(
@@ -65,3 +67,27 @@ async def get_current_user(
             detail="Пользователь не найден",
         )
     return user
+
+
+async def get_internal_service(
+    api_token: InternalApiTokenHeader = None,
+) -> str:
+    """Проверяет service-to-service token для `/internal/*`.
+
+    Вход:
+        api_token: значение HTTP-заголовка `X-Internal-Api-Key`.
+
+    Выход:
+        строковый идентификатор внутреннего клиента. Пока используется общий
+        service token без разделения на bot/worker.
+
+    Исключения:
+        `HTTPException 401`, если token отсутствует или не совпадает с настройкой проекта.
+    """
+    expected_token = config.INTERNAL_API_TOKEN.get_secret_value()
+    if api_token is None or not hmac.compare_digest(api_token, expected_token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Недействительный internal API token",
+        )
+    return "internal"

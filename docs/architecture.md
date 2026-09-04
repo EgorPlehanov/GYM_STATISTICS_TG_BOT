@@ -95,6 +95,7 @@ GYM_STATISTICS_TG_BOT/
       routers/
         health.py
         auth.py
+        internal.py
         users.py
         exercises.py
         trainings.py
@@ -157,6 +158,15 @@ API делится на два типа HTTP-входов:
 
 Public и internal routes могут отличаться DTO и способом авторизации, но не должны дублировать бизнес-логику. Для одинаковых сценариев они вызывают один и тот же domain service.
 
+Все `/internal/*` endpoints требуют заголовок:
+
+```text
+X-Internal-Api-Key: <INTERNAL_API_TOKEN>
+```
+
+Проверка подключается на уровне `/internal` router, чтобы новые служебные endpoints
+не могли быть добавлены без internal auth случайно.
+
 Технический endpoint:
 
 ```text
@@ -164,6 +174,14 @@ GET /health
 ```
 
 Он используется для быстрой проверки, что API-процесс запущен и отвечает.
+
+Служебный health endpoint:
+
+```text
+GET /internal/health
+```
+
+Он используется для проверки service-to-service авторизации внутри инфраструктуры.
 
 Основные группы endpoint-ов:
 

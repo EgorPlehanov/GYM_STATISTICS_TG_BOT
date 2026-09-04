@@ -47,10 +47,11 @@ Routers не должны содержать бизнес-логику. Public �
 - не публиковать API-порт наружу через Docker `ports`;
 - использовать Docker `expose` и приватную Docker network для связи `bot -> api`;
 - не маршрутизировать `/internal/*` из интернета через reverse proxy;
-- требовать service token для всех `/internal/*` endpoints;
+- требовать service token в заголовке `X-Internal-Api-Key` для всех `/internal/*` endpoints;
 - хранить service token только в backend-окружении, не передавать его во frontend.
 
 Даже если `/internal/*` случайно станет сетево доступен, запрос без service token должен получать отказ.
+Проверка service token подключается на уровне `/internal` router.
 
 ## Последствия
 

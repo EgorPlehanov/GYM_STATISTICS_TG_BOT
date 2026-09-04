@@ -52,7 +52,12 @@ bot -> http://api:8000/internal/...
 worker -> http://api:8000/internal/...
 ```
 
-Все `/internal/*` endpoints должны дополнительно требовать service token.
+Все `/internal/*` endpoints дополнительно требуют service token в заголовке:
+
+```text
+X-Internal-Api-Key: <INTERNAL_API_TOKEN>
+```
+
 Этот token хранится только в backend-окружении и не передается во frontend.
 
 Минимальный API-сервис в Docker Compose запускается командой:

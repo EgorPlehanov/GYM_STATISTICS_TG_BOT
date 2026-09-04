@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routers import auth, exercises, export, health, statistics, trainings, users
+from app.api.routers import auth, exercises, export, health, internal, statistics, trainings, users
 from app.core.config import config
 
 
@@ -36,6 +36,7 @@ def create_app() -> FastAPI:
     application.include_router(trainings.router)
     application.include_router(statistics.router)
     application.include_router(export.router)
+    application.include_router(internal.router)
 
     return application
 
