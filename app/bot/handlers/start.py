@@ -1,33 +1,28 @@
-from aiogram import Router, F
-from aiogram.types import Message
+from aiogram import F, Router
 from aiogram.filters import CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
+from aiogram.types import Message
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.bot.middlewares import DBSessionMiddleware
-from app.db.session import async_session_factory
-from app.domain.users.service import create_user_if_not_exists
-
-
+from app.bot.client import BotApiClient
 
 router = Router()
 router.message.filter(F.chat.type == "private")
-router.message.middleware(DBSessionMiddleware(async_session_factory))
 
 
 
 @router.message(StateFilter(None), CommandStart())
-async def cmd_training(message: Message, state: FSMContext, session: AsyncSession) -> None:
+async def cmd_training(message: Message, state: FSMContext) -> None:
     """
     Команда /start
     """
-    if await create_user_if_not_exists(
-        session=session,
-        user_id=message.from_user.id,
-        name=message.from_user.full_name,
-        language_code=message.from_user.language_code,
-    ):
+    async with BotApiClient() as api_client:
+        result = await api_client.ensure_user(
+            telegram_id=message.from_user.id,
+            name=message.from_user.full_name,
+            language_code=message.from_user.language_code,
+        )
+
+    if result.created:
         await message.answer(
             text=(
                 f"{message.from_user.first_name}, рад что ты присоединился!\n"

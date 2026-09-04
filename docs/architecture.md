@@ -92,6 +92,7 @@ GYM_STATISTICS_TG_BOT/
       deps.py
       schemas/
         auth.py
+        internal_bot.py
       routers/
         health.py
         auth.py
@@ -182,6 +183,15 @@ GET /internal/health
 ```
 
 Он используется для проверки service-to-service авторизации внутри инфраструктуры.
+
+Первый служебный endpoint для Telegram-бота:
+
+```text
+POST /internal/bot/users/ensure
+```
+
+Он используется обработчиком `/start`, чтобы зарегистрировать пользователя через API,
+а не через прямой доступ бота к domain/db.
 
 Основные группы endpoint-ов:
 

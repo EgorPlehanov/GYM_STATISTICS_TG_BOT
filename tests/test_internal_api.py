@@ -61,6 +61,89 @@ def test_internal_health_accepts_valid_token(monkeypatch):
     assert response.json() == {"status": "ok"}
 
 
+def test_internal_bot_user_ensure_requires_token(monkeypatch):
+    """Проверяет, что регистрация пользователя бота закрыта без service token."""
+    _set_required_env(monkeypatch)
+
+    from app.api.main import app
+
+    client = TestClient(app)
+    response = client.post(
+        "/internal/bot/users/ensure",
+        json={
+            "telegram_id": 123456789,
+            "name": "Egor",
+            "language_code": "ru",
+        },
+    )
+
+    assert response.status_code == 401
+
+
+def test_internal_bot_user_ensure_calls_domain_service(monkeypatch):
+    """Проверяет, что internal endpoint регистрации пользователя вызывает domain service."""
+    _set_required_env(monkeypatch)
+
+    from app.api.deps import config, get_db_session
+    from app.api.main import app
+    from app.api.routers import internal
+
+    monkeypatch.setattr(
+        config,
+        "INTERNAL_API_TOKEN",
+        SecretStr("test-internal-token-with-at-least-32-bytes"),
+    )
+
+    calls = []
+
+    async def fake_create_user_if_not_exists(session, user_id, name, language_code):
+        """Фиксирует параметры вызова без обращения к базе данных."""
+        calls.append(
+            {
+                "session": session,
+                "user_id": user_id,
+                "name": name,
+                "language_code": language_code,
+            }
+        )
+        return True
+
+    async def fake_db_session():
+        """Возвращает тестовую заглушку DB-сессии."""
+        yield object()
+
+    monkeypatch.setattr(
+        internal,
+        "create_user_if_not_exists",
+        fake_create_user_if_not_exists,
+    )
+    app.dependency_overrides[get_db_session] = fake_db_session
+
+    client = TestClient(app)
+    response = client.post(
+        "/internal/bot/users/ensure",
+        headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
+        json={
+            "telegram_id": 123456789,
+            "name": "Egor",
+            "language_code": "ru",
+        },
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {"created": True}
+    assert calls == [
+        {
+            "session": calls[0]["session"],
+            "user_id": 123456789,
+            "name": "Egor",
+            "language_code": "ru",
+        }
+    ]
+
+
 def _set_required_env(monkeypatch):
     """Заполняет обязательные настройки для импорта FastAPI приложения в тестах."""
     monkeypatch.setenv("MAIN_ADMIN_ID", "1")

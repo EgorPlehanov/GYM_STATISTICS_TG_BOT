@@ -83,8 +83,6 @@ python -m uv run pytest
 app/core/config.py
 ```
 
-Старый модуль `config_reader.py` временно оставлен как совместимая обертка для существующего кода.
-
 Пример переменных окружения находится в `.env.example`.
 
 Обязательные группы настроек:
@@ -95,6 +93,7 @@ app/core/config.py
 - Backend API;
 - Web frontend;
 - sessions and cookies.
+- internal service-to-service API.
 
 ## Принципы разработки
 
@@ -103,7 +102,7 @@ app/core/config.py
 - FastAPI-приложение создается в `app/api/main.py`.
 - API routes живут в `app/api/routers`.
 - Зависимости HTTP-запросов живут в `app/api/deps.py`.
-- Telegram-бот общается с backend через FastAPI API.
+- Telegram-бот общается с backend через internal FastAPI API.
 - React frontend общается с backend через FastAPI API.
 - UI-слои не должны напрямую обращаться к базе данных.
 - Форматы API фиксируются DTO-схемами.
