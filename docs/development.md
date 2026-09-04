@@ -25,6 +25,7 @@ uv run python -m app.db.seed
 Через Docker Compose:
 
 ```text
+docker compose up api
 docker compose --profile tools run --rm migrate
 docker compose --profile tools run --rm db-reset
 ```
@@ -99,6 +100,9 @@ app/core/config.py
 
 - Бизнес-логика живет в `app/domain`.
 - SQLAlchemy-запросы живут в `app/db/repositories`.
+- FastAPI-приложение создается в `app/api/main.py`.
+- API routes живут в `app/api/routers`.
+- Зависимости HTTP-запросов живут в `app/api/deps.py`.
 - Telegram-бот общается с backend через FastAPI API.
 - React frontend общается с backend через FastAPI API.
 - UI-слои не должны напрямую обращаться к базе данных.

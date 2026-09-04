@@ -89,6 +89,7 @@ GYM_STATISTICS_TG_BOT/
       main.py
       deps.py
       routers/
+        health.py
         auth.py
         users.py
         exercises.py
@@ -140,6 +141,14 @@ GYM_STATISTICS_TG_BOT/
 ### API
 
 FastAPI предоставляет внешний контракт для всех клиентов.
+
+Технический endpoint:
+
+```text
+GET /health
+```
+
+Он используется для быстрой проверки, что API-процесс запущен и отвечает.
 
 Основные группы endpoint-ов:
 

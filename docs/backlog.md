@@ -79,14 +79,15 @@ Backlog фиксирует крупные задачи перехода на н�
 
 - [x] Создать `app/api/main.py`.
 - [x] Создать dependency layer в `app/api/deps.py`.
+- [x] Добавить health endpoint `GET /health`.
 - [x] Создать router `auth`.
 - [x] Создать router `users`.
 - [x] Создать router `exercises`.
 - [x] Создать router `trainings`.
 - [x] Создать router `statistics`.
 - [x] Создать router `export`.
-- [ ] Настроить CORS для web frontend.
-- [ ] Настроить OpenAPI metadata.
+- [x] Настроить базовый CORS для web frontend.
+- [x] Настроить базовую OpenAPI metadata.
 - [ ] Описать базовый API contract.
 
 ## 8. Авторизация
@@ -155,8 +156,8 @@ Backlog фиксирует крупные задачи перехода на н�
 
 - [ ] Подготовить Dockerfile для backend/bot/worker.
 - [ ] Подготовить Dockerfile для web.
-- [ ] Обновить `docker-compose.yml`.
-- [ ] Добавить сервис `api`.
+- [x] Обновить `docker-compose.yml`.
+- [x] Добавить сервис `api`.
 - [ ] Добавить сервис `bot`.
 - [ ] Добавить сервис `worker`.
 - [ ] Добавить сервис `web`.

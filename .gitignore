@@ -42,4 +42,5 @@ venv
 .uv-python
 .env
 __pycache__
+.pytest_cache
 img

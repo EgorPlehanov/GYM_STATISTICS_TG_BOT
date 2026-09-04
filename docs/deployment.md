@@ -26,6 +26,18 @@ api service
 
 Telegram Bot работает отдельным процессом и обращается к `api service`.
 
+Минимальный API-сервис в Docker Compose запускается командой:
+
+```text
+uv run uvicorn app.api.main:app --host 0.0.0.0 --port 8000
+```
+
+Базовая техническая проверка доступна по адресу:
+
+```text
+GET /health
+```
+
 ## Миграции
 
 Обычные сервисы `api`, `bot` и `worker` не применяют миграции при старте. Это защищает данные от неожиданных изменений при перезапуске контейнеров.
@@ -51,6 +63,6 @@ docker compose --profile tools run --rm db-reset
 - миграции при релизе;
 - backup PostgreSQL;
 - restart policy;
-- healthchecks;
+- healthchecks на уровне Docker/reverse proxy;
 - логи;
 - стратегия обновления контейнеров.
