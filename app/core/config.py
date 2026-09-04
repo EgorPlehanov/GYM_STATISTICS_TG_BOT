@@ -41,6 +41,7 @@ class Settings(BaseSettings):
 
     SESSION_SECRET_KEY: SecretStr = SecretStr("dev-only-change-me")
     SESSION_COOKIE_NAME: str = "gym_statistics_session"
+    SESSION_TTL_SECONDS: int = 60 * 60 * 24 * 30
     COOKIE_DOMAIN: str | None = None
     COOKIE_SECURE: bool = False
     COOKIE_SAMESITE: Literal["lax", "strict", "none"] = "lax"
@@ -68,7 +69,10 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def validate_production_secrets(self) -> "Settings":
         """Запрещает запуск production с dev-секретом сессии."""
-        if self.APP_ENV == "prod" and self.SESSION_SECRET_KEY.get_secret_value() == "dev-only-change-me":
+        if (
+            self.APP_ENV == "prod"
+            and self.SESSION_SECRET_KEY.get_secret_value() == "dev-only-change-me"
+        ):
             raise ValueError("SESSION_SECRET_KEY должен быть задан для prod-окружения")
         return self
 

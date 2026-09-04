@@ -35,7 +35,7 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Сгенерировать `uv.lock`.
 - [ ] Добавить централизованное логирование.
 - [ ] Добавить базовые project exceptions.
-- [ ] Добавить security helpers для cookies, tokens и Telegram validation.
+- [x] Добавить security helpers для cookies, tokens и Telegram validation.
 - [x] Создать `.env.example`.
 
 ## 4. Database
@@ -94,12 +94,12 @@ Backlog фиксирует крупные задачи перехода на н�
 ## 8. Авторизация
 
 - [ ] Реализовать Telegram Mini App `initData` validation.
-- [ ] Реализовать Telegram Login Widget validation.
+- [x] Реализовать Telegram Login Widget validation.
 - [ ] Реализовать одноразовый код через бота.
-- [ ] Реализовать безопасную web-сессию через `httpOnly` cookie.
-- [ ] Добавить logout.
-- [ ] Добавить `GET /api/me`.
-- [ ] Добавить тесты на validation Telegram auth.
+- [x] Реализовать безопасную web-сессию через `httpOnly` cookie.
+- [x] Добавить logout.
+- [x] Добавить `GET /api/auth/me`.
+- [x] Добавить тесты на validation Telegram auth.
 
 ## 9. Telegram Bot
 
@@ -171,7 +171,7 @@ Backlog фиксирует крупные задачи перехода на н�
 - [ ] Добавить тесты domain services.
 - [ ] Добавить тесты repositories.
 - [ ] Добавить тесты API.
-- [ ] Добавить тесты auth.
+- [x] Добавить тесты auth.
 - [ ] Добавить тесты worker-задач.
 - [x] Добавить smoke-тест запуска backend.
 - [ ] Добавить smoke-тест web build.

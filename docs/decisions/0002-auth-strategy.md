@@ -30,9 +30,19 @@ telegram_id
 
 Для web-сессий используем безопасный вариант с `httpOnly` cookie.
 
+На первом этапе API реализует:
+
+- проверку Telegram Login Widget по HMAC-SHA-256;
+- создание или обновление пользователя по Telegram id;
+- stateless web-сессию через подписанный JWT в `httpOnly` cookie;
+- endpoint `GET /api/auth/me`;
+- endpoint `POST /api/auth/logout`.
+
+Telegram Mini App `initData` validation и одноразовый код через бота остаются следующими шагами.
+
 ## Последствия
 
 - Пользовательская модель готова к будущим способам авторизации.
 - Сессионные данные меньше доступны JavaScript-коду в браузере.
 - Нужно аккуратно настроить cookie, CORS, CSRF-защиту и окружения dev/prod.
-
+- Stateless session token проще внедрить на текущем этапе, но logout удаляет только cookie на клиенте.

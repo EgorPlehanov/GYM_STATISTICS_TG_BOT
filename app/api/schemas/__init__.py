@@ -1,0 +1,1 @@
+"""DTO-схемы FastAPI API."""

@@ -66,6 +66,8 @@ GYM_STATISTICS_TG_BOT/
         export.py
 
     domain/
+      auth/
+        service.py
       users/
         schemas.py
         service.py
@@ -88,6 +90,8 @@ GYM_STATISTICS_TG_BOT/
     api/
       main.py
       deps.py
+      schemas/
+        auth.py
       routers/
         health.py
         auth.py
@@ -157,7 +161,8 @@ POST   /api/auth/telegram-mini-app
 POST   /api/auth/telegram-login
 POST   /api/auth/telegram-code/request
 POST   /api/auth/telegram-code/verify
-GET    /api/me
+GET    /api/auth/me
+POST   /api/auth/logout
 
 GET    /api/exercises
 GET    /api/trainings
@@ -173,6 +178,9 @@ GET    /api/export
 
 DTO-схемы для API будут добавляться при реализации frontend и backend-контрактов.
 
+Для web-сессий API использует `httpOnly` cookie с подписанным session token.
+Клиентский JavaScript не читает токен напрямую, а отправляет cookie вместе с запросами.
+
 ### Domain
 
 Domain layer содержит бизнес-сценарии:
@@ -183,6 +191,7 @@ Domain layer содержит бизнес-сценарии:
 - получение истории тренировок;
 - расчет статистики;
 - регистрация пользователей и Telegram-групп;
+- авторизация пользователей через Telegram;
 - настройка редиректа результатов в группы;
 - постановка задач на пересчет рейтинга;
 - подготовка данных для экспорта.
