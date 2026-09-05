@@ -32,7 +32,7 @@ docker-compose up
 Миграции и справочники применяются отдельной явной командой:
 
 ```bash
-docker compose --profile tools run --rm migrate
+docker compose --profile tools run --build --rm migrate
 ```
 
 Полный сброс базы для разработки:

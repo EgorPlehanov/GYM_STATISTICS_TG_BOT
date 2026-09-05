@@ -84,7 +84,7 @@ Seed-команда добавляет только отсутствующие �
 Для первого запуска или релиза используется явная команда:
 
 ```text
-docker compose --profile tools run --rm migrate
+docker compose --profile tools run --build --rm migrate
 ```
 
 Для разработки есть отдельный полный сброс:

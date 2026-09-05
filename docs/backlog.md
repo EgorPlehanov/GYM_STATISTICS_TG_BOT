@@ -176,6 +176,14 @@ Backlog фиксирует крупные задачи перехода на н�
 - [ ] В production заменить публикацию API-порта через `ports` на внутренний `expose`.
 - [ ] Добавить production env documentation.
 - [ ] Описать backup PostgreSQL.
+- [ ] Задать явное `name` для Docker Compose project, чтобы volume/network имели стабильные имена.
+- [ ] Рассмотреть замену `restart: always` на `restart: unless-stopped` для production.
+- [ ] Добавить ограничение размера Docker-логов через секцию `logging`.
+- [ ] Подготовить отдельный production Compose или override-файл.
+- [ ] После появления reverse proxy разделить Docker networks на public/internal.
+- [ ] Убрать `container_name` у масштабируемых сервисов, если понадобится запуск нескольких экземпляров.
+- [ ] Рассмотреть запуск application-контейнеров не от root-пользователя.
+- [ ] Перейти на готовые application images из registry, если появится CI/CD сборка.
 
 ## 15. Тесты
 

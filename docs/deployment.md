@@ -90,7 +90,7 @@ GET /health
 Миграции и справочники применяются явно:
 
 ```text
-docker compose --profile tools run --rm migrate
+docker compose --profile tools run --build --rm migrate
 ```
 
 Полный сброс базы предназначен только для разработки:
@@ -112,3 +112,23 @@ docker compose --profile tools run --rm db-reset
 - правила reverse proxy для запрета `/internal/*` снаружи;
 - логи;
 - стратегия обновления контейнеров.
+
+## Будущие улучшения Docker Compose
+
+Текущий Compose-файл оставлен простым и близким к локальному запуску на VPS. По
+мере перехода к production нужно отдельно вернуться к следующим улучшениям:
+
+- задать явное `name` для Compose project, чтобы имена volume и network были
+  предсказуемыми;
+- рассмотреть `restart: unless-stopped` вместо `restart: always`, чтобы ручная
+  остановка сервиса сохранялась после перезапуска Docker;
+- добавить секцию `logging` с ограничением размера логов, чтобы они не заняли
+  диск VPS;
+- подготовить отдельный production Compose или override-файл;
+- после добавления reverse proxy разделить Docker networks на `public` и
+  `internal`;
+- для масштабируемых сервисов убрать `container_name`, потому что несколько
+  контейнеров не могут иметь одно и то же имя;
+- рассмотреть запуск application-контейнеров не от root-пользователя;
+- при появлении CI/CD перейти от локального `build` на VPS к запуску заранее
+  собранных images из registry.

@@ -25,15 +25,21 @@ uv run python -m app.db.seed
 Через Docker Compose:
 
 ```text
-docker compose build
+docker compose --profile tools build
 docker compose up -d db
-docker compose --profile tools run --rm migrate
+docker compose --profile tools run --build --rm migrate
 docker compose up api
 docker compose up bot
 docker compose --profile tools run --rm db-reset
 ```
 
 `db-reset` полностью пересоздает схему БД и разрешен только при `APP_ENV=dev`.
+
+Профиль `tools` при сборке включает образы `migrate` и `db-reset`.
+Обычный `docker compose build` собирает только сервисы без профиля.
+Флаг `--build` при запуске миграций обновляет их образ из текущих исходников:
+без него Compose может использовать ранее собранный образ со старой миграцией.
+Для обновления образа удалять volume базы не требуется.
 
 Для Docker-запуска значения PostgreSQL и API должны указывать на имена сервисов Docker Compose:
 
