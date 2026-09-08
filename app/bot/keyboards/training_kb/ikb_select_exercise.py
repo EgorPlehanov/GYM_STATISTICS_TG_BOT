@@ -1,12 +1,19 @@
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.filters.callback_data import CallbackData
-
-from typing import List, Dict
 import math
+from collections.abc import Sequence
+from typing import Protocol
+
+from aiogram.filters.callback_data import CallbackData
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from ..keyboards_types import PaginationAction
-from app.db.models import Exercise
+
+
+class ExerciseButtonData(Protocol):
+    """Минимальные данные упражнения, необходимые для кнопки выбора."""
+
+    id: int
+    name: str
 
 
 
@@ -22,7 +29,7 @@ class TrainingExercisePagination(CallbackData, prefix='ex_pag'):
 
 
 def get_ikb_select_exercise_fab(
-    exercise_data: List[Exercise],
+    exercise_data: Sequence[ExerciseButtonData],
     page: int = 0,
     page_size: int = 5,
     has_next_button: bool = False,
@@ -38,7 +45,7 @@ def get_ikb_select_exercise_fab(
         builder.row(InlineKeyboardButton(text="✅ Добавить ✅", callback_data="acept_addition"))
     
     builder.row(InlineKeyboardButton(
-        text = f"🔎 Найти в поиске 🔎",
+        text = "🔎 Найти в поиске 🔎",
         switch_inline_query_current_chat = ""
     ))
     
@@ -76,7 +83,12 @@ def get_ikb_select_exercise_fab(
     ] if page < math.ceil(len(exercise_data) / page_size) - 1 else []))
 
     builder.row(
-        *[InlineKeyboardButton(text=f"⬅️ Меню {'' if has_next_button else '⬅️'}", callback_data="to_menu")] + ([
+        *[
+            InlineKeyboardButton(
+                text=f"⬅️ Меню {'' if has_next_button else '⬅️'}",
+                callback_data="to_menu",
+            )
+        ] + ([
             InlineKeyboardButton(text="Вес ➡️", callback_data="to_weight")
         ] if has_next_button else [])
     )

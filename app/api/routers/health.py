@@ -9,7 +9,7 @@ router = APIRouter(tags=["health"])
 async def health_check() -> dict[str, str]:
     """Проверяет, что API-процесс запущен и отвечает на HTTP-запросы.
 
-    Выход:
+    Returns:
         короткий JSON-ответ без бизнес-данных и персональной информации.
     """
     return {"status": "ok"}

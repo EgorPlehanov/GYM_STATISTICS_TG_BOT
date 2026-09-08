@@ -34,10 +34,10 @@ async def telegram_login(
 ) -> User:
     """Авторизует пользователя через Telegram Login Widget и устанавливает cookie.
 
-    Вход:
+    Args:
         payload: подписанные данные Telegram Login Widget.
 
-    Выход:
+    Returns:
         текущий пользователь приложения.
     """
     try:
@@ -63,10 +63,10 @@ async def telegram_mini_app_login(
 ) -> User:
     """Авторизует пользователя через Telegram Mini App initData и устанавливает cookie.
 
-    Вход:
+    Args:
         payload: raw `Telegram.WebApp.initData`, полученный frontend внутри Telegram.
 
-    Выход:
+    Returns:
         текущий пользователь приложения.
     """
     try:

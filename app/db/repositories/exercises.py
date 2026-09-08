@@ -16,10 +16,10 @@ async def get_exercise_by_id(
 ) -> Exercise | None:
     """Возвращает упражнение по id.
 
-    Вход:
+    Args:
         `exercise_id` - внутренний id упражнения из справочника.
 
-    Выход:
+    Returns:
         объект упражнения или `None`, если запись не найдена.
     """
     result = await session.execute(select(Exercise).where(Exercise.id == exercise_id))

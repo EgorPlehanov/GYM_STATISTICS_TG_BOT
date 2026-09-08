@@ -18,7 +18,7 @@ from app.domain.users.service import get_user_by_id
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     """Возвращает асинхронную DB-сессию для одного HTTP-запроса.
 
-    Выход:
+    Returns:
         `AsyncSession`, которая автоматически закрывается после обработки запроса.
     """
     async with async_session_factory() as session:
@@ -36,13 +36,13 @@ async def get_current_user(
 ) -> User:
     """Возвращает пользователя, связанного с текущей web-сессией.
 
-    Вход:
+    Args:
         session_token: подписанный JWT из `httpOnly` cookie.
 
-    Выход:
+    Returns:
         объект пользователя из базы данных.
 
-    Исключения:
+    Raises:
         `HTTPException 401`, если cookie нет, токен недействителен или пользователь удален.
     """
     if session_token is None:
@@ -74,14 +74,14 @@ async def get_internal_service(
 ) -> str:
     """Проверяет service-to-service token для `/internal/*`.
 
-    Вход:
+    Args:
         api_token: значение HTTP-заголовка `X-Internal-Api-Key`.
 
-    Выход:
+    Returns:
         строковый идентификатор внутреннего клиента. Пока используется общий
         service token без разделения на bot/worker.
 
-    Исключения:
+    Raises:
         `HTTPException 401`, если token отсутствует или не совпадает с настройкой проекта.
     """
     expected_token = config.INTERNAL_API_TOKEN.get_secret_value()

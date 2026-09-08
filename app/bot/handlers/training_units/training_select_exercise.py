@@ -1,39 +1,28 @@
-from aiogram import Router, F
-from aiogram.types import (
-    Message, CallbackQuery, InlineQuery,
-    InlineQueryResultArticle, InputTextMessageContent
-)
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-
-from typing import Dict, Union, List
-from sqlalchemy.ext.asyncio import AsyncSession
+from aiogram.types import (
+    CallbackQuery,
+    InlineQuery,
+    InlineQueryResultArticle,
+    InputTextMessageContent,
+    Message,
+)
 from cryptography.fernet import Fernet
 
-from .training_types import (
-    TrainingStates,
-    TrainingMode,
-    exercise_button_by_mode,
-    Button
-)
+from app.bot.client import BotApiClient, BotExercise
 from app.bot.keyboards.keyboards_types import PaginationAction
 from app.bot.keyboards.training_kb import (
-    get_ikb_select_exercise_fab,
     TrainingExercisePagination,
     get_ikb_open_inline_search,
+    get_ikb_select_exercise_fab,
 )
-from app.bot.utils.format_training_data import get_formatted_state_date
 from app.bot.utils.check_acept_addition import check_acept_addition
+from app.bot.utils.format_training_data import get_formatted_state_date
 from app.bot.utils.weight_repetitions_modes import get_weight_repetitions_modes_values
-from app.bot.middlewares import DBSessionMiddleware
-from app.db.session import async_session_factory
-from app.db.models import Exercise
-from app.domain.exercises.service import get_exercise_by_id
-from app.domain.trainings.service import get_sorted_exercises_by_sets_count
 
-
+from .training_types import Button, TrainingMode, TrainingStates, exercise_button_by_mode
 
 router = Router()
-router.inline_query.middleware(DBSessionMiddleware(async_session_factory))
 
 
 
@@ -55,7 +44,7 @@ async def add_exercise_handler(callback: CallbackQuery, state: FSMContext):
     await state.update_data(mode=TrainingMode.ADD_EXERCISE)
     await state.update_data(sets_count=1)
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
     most_frequent_exercises = user_data.get('most_frequent_exercises', [])
 
     selected_exercise_id = user_data.get("cur_exercise_id") or user_data.get("exercise_id")
@@ -83,7 +72,7 @@ async def selected_exercise_pagination(
     Пагинация выбора упражнения
     """
     page = int(callback_data.page)
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
     most_frequent_exercises = user_data.get('most_frequent_exercises', [])
 
     if callback_data.action == PaginationAction.PREV:
@@ -118,8 +107,8 @@ async def selected_exercise(
     """
     await state.set_state(TrainingStates.select_weight)
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
-    most_frequent_exercises: List[Exercise] = user_data.get('most_frequent_exercises', [])
+    user_data: dict[str, int | dict] = await state.get_data()
+    most_frequent_exercises: list[BotExercise] = user_data.get('most_frequent_exercises', [])
 
     exercise_id = int(callback_data.exercise_id)
     exercise = next(e for e in most_frequent_exercises if e.id == exercise_id)
@@ -160,7 +149,7 @@ async def back_to_exercise(callback: CallbackQuery, state: FSMContext):
     """
     await state.set_state(TrainingStates.select_exercise)
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
     most_frequent_exercises = user_data.get('most_frequent_exercises', [])
 
     await callback.message.edit_text(
@@ -176,20 +165,20 @@ async def back_to_exercise(callback: CallbackQuery, state: FSMContext):
 
 
 @router.inline_query(TrainingStates.select_exercise)
-async def inline_exercise(inline_query: InlineQuery, state: FSMContext, session: AsyncSession):
+async def inline_exercise(inline_query: InlineQuery, state: FSMContext):
     """
     Инлайн выбор упражнения: возвращает список значений
     """
     offset = int(inline_query.offset) if inline_query.offset else 0
     page_size = 50
 
-    exercises: List[Exercise] = await get_sorted_exercises_by_sets_count(
-        session = session,
-        user_id=inline_query.from_user.id,
-        page_size=page_size,
-        page_num=offset//page_size,
-        substring=inline_query.query
-    )
+    async with BotApiClient() as api_client:
+        exercises = await api_client.get_exercises(
+            telegram_id=inline_query.from_user.id,
+            page_size=page_size,
+            page_num=offset // page_size,
+            substring=inline_query.query,
+        )
 
     results = []
     for exercise in exercises:
@@ -223,7 +212,6 @@ async def inline_exercise(inline_query: InlineQuery, state: FSMContext, session:
 async def inline_selected_exercise(
     message: Message,
     state: FSMContext,
-    session: AsyncSession
 ):
     """
     Инлайн упражнение: обработка выбранного значения
@@ -232,14 +220,18 @@ async def inline_selected_exercise(
 
     await state.set_state(TrainingStates.select_weight)
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
-    most_frequent_exercises: List[Exercise] = user_data.get('most_frequent_exercises', [])
+    user_data: dict[str, int | dict] = await state.get_data()
+    most_frequent_exercises: list[BotExercise] = user_data.get('most_frequent_exercises', [])
 
     exercise_id = int(cipher.decrypt(message.text).decode())
-    exercise = await get_exercise_by_id(session=session, exercise_id=exercise_id)
+    async with BotApiClient() as api_client:
+        exercise = await api_client.get_exercise(exercise_id=exercise_id)
 
     # Перемещаем выбранное упражнение в начало списка
-    index_to_remove = next((i for i, e in enumerate(most_frequent_exercises) if e.id == exercise.id), None)
+    index_to_remove = next(
+        (i for i, e in enumerate(most_frequent_exercises) if e.id == exercise.id),
+        None,
+    )
     if index_to_remove is not None:
         most_frequent_exercises.pop(index_to_remove)
     most_frequent_exercises.insert(0, exercise)

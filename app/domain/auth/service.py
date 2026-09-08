@@ -63,14 +63,14 @@ async def authenticate_telegram_login(
 ) -> User:
     """Авторизует пользователя через Telegram Login Widget.
 
-    Вход:
+    Args:
         session: асинхронная SQLAlchemy-сессия.
         login_data: подписанные Telegram-данные пользователя.
 
-    Выход:
+    Returns:
         существующий или созданный пользователь приложения.
 
-    Исключения:
+    Raises:
         `ValueError`, если подпись Telegram неверная или payload устарел.
     """
     auth_data = {
@@ -109,14 +109,14 @@ async def authenticate_telegram_mini_app(
 ) -> User:
     """Авторизует пользователя через Telegram Mini App initData.
 
-    Вход:
+    Args:
         session: асинхронная SQLAlchemy-сессия.
         init_data: raw query string из `Telegram.WebApp.initData`.
 
-    Выход:
+    Returns:
         существующий или созданный пользователь приложения.
 
-    Исключения:
+    Raises:
         `ValueError`, если initData повреждены, подпись неверная, payload устарел
         или в payload нет пользователя.
     """

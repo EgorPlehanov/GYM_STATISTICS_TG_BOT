@@ -233,7 +233,7 @@ async def save_training_data(
 ) -> tuple[int, bool, bool]:
     """Сохраняет тренировку и подходы.
 
-    Выход:
+    Returns:
         `(training_id, update_flag, create_flag)`, где `update_flag` показывает,
         были ли изменены данные, а `create_flag` - создана ли новая тренировка.
     """

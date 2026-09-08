@@ -17,10 +17,10 @@ async def get_internal_user_id_by_telegram_id(
 ) -> int | None:
     """Возвращает внутренний id пользователя по Telegram id.
 
-    Вход:
+    Args:
         session: асинхронная SQLAlchemy-сессия.
         telegram_id: внешний Telegram user id.
-    Выход:
+    Returns:
         внутренний `User.id` или `None`, если пользователь не найден.
     """
     return await session.scalar(select(User.id).where(User.telegram_id == telegram_id))
@@ -106,12 +106,12 @@ async def create_or_update_user_from_telegram(
 ) -> User:
     """Создает или обновляет пользователя по данным Telegram.
 
-    Вход:
+    Args:
         telegram_id: внешний Telegram user id.
         name: отображаемое имя из Telegram Login Widget или бота.
         language_code: языковой код, если Telegram передал его в текущем сценарии.
 
-    Выход:
+    Returns:
         актуальный объект пользователя после сохранения.
     """
     insert_stmt = insert(User).values(

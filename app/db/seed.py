@@ -10,15 +10,14 @@ from sqlalchemy.orm import Session
 from app.db.models import ExerciseCategory, MeasurementUnit
 from app.db.session import sync_engine, sync_session_factory
 
-
 SEED_DATA_DIR = Path(__file__).with_name("seed_data")
 
 
 def _normalize_seed_value(key: str, value: Any) -> Any:
     """Преобразует строковые значения JSON в типы, ожидаемые SQLAlchemy-моделями.
 
-    Вход: имя поля из seed JSON и его исходное значение.
-    Выход: значение, которое можно передать в SQLAlchemy insert.
+    Args: имя поля из seed JSON и его исходное значение.
+    Returns: значение, которое можно передать в SQLAlchemy insert.
     """
     if value is None:
         return None

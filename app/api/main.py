@@ -10,7 +10,7 @@ from app.core.config import config
 def create_app() -> FastAPI:
     """Создает FastAPI-приложение и подключает базовые API-роутеры.
 
-    Выход:
+    Returns:
         настроенный объект `FastAPI`, который используется `uvicorn` при запуске API-сервиса.
     """
     application = FastAPI(

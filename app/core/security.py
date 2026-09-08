@@ -19,11 +19,11 @@ def create_session_token(
 ) -> str:
     """Создает подписанный токен web-сессии.
 
-    Вход:
+    Args:
         user_id: внутренний id пользователя.
         expires_delta: срок жизни токена. Если не передан, используется настройка проекта.
 
-    Выход:
+    Returns:
         JWT-строка для хранения в `httpOnly` cookie.
     """
     now = datetime.now(timezone.utc)
@@ -47,13 +47,13 @@ def create_session_token(
 def decode_session_token(token: str) -> dict[str, Any]:
     """Проверяет подпись session token и возвращает его payload.
 
-    Вход:
+    Args:
         token: JWT из cookie пользователя.
 
-    Выход:
+    Returns:
         словарь claims, если токен подписан корректно и не истек.
 
-    Исключения:
+    Raises:
         `jwt.PyJWTError`, если токен недействителен.
     """
     return jwt.decode(
@@ -66,10 +66,10 @@ def decode_session_token(token: str) -> dict[str, Any]:
 def build_telegram_login_data_check_string(auth_data: dict[str, Any]) -> str:
     """Собирает строку проверки Telegram Login Widget.
 
-    Вход:
+    Args:
         auth_data: данные, полученные от Telegram Login Widget.
 
-    Выход:
+    Returns:
         строки `key=value`, отсортированные по ключу и разделенные `\n`.
         Поле `hash` исключается, как требует Telegram.
     """
@@ -105,10 +105,10 @@ def is_telegram_login_hash_valid(auth_data: dict[str, Any], bot_token: str) -> b
 def parse_telegram_mini_app_init_data(init_data: str) -> dict[str, str]:
     """Парсит raw `Telegram.WebApp.initData` в словарь строковых параметров.
 
-    Вход:
+    Args:
         init_data: query string из `Telegram.WebApp.initData`.
 
-    Выход:
+    Returns:
         словарь параметров после URL-decoding.
     """
     return dict(parse_qsl(init_data, keep_blank_values=True, strict_parsing=True))
@@ -117,10 +117,10 @@ def parse_telegram_mini_app_init_data(init_data: str) -> dict[str, str]:
 def build_telegram_mini_app_data_check_string(init_data_values: dict[str, str]) -> str:
     """Собирает строку проверки Telegram Mini App initData.
 
-    Вход:
+    Args:
         init_data_values: распарсенные параметры `Telegram.WebApp.initData`.
 
-    Выход:
+    Returns:
         строки `key=value`, отсортированные по ключу и разделенные `\n`.
         Поля `hash` и `signature` исключаются из строки проверки.
     """
@@ -160,7 +160,7 @@ def is_telegram_mini_app_hash_valid(init_data_values: dict[str, str], bot_token:
 def is_auth_date_fresh(auth_date: int, max_age_seconds: int = 60 * 60 * 24) -> bool:
     """Проверяет, что Telegram auth payload не устарел.
 
-    Вход:
+    Args:
         auth_date: Unix timestamp из Telegram Login Widget.
         max_age_seconds: максимально допустимый возраст payload.
     """

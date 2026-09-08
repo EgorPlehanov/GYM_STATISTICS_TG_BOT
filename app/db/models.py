@@ -7,8 +7,7 @@ from typing import Annotated
 from sqlalchemy import BigInteger, CheckConstraint, ForeignKey, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base, str_2048, str_256
-
+from app.db.base import Base, str_256, str_2048
 
 intpk = Annotated[int, mapped_column(primary_key=True)]
 bigintpk = Annotated[int, mapped_column(BigInteger, primary_key=True)]
@@ -19,7 +18,7 @@ updated_at = Annotated[datetime, mapped_column(server_default=func.now(), onupda
 class User(Base):
     """Пользователь системы.
 
-    Поля:
+    Attributes:
         id: внутренний primary key приложения.
         telegram_id: уникальный внешний идентификатор Telegram. Используется для входа через
             Telegram-бота, Telegram Login Widget и Telegram Mini App.
@@ -52,7 +51,7 @@ class User(Base):
 class Group(Base):
     """Telegram-группа, в которую добавили бота.
 
-    Поля:
+    Attributes:
         id: Telegram chat id группы.
         name: название группы.
         type: тип Telegram-чата.
@@ -75,7 +74,7 @@ class Group(Base):
 class GroupUser(Base):
     """Связь пользователя и Telegram-группы.
 
-    Поля:
+    Attributes:
         id: внутренний primary key связи.
         group_id: Telegram chat id группы.
         user_id: внутренний id пользователя.
@@ -105,7 +104,7 @@ class GroupUser(Base):
 class GroupTrainingResultMessage(Base):
     """Сообщение с результатами тренировки в Telegram-группе.
 
-    Поля:
+    Attributes:
         id: внутренний primary key сообщения.
         group_id: Telegram chat id группы, куда отправлен результат.
         training_id: id тренировки, результат которой был отправлен.
@@ -171,7 +170,7 @@ class ExerciseCategory(Enum):
 class Exercise(Base):
     """Упражнение из справочника.
 
-    Поля:
+    Attributes:
         id: внутренний primary key упражнения.
         name: название упражнения.
         category: категория упражнения.
@@ -193,7 +192,7 @@ class Exercise(Base):
 class Training(Base):
     """Тренировка пользователя.
 
-    Поля:
+    Attributes:
         id: внутренний primary key тренировки.
         user_id: внутренний id пользователя, которому принадлежит тренировка.
         date: дата и время тренировки.
@@ -224,7 +223,7 @@ class Training(Base):
 class Set(Base):
     """Подход в рамках тренировки.
 
-    Поля:
+    Attributes:
         id: внутренний primary key подхода.
         training_id: id тренировки, к которой относится подход.
         exercise_id: id упражнения, выполняемого в подходе.
@@ -255,7 +254,7 @@ class Set(Base):
 class Rank(Base):
     """Ранг пользователя.
 
-    Поля:
+    Attributes:
         id: внутренний primary key ранга.
         grade: числовой уровень ранга для сортировки и сравнения.
         name: отображаемое название ранга.
@@ -271,7 +270,7 @@ class Rank(Base):
 class ExerciseRank(Base):
     """Порог ранга для конкретного упражнения или общий дефолтный порог.
 
-    Поля:
+    Attributes:
         id: внутренний primary key порога.
         exercise_id: id упражнения, если порог задан для конкретного упражнения.
             `None` означает общий дефолтный порог.
@@ -302,7 +301,7 @@ class ExerciseRank(Base):
 class UserExerciseRating(Base):
     """Текущий рейтинг пользователя в упражнении.
 
-    Поля:
+    Attributes:
         id: внутренний primary key записи рейтинга.
         user_id: внутренний id пользователя.
         exercise_id: id упражнения, по которому рассчитан рейтинг.
