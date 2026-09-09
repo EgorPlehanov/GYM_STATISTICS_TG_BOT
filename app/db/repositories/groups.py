@@ -100,10 +100,32 @@ async def update_group_to_supergroup(
     session: AsyncSession,
     group_id: int,
     supergroup_id: int,
+    supergroup_name: str,
+    supergroup_type: str,
 ) -> None:
     """Переносит связи старой группы на супергруппу и удаляет старую группу."""
+    insert_stmt = insert(Group).values(
+        id=supergroup_id,
+        name=supergroup_name,
+        type=supergroup_type.upper(),
+        is_bot_banned=False,
+    )
+    insert_stmt = insert_stmt.on_conflict_do_update(
+        index_elements=["id"],
+        set_={
+            "name": supergroup_name,
+            "type": supergroup_type.upper(),
+            "is_bot_banned": False,
+        },
+    )
+    await session.execute(insert_stmt)
     await session.execute(
         update(GroupUser)
+        .values(group_id=supergroup_id)
+        .filter_by(group_id=group_id)
+    )
+    await session.execute(
+        update(GroupTrainingResultMessage)
         .values(group_id=supergroup_id)
         .filter_by(group_id=group_id)
     )

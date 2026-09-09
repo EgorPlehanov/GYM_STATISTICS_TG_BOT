@@ -1,25 +1,27 @@
-from aiogram import Router, F
-from aiogram.types import (
-    CallbackQuery, Message, InlineQuery,
-    InlineQueryResultArticle, InputTextMessageContent
-)
-from aiogram.fsm.context import FSMContext
-
-from typing import Dict, Union
-from sqlalchemy.ext.asyncio import AsyncSession
 from asyncio import sleep
+from typing import Any
 
-from .training_types import TrainingStates
-from app.bot.utils.format_training_data import get_formatted_state_date
-from app.bot.utils.redirect_result_to_user_group import redirect_result_to_user_group
+from aiogram import F, Router
+from aiogram.fsm.context import FSMContext
+from aiogram.types import (
+    CallbackQuery,
+    InlineQuery,
+    InlineQueryResultArticle,
+    InputTextMessageContent,
+    Message,
+)
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.bot.client import BotApiClient
 from app.bot.keyboards.training_kb import get_ikb_finish_add_comment
 from app.bot.middlewares import DBSessionMiddleware
+from app.bot.utils.format_training_data import get_formatted_state_date
+from app.bot.utils.redirect_result_to_user_group import redirect_result_to_user_group
 from app.db.session import async_session_factory
 from app.domain.groups.service import get_user_group_to_redirect
 from app.domain.ratings.service import update_or_create_user_exercise_rating
-from app.domain.trainings.service import save_training_data
 
-
+from .training_types import TrainingStates
 
 router = Router()
 router.callback_query.middleware(DBSessionMiddleware(async_session_factory))
@@ -36,7 +38,7 @@ async def finish_training(callback: CallbackQuery, state: FSMContext):
     """
     await state.set_state(TrainingStates.add_comment)
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, Any] = await state.get_data()
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
@@ -78,7 +80,7 @@ async def add_comment(message: Message, state: FSMContext):
 
     new_comment = message.text[:500]
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, Any] = await state.get_data()
     
     if user_data['exercise_data']['comment'] == new_comment:
         return
@@ -110,13 +112,15 @@ async def finish(callback: CallbackQuery, state: FSMContext, session: AsyncSessi
     """
     Инлайн кнопка "Завершить"
     """
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, Any] = await state.get_data()
     exercise_data = user_data.get('exercise_data')
 
-    training_id, is_update, is_create = await save_training_data(
-        session=session,
-        training_data=exercise_data
-    )
+    async with BotApiClient() as api_client:
+        save_result = await api_client.save_training(exercise_data)
+
+    training_id = save_result.training_id
+    is_update = save_result.updated
+    is_create = save_result.created
 
     result_text = await get_formatted_state_date(state, is_result=True)
     await callback.message.edit_text(

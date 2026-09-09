@@ -80,9 +80,17 @@ async def update_group_to_supergroup(
     session: AsyncSession,
     group_id: int,
     supergroup_id: int,
+    supergroup_name: str,
+    supergroup_type: str,
 ) -> None:
     """Переносит связи старой группы на супергруппу."""
-    await group_repository.update_group_to_supergroup(session, group_id, supergroup_id)
+    await group_repository.update_group_to_supergroup(
+        session,
+        group_id,
+        supergroup_id,
+        supergroup_name,
+        supergroup_type,
+    )
 
 
 async def check_user_in_group(session: AsyncSession, user_id: int, group_id: int) -> bool:

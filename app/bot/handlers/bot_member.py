@@ -155,6 +155,8 @@ async def migrate_group_to_supergroup(message: Message, session: AsyncSession):
     await update_group_to_supergroup(
         session=session,
         group_id=message.migrate_from_chat_id,
-        supergroup_id=message.chat.id
+        supergroup_id=message.chat.id,
+        supergroup_name=message.chat.title,
+        supergroup_type=message.chat.type,
     )
 
