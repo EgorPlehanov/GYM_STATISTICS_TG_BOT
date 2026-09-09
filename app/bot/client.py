@@ -1,6 +1,8 @@
 """Клиент backend API для Telegram-бота."""
 
 from dataclasses import dataclass
+from datetime import date, datetime
+from typing import Any
 
 import httpx
 
@@ -31,6 +33,19 @@ class BotExercise:
     id: int
     name: str
     description: str | None
+
+
+@dataclass(frozen=True)
+class BotTrainingByDateResult:
+    """Данные тренировки за дату, полученные через backend API.
+
+    Attributes:
+        exists: признак того, что тренировка уже была в базе.
+        training_data: структура тренировки в формате FSM-сценария бота.
+    """
+
+    exists: bool
+    training_data: dict[str, Any]
 
 
 class BotApiClient:
@@ -154,5 +169,92 @@ class BotApiClient:
         )
         response.raise_for_status()
         return BotExercise(**response.json())
+
+    async def get_training_dates(self, telegram_id: int) -> list[date]:
+        """Возвращает даты тренировок пользователя для календаря бота.
+
+        Args:
+            telegram_id: Telegram user id пользователя.
+
+        Returns:
+            список дат тренировок, преобразованный из JSON-строк в `date`.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.get(
+            "/internal/bot/trainings/dates",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+            params={"telegram_id": telegram_id},
+        )
+        response.raise_for_status()
+        return [date.fromisoformat(item) for item in response.json()]
+
+    async def get_training_by_date(
+        self,
+        telegram_id: int,
+        training_date: datetime,
+    ) -> BotTrainingByDateResult:
+        """Возвращает тренировку пользователя за дату или пустую структуру.
+
+        Args:
+            telegram_id: Telegram user id пользователя.
+            training_date: дата, выбранная в Telegram-боте.
+
+        Returns:
+            результат с флагом существования и FSM-структурой тренировки.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.get(
+            "/internal/bot/trainings/by-date",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+            params={
+                "telegram_id": telegram_id,
+                "training_date": training_date.isoformat(),
+            },
+        )
+        response.raise_for_status()
+
+        payload = response.json()
+        return BotTrainingByDateResult(
+            exists=payload["exists"],
+            training_data=_deserialize_training_data(payload["training_data"]),
+        )
+
+
+def _deserialize_training_data(training_data: dict[str, Any]) -> dict[str, Any]:
+    """Восстанавливает FSM-структуру тренировки после передачи через JSON.
+
+    Args:
+        training_data: JSON-словарь, полученный от internal API.
+
+    Returns:
+        структура тренировки с `datetime` и числовыми ключами `exercises`/`sets`.
+    """
+    restored = dict(training_data)
+    if restored.get("date") is not None:
+        restored["date"] = datetime.fromisoformat(restored["date"])
+
+    exercises = {}
+    for exercise_id, exercise_data in restored.get("exercises", {}).items():
+        exercise = dict(exercise_data)
+        exercise["sets"] = {
+            int(set_id): _deserialize_set_data(set_data)
+            for set_id, set_data in exercise.get("sets", {}).items()
+        }
+        exercises[int(exercise_id)] = exercise
+
+    restored["exercises"] = exercises
+    return restored
+
+
+def _deserialize_set_data(set_data: dict[str, Any]) -> dict[str, Any]:
+    """Восстанавливает данные подхода после передачи через JSON."""
+    restored = dict(set_data)
+    if restored.get("time") is not None:
+        restored["time"] = datetime.fromisoformat(restored["time"])
+    return restored
 
 

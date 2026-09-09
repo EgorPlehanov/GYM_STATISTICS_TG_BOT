@@ -1,31 +1,28 @@
-from aiogram import Router, F
-from aiogram.types import CallbackQuery
+from datetime import datetime
+
+from aiogram import F, Router
 from aiogram.filters.callback_data import CallbackData
 from aiogram.fsm.context import FSMContext
-
-from typing import Dict, Union
-from datetime import datetime
+from aiogram.types import CallbackQuery
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .training_types import TrainingStates, TrainingMode
-from app.bot.utils.format_training_data import get_formatted_state_date
-from app.bot.utils.edit_exercise_data import initialize_exercise_data
+from app.bot.client import BotApiClient
 from app.bot.keyboards.training_kb import (
-    get_ikb_training_menu,
     DialogCalendar,
     DialogCalendarCallback,
-    get_ikb_select_date,
     get_ikb_canged_date,
+    get_ikb_select_date,
+    get_ikb_training_menu,
 )
 from app.bot.middlewares import DBSessionMiddleware
+from app.bot.utils.format_training_data import get_formatted_state_date
 from app.db.session import async_session_factory
 from app.domain.trainings.service import (
     delete_training_by_id,
-    get_training_date_by_user_id,
     save_training_data,
 )
 
-
+from .training_types import TrainingMode, TrainingStates
 
 router = Router()
 router.callback_query.middleware(DBSessionMiddleware(async_session_factory))
@@ -36,18 +33,19 @@ async def init_training_by_date(
     date: datetime,
     callback: CallbackQuery,
     state: FSMContext,
-    session: AsyncSession
 ) -> None:
     """
     Инициализирует тренировку по дате
     """
-    changed_exercise_data, is_exists = await initialize_exercise_data(
-        session=session,
-        user_id=callback.from_user.id,
-        date=date
-    )
+    async with BotApiClient() as api_client:
+        result = await api_client.get_training_by_date(
+            telegram_id=callback.from_user.id,
+            training_date=date,
+        )
+    changed_exercise_data = result.training_data
+    is_exists = result.exists
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
     cur_exercise_data = user_data.get('exercise_data')
     if cur_exercise_data is None:
         await state.update_data(exercise_data=changed_exercise_data)
@@ -73,7 +71,7 @@ async def init_training_by_date(
     F.data == 'today',
     TrainingStates.select_date
 )
-async def selected_date_today(callback: CallbackQuery, state: FSMContext, session: AsyncSession) -> None:
+async def selected_date_today(callback: CallbackQuery, state: FSMContext) -> None:
     """
     Инлайн кнопка "Сегодня"
     """
@@ -82,10 +80,10 @@ async def selected_date_today(callback: CallbackQuery, state: FSMContext, sessio
 
     date = datetime.now()
 
-    if await init_training_by_date(date, callback, state, session) == False:
+    if (await init_training_by_date(date, callback, state)) is False:
         return
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
     exercises = user_data.get('exercise_data')['exercises']
 
     last_weight = str(user_data.get('last_weight', '')).rstrip('0').rstrip(".")
@@ -106,13 +104,14 @@ async def selected_date_today(callback: CallbackQuery, state: FSMContext, sessio
     F.data == 'other_date',
     TrainingStates.select_date
 )
-async def selected_date_other(callback: CallbackQuery, state: FSMContext, session: AsyncSession) -> None:
+async def selected_date_other(callback: CallbackQuery, state: FSMContext) -> None:
     """
     Инлайн кнопка "Другая дата"
     """
     user_data = await state.get_data()
     if user_data.get('training_date') is None:
-        training_date = await get_training_date_by_user_id(session, callback.from_user.id)
+        async with BotApiClient() as api_client:
+            training_date = await api_client.get_training_dates(callback.from_user.id)
         await state.update_data(training_date=training_date)
     else:
         training_date = user_data.get('training_date')
@@ -130,7 +129,6 @@ async def process_dialog_calendar(
     callback: CallbackQuery,
     callback_data: CallbackData,
     state: FSMContext,
-    session: AsyncSession,
 ) -> None:
     """
     Обработка выбора даты в инлайн календаре
@@ -145,10 +143,10 @@ async def process_dialog_calendar(
         await state.set_state(TrainingStates.menu)
         await state.update_data(mode=None)
 
-        if await init_training_by_date(date, callback, state, session) == False:
+        if (await init_training_by_date(date, callback, state)) is False:
             return
 
-        user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+        user_data: dict[str, int | dict] = await state.get_data()
         exercises = user_data.get('exercise_data')['exercises']
 
         last_weight = str(user_data.get('last_weight', '')).rstrip('0').rstrip(".")
@@ -173,10 +171,12 @@ async def back_to_date_menu(callback: CallbackQuery, state: FSMContext) -> None:
     """
     await state.set_state(TrainingStates.select_date)
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
-        reply_markup=get_ikb_select_date(is_back_to_menu=user_data.get('exercise_data') is not None),
+        reply_markup=get_ikb_select_date(
+            is_back_to_menu=user_data.get('exercise_data') is not None,
+        ),
     )
     
 
@@ -208,7 +208,7 @@ async def save_and_go(callback: CallbackQuery, state: FSMContext, session: Async
     """
     Сохраняет текущую тренировку и переходит к выбранной
     """
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
     exercise_data = user_data.get('exercise_data')
     await save_training_data(
         session=session,
@@ -249,7 +249,7 @@ async def canged_to_current_date(callback: CallbackQuery, state: FSMContext, ses
     """
     await state.set_state(TrainingStates.menu)
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
     changed_exercise_data = user_data.get('changed_exercise_data')
     date = changed_exercise_data.get('date')
     training_id = changed_exercise_data.get('id')

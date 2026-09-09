@@ -1,40 +1,9 @@
-from typing import Dict, Union
 from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.domain.trainings.service import (
-    check_training_exists_for_user_and_date,
-    get_training_data_by_date_and_user
-)
-
-
-
-async def initialize_exercise_data(
-    session: AsyncSession,
-    user_id: int,
-    date: datetime
-) -> tuple[Dict[str, Union[int, Dict]], bool]:
-    """
-    Инициализирует данные о тренировке
-    """
-    is_exists = await check_training_exists_for_user_and_date(session, user_id, date)
-    if is_exists:
-        init_exercise_data = await get_training_data_by_date_and_user(session, user_id, date)
-    else:
-        init_exercise_data =  {
-            "id": None,
-            "user_id": user_id,
-            "date": date,
-            "comment": None,
-            "global_set_counter": 0,
-            "exercises": {}
-        }
-    return init_exercise_data, is_exists
-
+from typing import Any
 
 
 def add_exercise(
-    exercise_data: Dict[str, Union[int, Dict]], exercise_id: str, exercise_name: str
+    exercise_data: dict[str, Any], exercise_id: str, exercise_name: str
 ) -> None:
     """
     Добавляет упражнение к тренировке
@@ -50,7 +19,7 @@ def add_exercise(
 
 
 def add_set(
-    exercise_data: Dict[str, Union[int, Dict]],
+    exercise_data: dict[str, Any],
     exercise_id: str,
     weight: int = None,
     repetitions: int = None,
@@ -75,7 +44,7 @@ def add_set(
 
 
 def update_set(
-    exercise_data: Dict[str, Union[int, Dict]],
+    exercise_data: dict[str, Any],
     exercise_id: int,
     set_id: int,
     new_weight: int = None,
@@ -114,7 +83,7 @@ def update_set(
 
 
 def delete_set(
-    exercise_data: Dict[str, Union[int, Dict]],
+    exercise_data: dict[str, Any],
     exercise_id: str,
     set_number: str
 ) -> None:
@@ -130,7 +99,7 @@ def delete_set(
 
 
 def delete_all_exercise_sets(
-    exercise_data: Dict[str, Union[int, Dict]],
+    exercise_data: dict[str, Any],
     exercise_id: str,
     is_sets_only: bool = False,
 ) -> None:
@@ -146,7 +115,7 @@ def delete_all_exercise_sets(
 
 
 def delete_exercise(
-    exercise_data: Dict[str, Union[int, Dict]], exercise_id: str
+    exercise_data: dict[str, Any], exercise_id: str
 ) -> None:
     """
     Удаляет упражнение со всеми подходами
@@ -156,7 +125,7 @@ def delete_exercise(
 
 
 
-def delete_all_exercises(exercise_data: Dict[str, Union[int, Dict]]) -> None:
+def delete_all_exercises(exercise_data: dict[str, Any]) -> None:
     """
     Удаляет все упражнения
     """
@@ -166,7 +135,7 @@ def delete_all_exercises(exercise_data: Dict[str, Union[int, Dict]]) -> None:
 
 
 def update_indexes_exercise_data(
-    exercise_data: Dict[str, Union[int, Dict]],
+    exercise_data: dict[str, Any],
 ) -> None:
     """
     Обновляет индексы подходов

@@ -1,15 +1,23 @@
 """Router служебного internal API."""
 
+from datetime import date, datetime
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.deps import DbSession, get_internal_service
 from app.api.schemas.internal_bot import (
     InternalBotExerciseResponse,
+    InternalBotTrainingByDateResponse,
     InternalBotUserEnsureRequest,
     InternalBotUserEnsureResponse,
 )
 from app.domain.exercises.service import get_exercise_by_id
-from app.domain.trainings.service import get_sorted_exercises_by_sets_count
+from app.domain.trainings.service import (
+    check_training_exists_for_user_and_date,
+    get_sorted_exercises_by_sets_count,
+    get_training_data_by_date_and_user,
+    get_training_date_by_user_id,
+)
 from app.domain.users.service import create_user_if_not_exists
 
 router = APIRouter(
@@ -92,3 +100,61 @@ async def get_bot_exercise(
             detail="Упражнение не найдено",
         )
     return exercise
+
+
+@router.get("/bot/trainings/dates", response_model=list[date])
+async def get_bot_training_dates(
+    session: DbSession,
+    telegram_id: int,
+) -> list[date]:
+    """Возвращает даты тренировок пользователя для календаря Telegram-бота.
+
+    Args:
+        telegram_id: Telegram user id, для которого нужно получить даты.
+
+    Returns:
+        список дат тренировок пользователя.
+    """
+    return await get_training_date_by_user_id(session=session, user_id=telegram_id)
+
+
+@router.get("/bot/trainings/by-date", response_model=InternalBotTrainingByDateResponse)
+async def get_bot_training_by_date(
+    session: DbSession,
+    telegram_id: int,
+    training_date: datetime,
+) -> InternalBotTrainingByDateResponse:
+    """Возвращает существующую тренировку или пустую структуру для новой даты.
+
+    Args:
+        telegram_id: Telegram user id пользователя.
+        training_date: дата, выбранная в Telegram-боте.
+
+    Returns:
+        данные тренировки и признак существования записи в базе.
+    """
+    is_exists = await check_training_exists_for_user_and_date(
+        session=session,
+        user_id=telegram_id,
+        date=training_date,
+    )
+    if is_exists:
+        training_data = await get_training_data_by_date_and_user(
+            session=session,
+            user_id=telegram_id,
+            date=training_date,
+        )
+    else:
+        training_data = {
+            "id": None,
+            "user_id": telegram_id,
+            "date": training_date,
+            "comment": None,
+            "global_set_counter": 0,
+            "exercises": {},
+        }
+
+    return InternalBotTrainingByDateResponse(
+        exists=is_exists,
+        training_data=training_data,
+    )

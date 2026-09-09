@@ -117,9 +117,16 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Перенести FSM states.
 - [x] Перевести `/start` на вызов `/internal/bot/users/ensure`.
 - [x] Перевести выбор упражнений в боте на вызовы `/internal/bot/exercises`.
+- [x] Перевести выбор даты и загрузку тренировки в боте на вызовы `/internal/bot/trainings`.
 - [ ] Перевести основные сценарии бота на вызовы FastAPI API.
 - [ ] Перевести основные сценарии бота на вызовы `/internal/*`.
 - [ ] Добавить сценарий генерации одноразового кода для web login.
+- [ ] Описать JSON-friendly формат FSM training draft для Telegram-бота.
+- [ ] Заменить временный `training_data: dict[str, Any]` в internal training API на строгие DTO.
+- [ ] Добавить adapter `API DTO -> FSM draft -> API DTO` для сценариев тренировки.
+- [ ] Перевести aiogram FSM storage с `MemoryStorage` на Redis после выбора Redis как инфраструктурного сервиса.
+- [ ] Заменить `app/bot/utils/migration_cache.py` на Redis TTL key для обработки миграции Telegram group -> supergroup.
+- [ ] Отвязать локальный календарь `app/bot/keyboards/training_kb/date` от внешней зависимости `aiogram3-calendar`.
 
 ## 10. Worker
 
@@ -202,5 +209,6 @@ Backlog фиксирует крупные задачи перехода на н�
 - [ ] Подробно спроектировать export.
 - [ ] Выбрать Caddy или Nginx для VPS.
 - [ ] Выбрать механизм фоновых задач: простой async worker, task queue, Redis/RQ, Celery, Dramatiq или другой вариант.
-- [ ] Ввести Redis для временных auth-данных: одноразовые коды, будущие `sid`-сессии и TTL.
+- [ ] Ввести Redis для временных данных: одноразовые auth-коды, будущие `sid`-сессии, aiogram FSM storage и короткие TTL-флаги бота.
+- [ ] После удаления `aiogram3-calendar` пересмотреть ограничение Python `>=3.10,<3.11`.
 - [x] Решить, нужен ли отдельный API token для bot-service при обращении к backend.
