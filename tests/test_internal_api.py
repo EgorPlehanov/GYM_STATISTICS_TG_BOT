@@ -584,6 +584,210 @@ def test_internal_bot_training_delete_calls_domain_service(monkeypatch):
     assert calls == [{"session": calls[0]["session"], "training_id": 10}]
 
 
+def test_internal_bot_redirect_targets_calls_domain_service(monkeypatch):
+    """Проверяет получение групп для редиректа результата тренировки."""
+    _set_required_env(monkeypatch)
+
+    from app.api.deps import config, get_db_session
+    from app.api.main import app
+    from app.api.routers import internal
+
+    monkeypatch.setattr(
+        config,
+        "INTERNAL_API_TOKEN",
+        SecretStr("test-internal-token-with-at-least-32-bytes"),
+    )
+
+    calls = []
+
+    async def fake_get_user_group_to_redirect(session, user_id):
+        """Фиксирует параметры получения групп редиректа."""
+        calls.append({"session": session, "user_id": user_id})
+        return [-1001, -1002]
+
+    async def fake_db_session():
+        """Возвращает тестовую заглушку DB-сессии."""
+        yield object()
+
+    monkeypatch.setattr(
+        internal,
+        "get_user_group_to_redirect",
+        fake_get_user_group_to_redirect,
+    )
+    app.dependency_overrides[get_db_session] = fake_db_session
+
+    client = TestClient(app)
+    response = client.get(
+        "/internal/bot/groups/redirect-targets",
+        headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
+        params={"telegram_id": 123456789},
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == [-1001, -1002]
+    assert calls == [{"session": calls[0]["session"], "user_id": 123456789}]
+
+
+def test_internal_bot_training_result_message_calls_domain_service(monkeypatch):
+    """Проверяет операции с Telegram message id результата тренировки."""
+    _set_required_env(monkeypatch)
+
+    from app.api.deps import config, get_db_session
+    from app.api.main import app
+    from app.api.routers import internal
+
+    monkeypatch.setattr(
+        config,
+        "INTERNAL_API_TOKEN",
+        SecretStr("test-internal-token-with-at-least-32-bytes"),
+    )
+
+    calls = []
+
+    async def fake_get_group_training_result_messages_id(session, group_id, training_id):
+        """Фиксирует параметры получения Telegram message id."""
+        calls.append(("get", session, group_id, training_id))
+        return 42
+
+    async def fake_create_group_training_result_message(
+        session,
+        group_id,
+        training_id,
+        message_id,
+    ):
+        """Фиксирует параметры создания записи о Telegram message id."""
+        calls.append(("create", session, group_id, training_id, message_id))
+
+    async def fake_update_group_training_result_message_id(
+        session,
+        group_id,
+        training_id,
+        new_message_id,
+    ):
+        """Фиксирует параметры обновления Telegram message id."""
+        calls.append(("update", session, group_id, training_id, new_message_id))
+        return True
+
+    async def fake_db_session():
+        """Возвращает тестовую заглушку DB-сессии."""
+        yield object()
+
+    monkeypatch.setattr(
+        internal,
+        "get_group_training_result_messages_id",
+        fake_get_group_training_result_messages_id,
+    )
+    monkeypatch.setattr(
+        internal,
+        "create_group_training_result_message",
+        fake_create_group_training_result_message,
+    )
+    monkeypatch.setattr(
+        internal,
+        "update_group_training_result_message_id",
+        fake_update_group_training_result_message_id,
+    )
+    app.dependency_overrides[get_db_session] = fake_db_session
+
+    client = TestClient(app)
+    headers = {"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"}
+    get_response = client.get(
+        "/internal/bot/groups/-1001/training-results/10/message",
+        headers=headers,
+    )
+    create_response = client.post(
+        "/internal/bot/groups/training-result-messages",
+        headers=headers,
+        json={
+            "group_id": -1001,
+            "training_id": 10,
+            "message_id": 42,
+        },
+    )
+    update_response = client.patch(
+        "/internal/bot/groups/training-result-messages",
+        headers=headers,
+        json={
+            "group_id": -1001,
+            "training_id": 10,
+            "new_message_id": 43,
+        },
+    )
+
+    app.dependency_overrides.clear()
+
+    assert get_response.status_code == 200
+    assert get_response.json() == {"message_id": 42}
+    assert create_response.status_code == 200
+    assert create_response.json() == {"status": "ok"}
+    assert update_response.status_code == 200
+    assert update_response.json() == {"updated": True}
+    assert [call[:1] + call[2:] for call in calls] == [
+        ("get", -1001, 10),
+        ("create", -1001, 10, 42),
+        ("update", -1001, 10, 43),
+    ]
+
+
+def test_internal_bot_group_banned_calls_domain_service(monkeypatch):
+    """Проверяет обновление признака недоступности группы для Telegram-бота."""
+    _set_required_env(monkeypatch)
+
+    from app.api.deps import config, get_db_session
+    from app.api.main import app
+    from app.api.routers import internal
+
+    monkeypatch.setattr(
+        config,
+        "INTERNAL_API_TOKEN",
+        SecretStr("test-internal-token-with-at-least-32-bytes"),
+    )
+
+    calls = []
+
+    async def fake_update_group_is_bot_banned(session, group_id, is_bot_banned):
+        """Фиксирует параметры обновления группы."""
+        calls.append(
+            {
+                "session": session,
+                "group_id": group_id,
+                "is_bot_banned": is_bot_banned,
+            }
+        )
+
+    async def fake_db_session():
+        """Возвращает тестовую заглушку DB-сессии."""
+        yield object()
+
+    monkeypatch.setattr(
+        internal,
+        "update_group_is_bot_banned",
+        fake_update_group_is_bot_banned,
+    )
+    app.dependency_overrides[get_db_session] = fake_db_session
+
+    client = TestClient(app)
+    response = client.patch(
+        "/internal/bot/groups/-1001/bot-banned",
+        headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
+        json={"is_bot_banned": True},
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+    assert calls == [
+        {
+            "session": calls[0]["session"],
+            "group_id": -1001,
+            "is_bot_banned": True,
+        }
+    ]
+
+
 def _set_required_env(monkeypatch):
     """Заполняет обязательные настройки для импорта FastAPI приложения в тестах."""
     monkeypatch.setenv("MAIN_ADMIN_ID", "1")

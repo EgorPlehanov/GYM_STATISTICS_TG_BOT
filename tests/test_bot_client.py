@@ -402,6 +402,115 @@ async def test_bot_api_client_delete_training_sends_internal_token(monkeypatch):
     }
 
 
+@pytest.mark.asyncio
+async def test_bot_api_client_redirect_methods_send_internal_token(monkeypatch):
+    """Проверяет методы клиента для редиректа результата тренировки."""
+    _set_required_env(monkeypatch)
+
+    from app.bot.client import BotApiClient
+
+    captured_requests = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        """Возвращает ответы для всех redirect-related запросов клиента."""
+        payload = json.loads(request.content) if request.content else None
+        captured_requests.append(
+            {
+                "method": request.method,
+                "url": str(request.url),
+                "token": request.headers.get("X-Internal-Api-Key"),
+                "payload": payload,
+            }
+        )
+
+        if request.url.path.endswith("/redirect-targets"):
+            return httpx.Response(200, json=[-1001, -1002])
+        if request.method == "GET":
+            return httpx.Response(200, json={"message_id": 42})
+        if request.method == "PATCH" and request.url.path.endswith("/bot-banned"):
+            return httpx.Response(200, json={"status": "ok"})
+        if request.method == "PATCH":
+            return httpx.Response(200, json={"updated": True})
+        return httpx.Response(200, json={"status": "ok"})
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(
+        transport=transport,
+        base_url="http://api:8000",
+    ) as http_client:
+        api_client = BotApiClient(
+            base_url="http://api:8000",
+            internal_api_token="internal-test-token",
+            http_client=http_client,
+        )
+        async with api_client:
+            redirect_group_ids = await api_client.get_redirect_group_ids(
+                telegram_id=123456789,
+            )
+            message_id = await api_client.get_training_result_message_id(
+                group_id=-1001,
+                training_id=10,
+            )
+            await api_client.create_training_result_message(
+                group_id=-1001,
+                training_id=10,
+                message_id=42,
+            )
+            updated = await api_client.update_training_result_message(
+                group_id=-1001,
+                training_id=10,
+                new_message_id=43,
+            )
+            await api_client.update_group_bot_banned(
+                group_id=-1001,
+                is_bot_banned=True,
+            )
+
+    assert redirect_group_ids == [-1001, -1002]
+    assert message_id == 42
+    assert updated is True
+    assert captured_requests == [
+        {
+            "method": "GET",
+            "url": "http://api:8000/internal/bot/groups/redirect-targets?telegram_id=123456789",
+            "token": "internal-test-token",
+            "payload": None,
+        },
+        {
+            "method": "GET",
+            "url": "http://api:8000/internal/bot/groups/-1001/training-results/10/message",
+            "token": "internal-test-token",
+            "payload": None,
+        },
+        {
+            "method": "POST",
+            "url": "http://api:8000/internal/bot/groups/training-result-messages",
+            "token": "internal-test-token",
+            "payload": {
+                "group_id": -1001,
+                "training_id": 10,
+                "message_id": 42,
+            },
+        },
+        {
+            "method": "PATCH",
+            "url": "http://api:8000/internal/bot/groups/training-result-messages",
+            "token": "internal-test-token",
+            "payload": {
+                "group_id": -1001,
+                "training_id": 10,
+                "new_message_id": 43,
+            },
+        },
+        {
+            "method": "PATCH",
+            "url": "http://api:8000/internal/bot/groups/-1001/bot-banned",
+            "token": "internal-test-token",
+            "payload": {"is_bot_banned": True},
+        },
+    ]
+
+
 def _set_required_env(monkeypatch):
     """Заполняет обязательные настройки для импорта bot client в тестах."""
     monkeypatch.setenv("MAIN_ADMIN_ID", "1")

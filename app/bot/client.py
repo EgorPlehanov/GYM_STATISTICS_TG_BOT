@@ -278,6 +278,129 @@ class BotApiClient:
         )
         response.raise_for_status()
 
+    async def get_redirect_group_ids(self, telegram_id: int) -> list[int]:
+        """Возвращает группы, куда нужно отправить результат тренировки.
+
+        Args:
+            telegram_id: Telegram user id пользователя.
+
+        Returns:
+            список Telegram chat id групп с включенным редиректом результата.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.get(
+            "/internal/bot/groups/redirect-targets",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+            params={"telegram_id": telegram_id},
+        )
+        response.raise_for_status()
+        return list(response.json())
+
+    async def get_training_result_message_id(
+        self,
+        group_id: int,
+        training_id: int,
+    ) -> int | None:
+        """Возвращает Telegram message id результата тренировки в группе.
+
+        Args:
+            group_id: Telegram chat id группы.
+            training_id: id сохраненной тренировки.
+
+        Returns:
+            Telegram message id или `None`, если запись не найдена.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.get(
+            f"/internal/bot/groups/{group_id}/training-results/{training_id}/message",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+        )
+        response.raise_for_status()
+        return response.json()["message_id"]
+
+    async def create_training_result_message(
+        self,
+        group_id: int,
+        training_id: int,
+        message_id: int,
+    ) -> None:
+        """Создает запись о сообщении результата тренировки.
+
+        Args:
+            group_id: Telegram chat id группы.
+            training_id: id сохраненной тренировки.
+            message_id: Telegram message id отправленного результата.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.post(
+            "/internal/bot/groups/training-result-messages",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+            json={
+                "group_id": group_id,
+                "training_id": training_id,
+                "message_id": message_id,
+            },
+        )
+        response.raise_for_status()
+
+    async def update_training_result_message(
+        self,
+        group_id: int,
+        training_id: int,
+        new_message_id: int,
+    ) -> bool:
+        """Обновляет Telegram message id результата тренировки.
+
+        Args:
+            group_id: Telegram chat id группы.
+            training_id: id сохраненной тренировки.
+            new_message_id: новый Telegram message id после повторной отправки.
+
+        Returns:
+            признак того, что существующая запись была найдена и обновлена.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.patch(
+            "/internal/bot/groups/training-result-messages",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+            json={
+                "group_id": group_id,
+                "training_id": training_id,
+                "new_message_id": new_message_id,
+            },
+        )
+        response.raise_for_status()
+        return response.json()["updated"]
+
+    async def update_group_bot_banned(
+        self,
+        group_id: int,
+        is_bot_banned: bool,
+    ) -> None:
+        """Обновляет признак недоступности группы для Telegram-бота.
+
+        Args:
+            group_id: Telegram chat id группы.
+            is_bot_banned: признак того, что бот удален или заблокирован в группе.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.patch(
+            f"/internal/bot/groups/{group_id}/bot-banned",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+            json={"is_bot_banned": is_bot_banned},
+        )
+        response.raise_for_status()
+
 
 def _serialize_training_data(training_data: dict[str, Any]) -> dict[str, Any]:
     """Готовит FSM-структуру тренировки к отправке через JSON.

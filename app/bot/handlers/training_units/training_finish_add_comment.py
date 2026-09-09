@@ -18,7 +18,6 @@ from app.bot.middlewares import DBSessionMiddleware
 from app.bot.utils.format_training_data import get_formatted_state_date
 from app.bot.utils.redirect_result_to_user_group import redirect_result_to_user_group
 from app.db.session import async_session_factory
-from app.domain.groups.service import get_user_group_to_redirect
 from app.domain.ratings.service import update_or_create_user_exercise_rating
 
 from .training_types import TrainingStates
@@ -134,9 +133,8 @@ async def finish(callback: CallbackQuery, state: FSMContext, session: AsyncSessi
 
     await redirect_result_to_user_group(
         bot = callback.message.bot,
-        session = session,
         result_text = f"@{callback.from_user.username}\n{result_text}",
-        redirect_groups_id = await get_user_group_to_redirect(session, callback.from_user.id),
+        telegram_id=callback.from_user.id,
         id_upadate = is_update,
         is_create = is_create,
         training_id = training_id
