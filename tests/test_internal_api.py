@@ -89,7 +89,7 @@ def test_internal_bot_user_ensure_calls_domain_service(monkeypatch):
 
     from app.api.deps import config, get_db_session
     from app.api.main import app
-    from app.api.routers import internal
+    from app.api.routers.internal import users as internal_users
 
     monkeypatch.setattr(
         config,
@@ -116,7 +116,7 @@ def test_internal_bot_user_ensure_calls_domain_service(monkeypatch):
         yield object()
 
     monkeypatch.setattr(
-        internal,
+        internal_users,
         "create_user_if_not_exists",
         fake_create_user_if_not_exists,
     )
@@ -153,7 +153,7 @@ def test_internal_bot_exercises_calls_domain_service(monkeypatch):
 
     from app.api.deps import config, get_db_session
     from app.api.main import app
-    from app.api.routers import internal
+    from app.api.routers.internal import exercises as internal_exercises
 
     monkeypatch.setattr(
         config,
@@ -193,7 +193,7 @@ def test_internal_bot_exercises_calls_domain_service(monkeypatch):
         yield object()
 
     monkeypatch.setattr(
-        internal,
+        internal_exercises,
         "get_sorted_exercises_by_sets_count",
         fake_get_sorted_exercises_by_sets_count,
     )
@@ -238,7 +238,7 @@ def test_internal_bot_exercise_returns_404_when_not_found(monkeypatch):
 
     from app.api.deps import config, get_db_session
     from app.api.main import app
-    from app.api.routers import internal
+    from app.api.routers.internal import exercises as internal_exercises
 
     monkeypatch.setattr(
         config,
@@ -254,7 +254,11 @@ def test_internal_bot_exercise_returns_404_when_not_found(monkeypatch):
         """Возвращает тестовую заглушку DB-сессии."""
         yield object()
 
-    monkeypatch.setattr(internal, "get_exercise_by_id", fake_get_exercise_by_id)
+    monkeypatch.setattr(
+        internal_exercises,
+        "get_exercise_by_id",
+        fake_get_exercise_by_id,
+    )
     app.dependency_overrides[get_db_session] = fake_db_session
 
     client = TestClient(app)
@@ -275,7 +279,7 @@ def test_internal_bot_training_dates_calls_domain_service(monkeypatch):
 
     from app.api.deps import config, get_db_session
     from app.api.main import app
-    from app.api.routers import internal
+    from app.api.routers.internal import trainings as internal_trainings
 
     monkeypatch.setattr(
         config,
@@ -295,7 +299,7 @@ def test_internal_bot_training_dates_calls_domain_service(monkeypatch):
         yield object()
 
     monkeypatch.setattr(
-        internal,
+        internal_trainings,
         "get_training_date_by_user_id",
         fake_get_training_date_by_user_id,
     )
@@ -321,7 +325,7 @@ def test_internal_bot_training_by_date_returns_existing_training(monkeypatch):
 
     from app.api.deps import config, get_db_session
     from app.api.main import app
-    from app.api.routers import internal
+    from app.api.routers.internal import trainings as internal_trainings
 
     monkeypatch.setattr(
         config,
@@ -353,12 +357,12 @@ def test_internal_bot_training_by_date_returns_existing_training(monkeypatch):
         yield object()
 
     monkeypatch.setattr(
-        internal,
+        internal_trainings,
         "check_training_exists_for_user_and_date",
         fake_check_training_exists_for_user_and_date,
     )
     monkeypatch.setattr(
-        internal,
+        internal_trainings,
         "get_training_data_by_date_and_user",
         fake_get_training_data_by_date_and_user,
     )
@@ -400,7 +404,7 @@ def test_internal_bot_training_by_date_returns_empty_training(monkeypatch):
 
     from app.api.deps import config, get_db_session
     from app.api.main import app
-    from app.api.routers import internal
+    from app.api.routers.internal import trainings as internal_trainings
 
     monkeypatch.setattr(
         config,
@@ -417,7 +421,7 @@ def test_internal_bot_training_by_date_returns_empty_training(monkeypatch):
         yield object()
 
     monkeypatch.setattr(
-        internal,
+        internal_trainings,
         "check_training_exists_for_user_and_date",
         fake_check_training_exists_for_user_and_date,
     )
@@ -455,7 +459,7 @@ def test_internal_bot_training_save_calls_domain_service(monkeypatch):
 
     from app.api.deps import config, get_db_session
     from app.api.main import app
-    from app.api.routers import internal
+    from app.api.routers.internal import trainings as internal_trainings
 
     monkeypatch.setattr(
         config,
@@ -474,7 +478,11 @@ def test_internal_bot_training_save_calls_domain_service(monkeypatch):
         """Возвращает тестовую заглушку DB-сессии."""
         yield object()
 
-    monkeypatch.setattr(internal, "save_training_data", fake_save_training_data)
+    monkeypatch.setattr(
+        internal_trainings,
+        "save_training_data",
+        fake_save_training_data,
+    )
     app.dependency_overrides[get_db_session] = fake_db_session
 
     client = TestClient(app)
@@ -550,7 +558,7 @@ def test_internal_bot_training_delete_calls_domain_service(monkeypatch):
 
     from app.api.deps import config, get_db_session
     from app.api.main import app
-    from app.api.routers import internal
+    from app.api.routers.internal import trainings as internal_trainings
 
     monkeypatch.setattr(
         config,
@@ -568,7 +576,11 @@ def test_internal_bot_training_delete_calls_domain_service(monkeypatch):
         """Возвращает тестовую заглушку DB-сессии."""
         yield object()
 
-    monkeypatch.setattr(internal, "delete_training_by_id", fake_delete_training_by_id)
+    monkeypatch.setattr(
+        internal_trainings,
+        "delete_training_by_id",
+        fake_delete_training_by_id,
+    )
     app.dependency_overrides[get_db_session] = fake_db_session
 
     client = TestClient(app)
@@ -590,7 +602,7 @@ def test_internal_bot_redirect_targets_calls_domain_service(monkeypatch):
 
     from app.api.deps import config, get_db_session
     from app.api.main import app
-    from app.api.routers import internal
+    from app.api.routers.internal import groups as internal_groups
 
     monkeypatch.setattr(
         config,
@@ -610,7 +622,7 @@ def test_internal_bot_redirect_targets_calls_domain_service(monkeypatch):
         yield object()
 
     monkeypatch.setattr(
-        internal,
+        internal_groups,
         "get_user_group_to_redirect",
         fake_get_user_group_to_redirect,
     )
@@ -636,7 +648,7 @@ def test_internal_bot_training_result_message_calls_domain_service(monkeypatch):
 
     from app.api.deps import config, get_db_session
     from app.api.main import app
-    from app.api.routers import internal
+    from app.api.routers.internal import groups as internal_groups
 
     monkeypatch.setattr(
         config,
@@ -675,17 +687,17 @@ def test_internal_bot_training_result_message_calls_domain_service(monkeypatch):
         yield object()
 
     monkeypatch.setattr(
-        internal,
+        internal_groups,
         "get_group_training_result_messages_id",
         fake_get_group_training_result_messages_id,
     )
     monkeypatch.setattr(
-        internal,
+        internal_groups,
         "create_group_training_result_message",
         fake_create_group_training_result_message,
     )
     monkeypatch.setattr(
-        internal,
+        internal_groups,
         "update_group_training_result_message_id",
         fake_update_group_training_result_message_id,
     )
@@ -737,7 +749,7 @@ def test_internal_bot_group_banned_calls_domain_service(monkeypatch):
 
     from app.api.deps import config, get_db_session
     from app.api.main import app
-    from app.api.routers import internal
+    from app.api.routers.internal import groups as internal_groups
 
     monkeypatch.setattr(
         config,
@@ -762,7 +774,7 @@ def test_internal_bot_group_banned_calls_domain_service(monkeypatch):
         yield object()
 
     monkeypatch.setattr(
-        internal,
+        internal_groups,
         "update_group_is_bot_banned",
         fake_update_group_is_bot_banned,
     )
