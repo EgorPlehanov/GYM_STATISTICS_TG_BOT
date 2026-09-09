@@ -5,7 +5,7 @@ from datetime import date, datetime
 from fastapi import APIRouter
 
 from app.api.deps import DbSession
-from app.api.schemas.internal_bot import (
+from app.api.schemas.internal.trainings import (
     InternalBotTrainingByDateResponse,
     InternalBotTrainingSaveRequest,
     InternalBotTrainingSaveResponse,

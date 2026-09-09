@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, status
 
 from app.api.deps import DbSession
-from app.api.schemas.internal_bot import InternalBotExerciseResponse
+from app.api.schemas.internal.exercises import InternalBotExerciseResponse
 from app.domain.exercises.service import get_exercise_by_id
 from app.domain.trainings.service import get_sorted_exercises_by_sets_count
 

@@ -3,7 +3,7 @@
 from fastapi import APIRouter
 
 from app.api.deps import DbSession
-from app.api.schemas.internal_bot import (
+from app.api.schemas.internal.users import (
     InternalBotUserEnsureRequest,
     InternalBotUserEnsureResponse,
 )
