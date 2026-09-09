@@ -8,15 +8,19 @@ from app.api.deps import DbSession, get_internal_service
 from app.api.schemas.internal_bot import (
     InternalBotExerciseResponse,
     InternalBotTrainingByDateResponse,
+    InternalBotTrainingSaveRequest,
+    InternalBotTrainingSaveResponse,
     InternalBotUserEnsureRequest,
     InternalBotUserEnsureResponse,
 )
 from app.domain.exercises.service import get_exercise_by_id
 from app.domain.trainings.service import (
     check_training_exists_for_user_and_date,
+    delete_training_by_id,
     get_sorted_exercises_by_sets_count,
     get_training_data_by_date_and_user,
     get_training_date_by_user_id,
+    save_training_data,
 )
 from app.domain.users.service import create_user_if_not_exists
 
@@ -158,3 +162,78 @@ async def get_bot_training_by_date(
         exists=is_exists,
         training_data=training_data,
     )
+
+
+@router.post("/bot/trainings", response_model=InternalBotTrainingSaveResponse)
+async def save_bot_training(
+    payload: InternalBotTrainingSaveRequest,
+    session: DbSession,
+) -> InternalBotTrainingSaveResponse:
+    """Сохраняет тренировку из Telegram-бота через backend API.
+
+    Args:
+        payload: JSON-совместимая структура тренировки из FSM бота.
+
+    Returns:
+        результат сохранения из domain service.
+    """
+    training_id, updated, created = await save_training_data(
+        session=session,
+        training_data=_deserialize_training_data(payload.training_data),
+    )
+    return InternalBotTrainingSaveResponse(
+        training_id=training_id,
+        updated=updated,
+        created=created,
+    )
+
+
+@router.delete("/bot/trainings/{training_id}")
+async def delete_bot_training(
+    training_id: int,
+    session: DbSession,
+) -> dict[str, str]:
+    """Удаляет тренировку из сценария Telegram-бота.
+
+    Args:
+        training_id: id тренировки, которую нужно удалить.
+
+    Returns:
+        короткий статус успешного выполнения операции.
+    """
+    await delete_training_by_id(session=session, training_id=training_id)
+    return {"status": "ok"}
+
+
+def _deserialize_training_data(training_data: dict) -> dict:
+    """Восстанавливает старый FSM-формат тренировки после JSON-запроса.
+
+    Args:
+        training_data: JSON-словарь с ISO-датами и строковыми ключами.
+
+    Returns:
+        структура с `datetime` и числовыми ключами `exercises`/`sets`.
+    """
+    restored = dict(training_data)
+    if restored.get("date") is not None:
+        restored["date"] = datetime.fromisoformat(restored["date"])
+
+    exercises = {}
+    for exercise_id, exercise_data in restored.get("exercises", {}).items():
+        exercise = dict(exercise_data)
+        exercise["sets"] = {
+            int(set_id): _deserialize_set_data(set_data)
+            for set_id, set_data in exercise.get("sets", {}).items()
+        }
+        exercises[int(exercise_id)] = exercise
+
+    restored["exercises"] = exercises
+    return restored
+
+
+def _deserialize_set_data(set_data: dict) -> dict:
+    """Восстанавливает данные подхода после JSON-запроса."""
+    restored = dict(set_data)
+    if restored.get("time") is not None:
+        restored["time"] = datetime.fromisoformat(restored["time"])
+    return restored

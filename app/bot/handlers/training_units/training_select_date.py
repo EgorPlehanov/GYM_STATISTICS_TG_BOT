@@ -4,7 +4,6 @@ from aiogram import F, Router
 from aiogram.filters.callback_data import CallbackData
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.client import BotApiClient
 from app.bot.keyboards.training_kb import (
@@ -14,18 +13,11 @@ from app.bot.keyboards.training_kb import (
     get_ikb_select_date,
     get_ikb_training_menu,
 )
-from app.bot.middlewares import DBSessionMiddleware
 from app.bot.utils.format_training_data import get_formatted_state_date
-from app.db.session import async_session_factory
-from app.domain.trainings.service import (
-    delete_training_by_id,
-    save_training_data,
-)
 
 from .training_types import TrainingMode, TrainingStates
 
 router = Router()
-router.callback_query.middleware(DBSessionMiddleware(async_session_factory))
 
 
 
@@ -204,16 +196,14 @@ async def open_edit_date(callback: CallbackQuery, state: FSMContext):
     F.data == 'save_and_go',
     TrainingStates.change_date_acept
 )
-async def save_and_go(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
+async def save_and_go(callback: CallbackQuery, state: FSMContext):
     """
     Сохраняет текущую тренировку и переходит к выбранной
     """
     user_data: dict[str, int | dict] = await state.get_data()
     exercise_data = user_data.get('exercise_data')
-    await save_training_data(
-        session=session,
-        training_data=exercise_data
-    )
+    async with BotApiClient() as api_client:
+        await api_client.save_training(exercise_data)
 
     changed_exercise_data = user_data.get('changed_exercise_data')
     await state.update_data(exercise_data=changed_exercise_data)
@@ -243,7 +233,7 @@ async def save_and_go(callback: CallbackQuery, state: FSMContext, session: Async
     F.data == 'canged_to_current_date',
     TrainingStates.change_date_acept
 )
-async def canged_to_current_date(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
+async def canged_to_current_date(callback: CallbackQuery, state: FSMContext):
     """
     Инлайн кнопка заменить тренировку на текущую
     """
@@ -254,7 +244,8 @@ async def canged_to_current_date(callback: CallbackQuery, state: FSMContext, ses
     date = changed_exercise_data.get('date')
     training_id = changed_exercise_data.get('id')
 
-    await delete_training_by_id(session=session, training_id=training_id)
+    async with BotApiClient() as api_client:
+        await api_client.delete_training(training_id)
 
     exercise_data = user_data.get('exercise_data')
     exercise_data['date'] = date

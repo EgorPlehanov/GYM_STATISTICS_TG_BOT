@@ -449,6 +449,141 @@ def test_internal_bot_training_by_date_returns_empty_training(monkeypatch):
     }
 
 
+def test_internal_bot_training_save_calls_domain_service(monkeypatch):
+    """Проверяет сохранение тренировки из Telegram-бота через domain service."""
+    _set_required_env(monkeypatch)
+
+    from app.api.deps import config, get_db_session
+    from app.api.main import app
+    from app.api.routers import internal
+
+    monkeypatch.setattr(
+        config,
+        "INTERNAL_API_TOKEN",
+        SecretStr("test-internal-token-with-at-least-32-bytes"),
+    )
+
+    calls = []
+
+    async def fake_save_training_data(session, training_data):
+        """Фиксирует восстановленную FSM-структуру перед сохранением."""
+        calls.append({"session": session, "training_data": training_data})
+        return 10, False, True
+
+    async def fake_db_session():
+        """Возвращает тестовую заглушку DB-сессии."""
+        yield object()
+
+    monkeypatch.setattr(internal, "save_training_data", fake_save_training_data)
+    app.dependency_overrides[get_db_session] = fake_db_session
+
+    client = TestClient(app)
+    response = client.post(
+        "/internal/bot/trainings",
+        headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
+        json={
+            "training_data": {
+                "id": None,
+                "user_id": 123456789,
+                "date": "2026-09-09T12:30:00",
+                "comment": None,
+                "global_set_counter": 1,
+                "exercises": {
+                    "1": {
+                        "exercise_name": "Жим лежа",
+                        "local_set_counter": 1,
+                        "sets": {
+                            "1": {
+                                "id": None,
+                                "set_number": 1,
+                                "weight": 100.0,
+                                "repetitions": 5,
+                                "time": "2026-09-09T12:35:00",
+                            }
+                        },
+                    }
+                },
+            }
+        },
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "training_id": 10,
+        "updated": False,
+        "created": True,
+    }
+    assert calls == [
+        {
+            "session": calls[0]["session"],
+            "training_data": {
+                "id": None,
+                "user_id": 123456789,
+                "date": datetime(2026, 9, 9, 12, 30),
+                "comment": None,
+                "global_set_counter": 1,
+                "exercises": {
+                    1: {
+                        "exercise_name": "Жим лежа",
+                        "local_set_counter": 1,
+                        "sets": {
+                            1: {
+                                "id": None,
+                                "set_number": 1,
+                                "weight": 100.0,
+                                "repetitions": 5,
+                                "time": datetime(2026, 9, 9, 12, 35),
+                            }
+                        },
+                    }
+                },
+            },
+        }
+    ]
+
+
+def test_internal_bot_training_delete_calls_domain_service(monkeypatch):
+    """Проверяет удаление тренировки из Telegram-бота через domain service."""
+    _set_required_env(monkeypatch)
+
+    from app.api.deps import config, get_db_session
+    from app.api.main import app
+    from app.api.routers import internal
+
+    monkeypatch.setattr(
+        config,
+        "INTERNAL_API_TOKEN",
+        SecretStr("test-internal-token-with-at-least-32-bytes"),
+    )
+
+    calls = []
+
+    async def fake_delete_training_by_id(session, training_id):
+        """Фиксирует параметры удаления тренировки."""
+        calls.append({"session": session, "training_id": training_id})
+
+    async def fake_db_session():
+        """Возвращает тестовую заглушку DB-сессии."""
+        yield object()
+
+    monkeypatch.setattr(internal, "delete_training_by_id", fake_delete_training_by_id)
+    app.dependency_overrides[get_db_session] = fake_db_session
+
+    client = TestClient(app)
+    response = client.delete(
+        "/internal/bot/trainings/10",
+        headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+    assert calls == [{"session": calls[0]["session"], "training_id": 10}]
+
+
 def _set_required_env(monkeypatch):
     """Заполняет обязательные настройки для импорта FastAPI приложения в тестах."""
     monkeypatch.setenv("MAIN_ADMIN_ID", "1")

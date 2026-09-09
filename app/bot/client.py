@@ -48,6 +48,21 @@ class BotTrainingByDateResult:
     training_data: dict[str, Any]
 
 
+@dataclass(frozen=True)
+class BotTrainingSaveResult:
+    """Результат сохранения тренировки через backend API.
+
+    Attributes:
+        training_id: внутренний id сохраненной тренировки.
+        updated: признак обновления существующей тренировки.
+        created: признак создания новой тренировки.
+    """
+
+    training_id: int
+    updated: bool
+    created: bool
+
+
 class BotApiClient:
     """HTTP-клиент, через который Telegram-бот обращается к backend API."""
 
@@ -222,6 +237,80 @@ class BotApiClient:
             exists=payload["exists"],
             training_data=_deserialize_training_data(payload["training_data"]),
         )
+
+    async def save_training(
+        self,
+        training_data: dict[str, Any],
+    ) -> BotTrainingSaveResult:
+        """Сохраняет тренировку через internal API.
+
+        Args:
+            training_data: FSM-структура тренировки бота.
+
+        Returns:
+            результат сохранения тренировки в backend API.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.post(
+            "/internal/bot/trainings",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+            json={
+                "training_data": _serialize_training_data(training_data),
+            },
+        )
+        response.raise_for_status()
+        return BotTrainingSaveResult(**response.json())
+
+    async def delete_training(self, training_id: int) -> None:
+        """Удаляет тренировку через internal API.
+
+        Args:
+            training_id: внутренний id тренировки.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.delete(
+            f"/internal/bot/trainings/{training_id}",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+        )
+        response.raise_for_status()
+
+
+def _serialize_training_data(training_data: dict[str, Any]) -> dict[str, Any]:
+    """Готовит FSM-структуру тренировки к отправке через JSON.
+
+    Args:
+        training_data: структура с `datetime` и числовыми ключами `exercises`/`sets`.
+
+    Returns:
+        JSON-совместимый словарь с ISO-датами и строковыми ключами.
+    """
+    serialized = dict(training_data)
+    if isinstance(serialized.get("date"), datetime):
+        serialized["date"] = serialized["date"].isoformat()
+
+    exercises = {}
+    for exercise_id, exercise_data in serialized.get("exercises", {}).items():
+        exercise = dict(exercise_data)
+        exercise["sets"] = {
+            str(set_id): _serialize_set_data(set_data)
+            for set_id, set_data in exercise.get("sets", {}).items()
+        }
+        exercises[str(exercise_id)] = exercise
+
+    serialized["exercises"] = exercises
+    return serialized
+
+
+def _serialize_set_data(set_data: dict[str, Any]) -> dict[str, Any]:
+    """Готовит данные подхода к отправке через JSON."""
+    serialized = dict(set_data)
+    if isinstance(serialized.get("time"), datetime):
+        serialized["time"] = serialized["time"].isoformat()
+    return serialized
 
 
 def _deserialize_training_data(training_data: dict[str, Any]) -> dict[str, Any]:
