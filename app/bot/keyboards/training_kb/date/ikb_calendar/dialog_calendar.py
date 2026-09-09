@@ -1,12 +1,10 @@
 # pylint: disable=duplicate-code
 import calendar
-from datetime import datetime
+from datetime import date, datetime
 
 from aiogram.filters.callback_data import CallbackData
-from aiogram.types import CallbackQuery
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
-from aiogram3_calendar.calendar_types import DialogCalendarCallback, DialogCalendarAction, WEEKDAYS
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram3_calendar.calendar_types import WEEKDAYS, DialogCalendarAction, DialogCalendarCallback
 
 ignore_callback = DialogCalendarCallback(act=DialogCalendarAction.IGNORE, year=-1, month=-1, day=-1)
 
@@ -20,11 +18,11 @@ class DialogCalendar:
         self,
         year: int = datetime.now().year,
         month: int = datetime.now().month,
-        training_date: list[datetime] = [],
+        training_date: list[date] | None = None,
     ) -> None:
         self.year = year
         self.month = month
-        self.training_date = training_date
+        self.training_date = training_date or []
 
 
 
@@ -201,7 +199,7 @@ class DialogCalendar:
             )
         if data.act == DialogCalendarAction.SET_DAY:
             await query.message.delete_reply_markup()  # removing inline keyboard
-            return_data = True, datetime(int(data.year), int(data.month), int(data.day))
+            return_data = True, date(int(data.year), int(data.month), int(data.day))
         return return_data
 
 

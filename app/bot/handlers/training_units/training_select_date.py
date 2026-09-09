@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from aiogram import F, Router
 from aiogram.filters.callback_data import CallbackData
@@ -22,17 +22,20 @@ router = Router()
 
 
 async def init_training_by_date(
-    date: datetime,
+    training_date: date | datetime,
     callback: CallbackQuery,
     state: FSMContext,
 ) -> None:
     """
     Инициализирует тренировку по дате
     """
+    if isinstance(training_date, datetime):
+        training_date = training_date.date()
+
     async with BotApiClient() as api_client:
         result = await api_client.get_training_by_date(
             telegram_id=callback.from_user.id,
-            training_date=date,
+            training_date=training_date,
         )
     changed_exercise_data = result.training_data
     is_exists = result.exists
@@ -42,7 +45,7 @@ async def init_training_by_date(
     if cur_exercise_data is None:
         await state.update_data(exercise_data=changed_exercise_data)
     else:
-        if cur_exercise_data.get('date').date() == date.date():
+        if cur_exercise_data.get('date') == training_date:
             return
         if is_exists:
             await state.set_state(TrainingStates.change_date_acept)
@@ -50,12 +53,12 @@ async def init_training_by_date(
             await callback.message.edit_text(
                 text=await get_formatted_state_date(state),
                 reply_markup = get_ikb_changed_date(
-                    other_date=date
+                    other_date=training_date
                 )
             )
             return False
         else:
-            cur_exercise_data['date'] = date
+            cur_exercise_data['date'] = training_date
 
 
 
@@ -70,7 +73,7 @@ async def selected_date_today(callback: CallbackQuery, state: FSMContext) -> Non
     await state.set_state(TrainingStates.menu)
     await state.update_data(mode=None)
 
-    date = datetime.now()
+    date = datetime.now().date()
 
     if (await init_training_by_date(date, callback, state)) is False:
         return

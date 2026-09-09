@@ -92,11 +92,21 @@ GYM_STATISTICS_TG_BOT/
       deps.py
       schemas/
         auth.py
-        internal_bot.py
+        internal/
+          users.py
+          exercises.py
+          trainings.py
+          groups.py
       routers/
         health.py
         auth.py
-        internal.py
+        internal/
+          health.py
+          users.py
+          exercises.py
+          trainings.py
+          groups.py
+          ratings.py
         users.py
         exercises.py
         trainings.py
@@ -303,9 +313,16 @@ telegram_id  уникальный Telegram user id
 
 ## Даты тренировок
 
-На первом этапе логика дат остается близкой к текущей реализации.
+`Training.date` хранит календарную дату тренировки без времени.
 
-Отдельное решение по переходу с `datetime` на `date` для тренировочного дня будет принято позже.
+Это осознанное разделение смыслов:
+
+- `Training.date` - день тренировки;
+- `Set.execution_time` - точное время выполнения подхода, если оно фиксировалось;
+- `created_at` и `updated_at` - технические даты создания и обновления записи.
+
+В API и FSM Telegram-бота дата тренировки передается в формате `YYYY-MM-DD`.
+Время подходов остается `datetime`.
 
 ## Миграции и seed-данные
 

@@ -128,6 +128,7 @@ Backlog фиксирует крупные задачи перехода на н�
 - [ ] Описать JSON-friendly формат FSM training draft для Telegram-бота.
 - [ ] Заменить временный `training_data: dict[str, Any]` в internal training API на строгие DTO.
 - [ ] Добавить adapter `API DTO -> FSM draft -> API DTO` для сценариев тренировки.
+- [ ] Убрать переходную поддержку `datetime` для `Training.date` после перевода FSM/API на строгие `date`-контракты.
 - [ ] Перевести aiogram FSM storage с `MemoryStorage` на Redis после выбора Redis как инфраструктурного сервиса.
 - [ ] Заменить `app/bot/utils/migration_cache.py` на Redis TTL key для обработки миграции Telegram group -> supergroup.
 - [ ] Отвязать локальный календарь `app/bot/keyboards/training_kb/date` от внешней зависимости `aiogram3-calendar`.
@@ -210,7 +211,7 @@ Backlog фиксирует крупные задачи перехода на н�
 
 ## Отложенные решения
 
-- [ ] Решить, нужно ли менять `Training.date` с `datetime` на отдельный `date`.
+- [x] Решить, нужно ли менять `Training.date` с `datetime` на отдельный `date`.
 - [ ] Подробно спроектировать export.
 - [ ] Выбрать Caddy или Nginx для VPS.
 - [ ] Выбрать механизм фоновых задач: простой async worker, task queue, Redis/RQ, Celery, Dramatiq или другой вариант.

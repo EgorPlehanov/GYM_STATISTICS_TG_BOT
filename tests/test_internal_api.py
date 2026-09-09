@@ -374,7 +374,7 @@ def test_internal_bot_training_by_date_returns_existing_training(monkeypatch):
         headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
         params={
             "telegram_id": 123456789,
-            "training_date": "2026-09-09T12:30:00",
+            "training_date": "2026-09-09",
         },
     )
 
@@ -386,15 +386,15 @@ def test_internal_bot_training_by_date_returns_existing_training(monkeypatch):
         "training_data": {
             "id": 10,
             "user_id": 123456789,
-            "date": "2026-09-09T12:30:00",
+            "date": "2026-09-09",
             "comment": "Тест",
             "global_set_counter": 1,
             "exercises": {},
         },
     }
     assert calls == [
-        ("exists", calls[0][1], 123456789, datetime(2026, 9, 9, 12, 30)),
-        ("get", calls[0][1], 123456789, datetime(2026, 9, 9, 12, 30)),
+        ("exists", calls[0][1], 123456789, date(2026, 9, 9)),
+        ("get", calls[0][1], 123456789, date(2026, 9, 9)),
     ]
 
 
@@ -433,7 +433,7 @@ def test_internal_bot_training_by_date_returns_empty_training(monkeypatch):
         headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
         params={
             "telegram_id": 123456789,
-            "training_date": "2026-09-09T12:30:00",
+            "training_date": "2026-09-09",
         },
     )
 
@@ -445,7 +445,7 @@ def test_internal_bot_training_by_date_returns_empty_training(monkeypatch):
         "training_data": {
             "id": None,
             "user_id": 123456789,
-            "date": "2026-09-09T12:30:00",
+            "date": "2026-09-09",
             "comment": None,
             "global_set_counter": 0,
             "exercises": {},
@@ -493,7 +493,7 @@ def test_internal_bot_training_save_calls_domain_service(monkeypatch):
             "training_data": {
                 "id": None,
                 "user_id": 123456789,
-                "date": "2026-09-09T12:30:00",
+                "date": "2026-09-09",
                 "comment": None,
                 "global_set_counter": 1,
                 "exercises": {
@@ -529,7 +529,7 @@ def test_internal_bot_training_save_calls_domain_service(monkeypatch):
             "training_data": {
                 "id": None,
                 "user_id": 123456789,
-                "date": datetime(2026, 9, 9, 12, 30),
+                "date": date(2026, 9, 9),
                 "comment": None,
                 "global_set_counter": 1,
                 "exercises": {

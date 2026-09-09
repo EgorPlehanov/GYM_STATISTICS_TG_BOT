@@ -1,10 +1,10 @@
 """SQLAlchemy-модели проекта."""
 
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum, unique
 from typing import Annotated
 
-from sqlalchemy import BigInteger, CheckConstraint, ForeignKey, UniqueConstraint, func
+from sqlalchemy import BigInteger, CheckConstraint, Date, ForeignKey, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, str_256, str_2048
@@ -195,7 +195,7 @@ class Training(Base):
     Attributes:
         id: внутренний primary key тренировки.
         user_id: внутренний id пользователя, которому принадлежит тренировка.
-        date: дата и время тренировки.
+        date: календарная дата тренировки без времени.
         comment: пользовательский комментарий к тренировке.
         created_at: дата и время создания записи.
         updated_at: дата и время последнего обновления записи.
@@ -207,7 +207,7 @@ class Training(Base):
 
     id: Mapped[intpk]
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"))
-    date: Mapped[datetime]
+    date: Mapped[date] = mapped_column(Date)
     comment: Mapped[str_256 | None]
     created_at: Mapped[created_at]
     updated_at: Mapped[updated_at]

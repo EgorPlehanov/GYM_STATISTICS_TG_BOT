@@ -1,8 +1,8 @@
 """Репозиторий тренировок."""
 
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import Date, and_, delete, func, or_, select, update
+from sqlalchemy import and_, delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Exercise, Set, Training, User
@@ -15,7 +15,7 @@ class TrainingRepository:
 
 SetData = dict[str, int | float | datetime | str]
 ExerciseData = dict[str, str | int | dict[int, SetData]]
-TrainingData = dict[str, int | datetime | str | dict[int, ExerciseData]]
+TrainingData = dict[str, int | date | str | dict[int, ExerciseData]]
 
 
 async def get_sorted_exercises_by_sets_count(
@@ -193,7 +193,7 @@ async def save_new_training_data(
 
     training = Training(
         user_id=internal_user_id,
-        date=training_data.get("date").replace(tzinfo=None),
+        date=_coerce_training_date(training_data.get("date")),
         comment=training_data.get("comment"),
     )
     session.add(training)
@@ -209,13 +209,13 @@ async def update_training_data(
     result = await session.execute(
         update(Training)
         .values(
-            date=training_data.get("date").replace(tzinfo=None),
+            date=_coerce_training_date(training_data.get("date")),
             comment=training_data.get("comment"),
         )
         .where(
             Training.id == training_data.get("id"),
             or_(
-                Training.date.cast(Date) != training_data.get("date").date(),
+                Training.date != _coerce_training_date(training_data.get("date")),
                 Training.comment != training_data.get("comment"),
                 and_(
                     Training.comment.is_(None),
@@ -280,7 +280,7 @@ async def save_training_data(
 async def check_training_exists_for_user_and_date(
     session: AsyncSession,
     user_id: int,
-    date: datetime,
+    date: date,
 ) -> bool:
     """Проверяет, есть ли тренировка пользователя с Telegram id за указанную дату."""
     internal_user_id = await get_internal_user_id_by_telegram_id(session, user_id)
@@ -290,7 +290,7 @@ async def check_training_exists_for_user_and_date(
     result = await session.execute(
         select(Training).filter(
             Training.user_id == internal_user_id,
-            func.date(Training.date) == date.date(),
+            Training.date == date,
         )
     )
     return bool(result.scalar())
@@ -299,7 +299,7 @@ async def check_training_exists_for_user_and_date(
 async def get_training_data_by_date_and_user(
     session: AsyncSession,
     user_id: int,
-    date: datetime,
+    date: date,
 ) -> TrainingData:
     """Возвращает данные тренировки пользователя с Telegram id за дату."""
     internal_user_id = await get_internal_user_id_by_telegram_id(session, user_id)
@@ -312,7 +312,7 @@ async def get_training_data_by_date_and_user(
             Training.comment.label("comment"),
         ).filter(
             Training.user_id == internal_user_id,
-            func.date(Training.date) == date.date(),
+            Training.date == date,
         )
     )
     training_result = training_result.first()
@@ -391,7 +391,7 @@ async def delete_training_by_id(
 async def get_training_date_by_user_id(
     session: AsyncSession,
     user_id: int,
-) -> list[datetime]:
+) -> list[date]:
     """Возвращает даты тренировок пользователя с Telegram id."""
     internal_user_id = await get_internal_user_id_by_telegram_id(session, user_id)
     if internal_user_id is None:
@@ -402,4 +402,18 @@ async def get_training_date_by_user_id(
         .filter(Training.user_id == internal_user_id)
         .order_by(Training.date)
     )
-    return [row[0].date() for row in result.all()]
+    return [row[0] for row in result.all()]
+
+
+def _coerce_training_date(value: date | datetime) -> date:
+    """Приводит дату тренировки к календарному дню для хранения в `Training.date`.
+
+    Args:
+        value: дата тренировки из API/FSM. На переходном этапе может прийти `datetime`.
+
+    Returns:
+        календарная дата без времени.
+    """
+    if isinstance(value, datetime):
+        return value.date()
+    return value

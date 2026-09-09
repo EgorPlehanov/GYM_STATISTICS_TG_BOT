@@ -2,7 +2,7 @@
 
 from collections import namedtuple
 
-from sqlalchemy import Date, and_, func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Exercise, ExerciseRank, Rank, Set, Training, UserExerciseRating
@@ -50,7 +50,7 @@ async def get_export_data(
 
     result = await session.execute(
         select(
-            Training.date.cast(Date).label("date"),
+            Training.date.label("date"),
             Training.comment.label("comment"),
             Exercise.name.label("exercise_name"),
             Set.overall_order.label("overall_order"),
@@ -96,6 +96,6 @@ async def get_export_data(
         .join(ExerciseRank, ExerciseRank.id == UserExerciseRating.exercise_rank_id)
         .join(Rank, Rank.id == ExerciseRank.rank_id)
         .where(Training.user_id == internal_user_id)
-        .order_by(Training.date.cast(Date), Exercise.name, Set.exercise_order)
+        .order_by(Training.date, Exercise.name, Set.exercise_order)
     )
     return [ExportData(*row) for row in result.all()]

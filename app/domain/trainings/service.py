@@ -1,6 +1,6 @@
 """Сервис тренировок."""
 
-from datetime import datetime
+from datetime import date
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -81,7 +81,7 @@ async def save_training_data(
 async def check_training_exists_for_user_and_date(
     session: AsyncSession,
     user_id: int,
-    date: datetime,
+    date: date,
 ) -> bool:
     """Проверяет, есть ли тренировка пользователя за указанную дату."""
     return await training_repository.check_training_exists_for_user_and_date(session, user_id, date)
@@ -90,7 +90,7 @@ async def check_training_exists_for_user_and_date(
 async def get_training_data_by_date_and_user(
     session: AsyncSession,
     user_id: int,
-    date: datetime,
+    date: date,
 ) -> TrainingData:
     """Возвращает данные тренировки пользователя за дату."""
     return await training_repository.get_training_data_by_date_and_user(session, user_id, date)
@@ -101,6 +101,6 @@ async def delete_training_by_id(session: AsyncSession, training_id: int) -> None
     await training_repository.delete_training_by_id(session, training_id)
 
 
-async def get_training_date_by_user_id(session: AsyncSession, user_id: int) -> list[datetime]:
+async def get_training_date_by_user_id(session: AsyncSession, user_id: int) -> list[date]:
     """Возвращает даты тренировок пользователя."""
     return await training_repository.get_training_date_by_user_id(session, user_id)

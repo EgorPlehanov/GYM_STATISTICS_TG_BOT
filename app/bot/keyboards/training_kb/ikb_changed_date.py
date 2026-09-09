@@ -1,12 +1,11 @@
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from datetime import date
+
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-
-from datetime import datetime
-
 
 
 def get_ikb_changed_date(
-    other_date: datetime
+    other_date: date,
 ) -> InlineKeyboardMarkup:
     """
     Фабрика инлайн клавиатуры перехода к другой дате

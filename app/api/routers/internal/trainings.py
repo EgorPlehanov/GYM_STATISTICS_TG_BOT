@@ -41,7 +41,7 @@ async def get_bot_training_dates(
 async def get_bot_training_by_date(
     session: DbSession,
     telegram_id: int,
-    training_date: datetime,
+    training_date: date,
 ) -> InternalBotTrainingByDateResponse:
     """Возвращает существующую тренировку или пустую структуру для новой даты.
 
@@ -127,11 +127,11 @@ def _deserialize_training_data(training_data: dict) -> dict:
         training_data: JSON-словарь с ISO-датами и строковыми ключами.
 
     Returns:
-        структура с `datetime` и числовыми ключами `exercises`/`sets`.
+        структура с `date`, `datetime` в подходах и числовыми ключами `exercises`/`sets`.
     """
     restored = dict(training_data)
     if restored.get("date") is not None:
-        restored["date"] = datetime.fromisoformat(restored["date"])
+        restored["date"] = date.fromisoformat(restored["date"])
 
     exercises = {}
     for exercise_id, exercise_data in restored.get("exercises", {}).items():

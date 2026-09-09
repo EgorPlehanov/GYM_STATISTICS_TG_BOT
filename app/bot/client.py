@@ -208,7 +208,7 @@ class BotApiClient:
     async def get_training_by_date(
         self,
         telegram_id: int,
-        training_date: datetime,
+        training_date: date,
     ) -> BotTrainingByDateResult:
         """Возвращает тренировку пользователя за дату или пустую структуру.
 
@@ -421,13 +421,15 @@ def _serialize_training_data(training_data: dict[str, Any]) -> dict[str, Any]:
     """Готовит FSM-структуру тренировки к отправке через JSON.
 
     Args:
-        training_data: структура с `datetime` и числовыми ключами `exercises`/`sets`.
+        training_data: структура с `date`, `datetime` в подходах и числовыми ключами.
 
     Returns:
-        JSON-совместимый словарь с ISO-датами и строковыми ключами.
+        JSON-совместимый словарь с ISO-датой тренировки, ISO-временем подходов и строковыми ключами.
     """
     serialized = dict(training_data)
     if isinstance(serialized.get("date"), datetime):
+        serialized["date"] = serialized["date"].date().isoformat()
+    elif isinstance(serialized.get("date"), date):
         serialized["date"] = serialized["date"].isoformat()
 
     exercises = {}
@@ -458,11 +460,11 @@ def _deserialize_training_data(training_data: dict[str, Any]) -> dict[str, Any]:
         training_data: JSON-словарь, полученный от internal API.
 
     Returns:
-        структура тренировки с `datetime` и числовыми ключами `exercises`/`sets`.
+        структура тренировки с `date`, `datetime` в подходах и числовыми ключами.
     """
     restored = dict(training_data)
     if restored.get("date") is not None:
-        restored["date"] = datetime.fromisoformat(restored["date"])
+        restored["date"] = date.fromisoformat(restored["date"])
 
     exercises = {}
     for exercise_id, exercise_data in restored.get("exercises", {}).items():

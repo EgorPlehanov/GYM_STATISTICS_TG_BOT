@@ -213,7 +213,7 @@ async def test_bot_api_client_get_training_by_date_restores_fsm_data(monkeypatch
                 "training_data": {
                     "id": 10,
                     "user_id": 123456789,
-                    "date": "2026-09-09T12:30:00",
+                    "date": "2026-09-09",
                     "comment": "Тест",
                     "global_set_counter": 1,
                     "exercises": {
@@ -248,11 +248,11 @@ async def test_bot_api_client_get_training_by_date_restores_fsm_data(monkeypatch
         async with api_client:
             result = await api_client.get_training_by_date(
                 telegram_id=123456789,
-                training_date=datetime(2026, 9, 9, 12, 30),
+                training_date=date(2026, 9, 9),
             )
 
     assert result.exists is True
-    assert result.training_data["date"] == datetime(2026, 9, 9, 12, 30)
+    assert result.training_data["date"] == date(2026, 9, 9)
     assert list(result.training_data["exercises"].keys()) == [1]
     assert list(result.training_data["exercises"][1]["sets"].keys()) == [1]
     assert result.training_data["exercises"][1]["sets"][1]["time"] == datetime(
@@ -266,7 +266,7 @@ async def test_bot_api_client_get_training_by_date_restores_fsm_data(monkeypatch
         "method": "GET",
         "url": (
             "http://api:8000/internal/bot/trainings/by-date?"
-            "telegram_id=123456789&training_date=2026-09-09T12%3A30%3A00"
+            "telegram_id=123456789&training_date=2026-09-09"
         ),
         "token": "internal-test-token",
     }
@@ -311,7 +311,7 @@ async def test_bot_api_client_save_training_serializes_fsm_data(monkeypatch):
                 {
                     "id": None,
                     "user_id": 123456789,
-                    "date": datetime(2026, 9, 9, 12, 30),
+                    "date": date(2026, 9, 9),
                     "comment": None,
                     "global_set_counter": 1,
                     "exercises": {
@@ -343,7 +343,7 @@ async def test_bot_api_client_save_training_serializes_fsm_data(monkeypatch):
             "training_data": {
                 "id": None,
                 "user_id": 123456789,
-                "date": "2026-09-09T12:30:00",
+                "date": "2026-09-09",
                 "comment": None,
                 "global_set_counter": 1,
                 "exercises": {
