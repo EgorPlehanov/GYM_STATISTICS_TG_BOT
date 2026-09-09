@@ -5,7 +5,7 @@ from datetime import datetime
 
 
 
-def get_ikb_canged_date(
+def get_ikb_changed_date(
     other_date: datetime
 ) -> InlineKeyboardMarkup:
     """
@@ -17,7 +17,7 @@ def get_ikb_canged_date(
         callback_data="save_and_go"
     ))
     builder.row(InlineKeyboardButton(
-        text="✏️ Заменить на текущую ✏️", callback_data="canged_to_current_date"))
+        text="✏️ Заменить на текущую ✏️", callback_data="changed_to_current_date"))
     builder.row(InlineKeyboardButton(
         text="⬅️ Меню даты ⬅️", callback_data="to_date_menu"))
     return builder.as_markup()

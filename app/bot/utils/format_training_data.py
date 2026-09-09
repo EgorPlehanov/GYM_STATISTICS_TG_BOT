@@ -214,8 +214,8 @@ async def get_formatted_other_date(state: FSMContext) -> str:
     Возвращает текст других тренировок
     """
     user_data = await state.get_data()
-    canged_exercise_data = user_data.get('changed_exercise_data')
-    return get_training_values({'exercise_data': canged_exercise_data}, is_result=True)
+    changed_exercise_data = user_data.get('changed_exercise_data')
+    return get_training_values({'exercise_data': changed_exercise_data}, is_result=True)
     
 
 

@@ -9,7 +9,7 @@ from app.bot.client import BotApiClient
 from app.bot.keyboards.training_kb import (
     DialogCalendar,
     DialogCalendarCallback,
-    get_ikb_canged_date,
+    get_ikb_changed_date,
     get_ikb_select_date,
     get_ikb_training_menu,
 )
@@ -49,7 +49,7 @@ async def init_training_by_date(
             await state.update_data(changed_exercise_data=changed_exercise_data)
             await callback.message.edit_text(
                 text=await get_formatted_state_date(state),
-                reply_markup = get_ikb_canged_date(
+                reply_markup = get_ikb_changed_date(
                     other_date=date
                 )
             )
@@ -230,10 +230,10 @@ async def save_and_go(callback: CallbackQuery, state: FSMContext):
 
 
 @router.callback_query(
-    F.data == 'canged_to_current_date',
+    F.data == 'changed_to_current_date',
     TrainingStates.change_date_acept
 )
-async def canged_to_current_date(callback: CallbackQuery, state: FSMContext):
+async def changed_to_current_date(callback: CallbackQuery, state: FSMContext):
     """
     Инлайн кнопка заменить тренировку на текущую
     """
