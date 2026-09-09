@@ -800,6 +800,50 @@ def test_internal_bot_group_banned_calls_domain_service(monkeypatch):
     ]
 
 
+def test_internal_bot_user_rating_recalculate_calls_domain_service(monkeypatch):
+    """Проверяет запуск пересчета рейтинга пользователя через internal API."""
+    _set_required_env(monkeypatch)
+
+    from app.api.deps import config, get_db_session
+    from app.api.main import app
+    from app.api.routers.internal import ratings as internal_ratings
+
+    monkeypatch.setattr(
+        config,
+        "INTERNAL_API_TOKEN",
+        SecretStr("test-internal-token-with-at-least-32-bytes"),
+    )
+
+    calls = []
+
+    async def fake_update_or_create_user_exercise_rating(session, user_id):
+        """Фиксирует параметры пересчета рейтинга."""
+        calls.append({"session": session, "user_id": user_id})
+
+    async def fake_db_session():
+        """Возвращает тестовую заглушку DB-сессии."""
+        yield object()
+
+    monkeypatch.setattr(
+        internal_ratings,
+        "update_or_create_user_exercise_rating",
+        fake_update_or_create_user_exercise_rating,
+    )
+    app.dependency_overrides[get_db_session] = fake_db_session
+
+    client = TestClient(app)
+    response = client.post(
+        "/internal/bot/users/123456789/rating/recalculate",
+        headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+    assert calls == [{"session": calls[0]["session"], "user_id": 123456789}]
+
+
 def _set_required_env(monkeypatch):
     """Заполняет обязательные настройки для импорта FastAPI приложения в тестах."""
     monkeypatch.setenv("MAIN_ADMIN_ID", "1")

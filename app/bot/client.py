@@ -401,6 +401,21 @@ class BotApiClient:
         )
         response.raise_for_status()
 
+    async def recalculate_user_rating(self, telegram_id: int) -> None:
+        """Запускает пересчет рейтингов пользователя через internal API.
+
+        Args:
+            telegram_id: Telegram user id пользователя.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.post(
+            f"/internal/bot/users/{telegram_id}/rating/recalculate",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+        )
+        response.raise_for_status()
+
 
 def _serialize_training_data(training_data: dict[str, Any]) -> dict[str, Any]:
     """Готовит FSM-структуру тренировки к отправке через JSON.

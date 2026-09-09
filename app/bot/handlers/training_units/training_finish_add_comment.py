@@ -10,20 +10,15 @@ from aiogram.types import (
     InputTextMessageContent,
     Message,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.client import BotApiClient
 from app.bot.keyboards.training_kb import get_ikb_finish_add_comment
-from app.bot.middlewares import DBSessionMiddleware
 from app.bot.utils.format_training_data import get_formatted_state_date
 from app.bot.utils.redirect_result_to_user_group import redirect_result_to_user_group
-from app.db.session import async_session_factory
-from app.domain.ratings.service import update_or_create_user_exercise_rating
 
 from .training_types import TrainingStates
 
 router = Router()
-router.callback_query.middleware(DBSessionMiddleware(async_session_factory))
 
 
 
@@ -107,7 +102,7 @@ async def add_comment(message: Message, state: FSMContext):
     F.data == 'finish',
     TrainingStates.add_comment,
 )
-async def finish(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
+async def finish(callback: CallbackQuery, state: FSMContext):
     """
     Инлайн кнопка "Завершить"
     """
@@ -140,8 +135,6 @@ async def finish(callback: CallbackQuery, state: FSMContext, session: AsyncSessi
         training_id = training_id
     )
 
-    await update_or_create_user_exercise_rating(
-        session = session,
-        user_id = callback.from_user.id,
-    )
+    async with BotApiClient() as api_client:
+        await api_client.recalculate_user_rating(callback.from_user.id)
 
