@@ -1012,6 +1012,92 @@ def test_internal_bot_statistics_exercise_rating_calls_domain_service(monkeypatc
     assert calls == [{"session": calls[0]["session"], "user_id": 123456789}]
 
 
+def test_internal_bot_export_data_calls_domain_service(monkeypatch):
+    """Проверяет получение данных экспорта через internal API."""
+    _set_required_env(monkeypatch)
+
+    from app.api.deps import config, get_db_session
+    from app.api.main import app
+    from app.api.routers.internal import export as internal_export
+
+    monkeypatch.setattr(
+        config,
+        "INTERNAL_API_TOKEN",
+        SecretStr("test-internal-token-with-at-least-32-bytes"),
+    )
+
+    calls = []
+
+    async def fake_get_export_data(session, user_id):
+        """Фиксирует параметры получения данных экспорта."""
+        calls.append({"session": session, "user_id": user_id})
+        return [
+            SimpleNamespace(
+                date=date(2026, 9, 9),
+                comment="Тест",
+                exercise_name="Жим лежа",
+                overall_order=1,
+                exercise_order=1,
+                weight=100.0,
+                repetitions=5,
+                training_exercise_weight_sum=500.0,
+                training_exercise_repetitions_sum=5,
+                training_exercise_sets_count=1,
+                training_sets_count=1,
+                exercise_all_weight_sum=500.0,
+                exercise_all_repetitions_sum=5,
+                exercise_all_sets_count=1,
+                exercise_rank_value=100.0,
+                exercise_rank_name="Новичок",
+                exercise_rank_star_count=2,
+                exercise_rank_star_level="⭐⭐",
+                all_sets_count=1,
+            )
+        ]
+
+    async def fake_db_session():
+        """Возвращает тестовую заглушку DB-сессии."""
+        yield object()
+
+    monkeypatch.setattr(internal_export, "get_export_data", fake_get_export_data)
+    app.dependency_overrides[get_db_session] = fake_db_session
+
+    client = TestClient(app)
+    response = client.get(
+        "/internal/bot/export/data",
+        headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
+        params={"telegram_id": 123456789},
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "date": "2026-09-09",
+            "comment": "Тест",
+            "exercise_name": "Жим лежа",
+            "overall_order": 1,
+            "exercise_order": 1,
+            "weight": 100.0,
+            "repetitions": 5,
+            "training_exercise_weight_sum": 500.0,
+            "training_exercise_repetitions_sum": 5,
+            "training_exercise_sets_count": 1,
+            "training_sets_count": 1,
+            "exercise_all_weight_sum": 500.0,
+            "exercise_all_repetitions_sum": 5,
+            "exercise_all_sets_count": 1,
+            "exercise_rank_value": 100.0,
+            "exercise_rank_name": "Новичок",
+            "exercise_rank_star_count": 2,
+            "exercise_rank_star_level": "⭐⭐",
+            "all_sets_count": 1,
+        }
+    ]
+    assert calls == [{"session": calls[0]["session"], "user_id": 123456789}]
+
+
 def _set_required_env(monkeypatch):
     """Заполняет обязательные настройки для импорта FastAPI приложения в тестах."""
     monkeypatch.setenv("MAIN_ADMIN_ID", "1")

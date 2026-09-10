@@ -1,18 +1,15 @@
 from aiogram import Router
 from aiogram.filters import Command, StateFilter
 from aiogram.types import BufferedInputFile, Message
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.bot.client import BotApiClient
 from app.bot.middlewares import (
     ChatActionMiddleware,
-    DBSessionMiddleware,
 )
 from app.bot.utils.data_export import get_export_data_file
 from app.bot.utils.user_access import ensure_bot_user
-from app.db.session import async_session_factory
 
 router = Router()
-router.message.middleware(DBSessionMiddleware(async_session_factory))
 router.message.middleware(ChatActionMiddleware())
 
 
@@ -22,7 +19,7 @@ router.message.middleware(ChatActionMiddleware())
     Command("export_data"),
     flags={'chat_action': 'upload_document'}
 )
-async def cmd_export_data(message: Message, session: AsyncSession) -> None:
+async def cmd_export_data(message: Message) -> None:
     """
     Команда /export_data
     """
@@ -30,10 +27,10 @@ async def cmd_export_data(message: Message, session: AsyncSession) -> None:
 
     waitig_answer = await message.answer("🗂️")
 
-    file_buffer = await get_export_data_file(
-        session = session,
-        user_id = message.from_user.id
-    )
+    async with BotApiClient() as api_client:
+        export_data = await api_client.get_export_data(message.from_user.id)
+
+    file_buffer = get_export_data_file(export_data)
     
     await message.reply_document(
         document = BufferedInputFile(

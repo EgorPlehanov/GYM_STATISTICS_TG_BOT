@@ -1,21 +1,37 @@
-from openpyxl import Workbook
-from openpyxl.worksheet.table import Table, TableStyleInfo
-
 from io import BytesIO
+from typing import Protocol
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.domain.export.service import get_export_data
+from openpyxl import Workbook
 
 
-async def get_export_data_file(
-    session: AsyncSession,
-    user_id: int
-):
+class ExportDataRow(Protocol):
+    """Минимальные данные строки, необходимые для XLSX-экспорта."""
+
+    date: object
+    comment: str | None
+    exercise_name: str
+    overall_order: int
+    exercise_order: int
+    weight: float
+    repetitions: int
+    training_exercise_weight_sum: float
+    training_exercise_repetitions_sum: int
+    training_exercise_sets_count: int
+    training_sets_count: int
+    exercise_all_weight_sum: float
+    exercise_all_repetitions_sum: int
+    exercise_all_sets_count: int
+    exercise_rank_value: float | None
+    exercise_rank_name: str | None
+    exercise_rank_star_count: int | None
+    exercise_rank_star_level: str | None
+    all_sets_count: int
+
+
+def get_export_data_file(export_data: list[ExportDataRow]) -> bytes:
     """
     Создает эксель файл для экспорта данных
     """
-    export_data = await get_export_data(session, user_id)
-    # print(export_data)
     workbook = Workbook()
     sheet = workbook.active
 

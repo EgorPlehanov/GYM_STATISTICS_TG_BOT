@@ -81,6 +81,53 @@ class BotExerciseRating:
 
 
 @dataclass(frozen=True)
+class BotExportData:
+    """Строка данных для XLSX-экспорта, полученная через backend API.
+
+    Attributes:
+        date: дата тренировки.
+        comment: комментарий к тренировке.
+        exercise_name: название упражнения.
+        overall_order: номер подхода в тренировке.
+        exercise_order: номер подхода в упражнении на тренировке.
+        weight: вес в подходе.
+        repetitions: количество повторений в подходе.
+        training_exercise_weight_sum: сумма весов упражнения в тренировке.
+        training_exercise_repetitions_sum: сумма повторений упражнения в тренировке.
+        training_exercise_sets_count: количество подходов упражнения в тренировке.
+        training_sets_count: количество подходов в тренировке.
+        exercise_all_weight_sum: сумма весов упражнения за все тренировки.
+        exercise_all_repetitions_sum: сумма повторений упражнения за все тренировки.
+        exercise_all_sets_count: количество подходов упражнения за все тренировки.
+        exercise_rank_value: максимальное значение веса в рейтинге упражнения.
+        exercise_rank_name: название ранга упражнения.
+        exercise_rank_star_count: количество звезд ранга упражнения.
+        exercise_rank_star_level: строка звезд ранга упражнения.
+        all_sets_count: количество всех подходов в выгрузке.
+    """
+
+    date: date
+    comment: str | None
+    exercise_name: str
+    overall_order: int
+    exercise_order: int
+    weight: float
+    repetitions: int
+    training_exercise_weight_sum: float
+    training_exercise_repetitions_sum: int
+    training_exercise_sets_count: int
+    training_sets_count: int
+    exercise_all_weight_sum: float
+    exercise_all_repetitions_sum: int
+    exercise_all_sets_count: int
+    exercise_rank_value: float | None
+    exercise_rank_name: str | None
+    exercise_rank_star_count: int | None
+    exercise_rank_star_level: str | None
+    all_sets_count: int
+
+
+@dataclass(frozen=True)
 class BotTrainingSaveResult:
     """Результат сохранения тренировки через backend API.
 
@@ -508,6 +555,26 @@ class BotApiClient:
         response.raise_for_status()
         return [BotExerciseRating(**item) for item in response.json()]
 
+    async def get_export_data(self, telegram_id: int) -> list[BotExportData]:
+        """Возвращает данные для XLSX-экспорта через internal API.
+
+        Args:
+            telegram_id: Telegram user id пользователя.
+
+        Returns:
+            строки данных для формирования файла экспорта в Telegram-боте.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.get(
+            "/internal/bot/export/data",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+            params={"telegram_id": telegram_id},
+        )
+        response.raise_for_status()
+        return [_deserialize_export_data(item) for item in response.json()]
+
 
 def _serialize_training_data(training_data: dict[str, Any]) -> dict[str, Any]:
     """Готовит FSM-структуру тренировки к отправке через JSON.
@@ -600,5 +667,19 @@ def _restore_weight_repetitions_modes(
             },
         }
     return restored
+
+
+def _deserialize_export_data(export_data: dict[str, Any]) -> BotExportData:
+    """Восстанавливает строку экспорта после JSON.
+
+    Args:
+        export_data: JSON-словарь строки экспорта.
+
+    Returns:
+        строка экспорта с датой в типе `date`.
+    """
+    restored = dict(export_data)
+    restored["date"] = date.fromisoformat(restored["date"])
+    return BotExportData(**restored)
 
 
