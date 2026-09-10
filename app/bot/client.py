@@ -62,6 +62,25 @@ class BotTrainingStartContext:
 
 
 @dataclass(frozen=True)
+class BotExerciseRating:
+    """Рейтинг пользователя по упражнению, полученный через backend API.
+
+    Attributes:
+        exercise_id: внутренний id упражнения.
+        exercise_name: название упражнения.
+        rank_name: название ранга.
+        rank_level: уровень ранга для упражнения.
+        rating_value: значение, по которому рассчитан рейтинг.
+    """
+
+    exercise_id: int
+    exercise_name: str
+    rank_name: str
+    rank_level: int
+    rating_value: float
+
+
+@dataclass(frozen=True)
 class BotTrainingSaveResult:
     """Результат сохранения тренировки через backend API.
 
@@ -468,6 +487,26 @@ class BotApiClient:
             headers={"X-Internal-Api-Key": self.internal_api_token},
         )
         response.raise_for_status()
+
+    async def get_user_exercise_rating(self, telegram_id: int) -> list[BotExerciseRating]:
+        """Возвращает рейтинг упражнений пользователя через internal API.
+
+        Args:
+            telegram_id: Telegram user id пользователя.
+
+        Returns:
+            список рейтингов упражнений для вывода в команде `/statistics`.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.get(
+            "/internal/bot/statistics/exercise-rating",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+            params={"telegram_id": telegram_id},
+        )
+        response.raise_for_status()
+        return [BotExerciseRating(**item) for item in response.json()]
 
 
 def _serialize_training_data(training_data: dict[str, Any]) -> dict[str, Any]:

@@ -1,7 +1,16 @@
-from aiogram import html
-from typing import List
+from collections.abc import Sequence
+from typing import Protocol
 
-from app.domain.statistics.service import StatisticData
+from aiogram import html
+
+
+class ExerciseRatingData(Protocol):
+    """Минимальные данные рейтинга, необходимые для форматирования сообщения."""
+
+    exercise_name: str
+    rank_name: str
+    rank_level: int
+    rating_value: float
 
 
 
@@ -21,7 +30,7 @@ def get_prize_message(place):
 
 
 
-def format_user_exercise_rating(statistics: List[StatisticData]) -> str:
+def format_user_exercise_rating(statistics: Sequence[ExerciseRatingData]) -> str:
     """
     Форматирует рейтинг пользователя в красивый текст сообщения.
     """    

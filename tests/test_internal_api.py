@@ -950,6 +950,68 @@ def test_internal_bot_user_rating_recalculate_calls_domain_service(monkeypatch):
     assert calls == [{"session": calls[0]["session"], "user_id": 123456789}]
 
 
+def test_internal_bot_statistics_exercise_rating_calls_domain_service(monkeypatch):
+    """Проверяет получение статистики пользователя через internal API."""
+    _set_required_env(monkeypatch)
+
+    from app.api.deps import config, get_db_session
+    from app.api.main import app
+    from app.api.routers.internal import statistics as internal_statistics
+
+    monkeypatch.setattr(
+        config,
+        "INTERNAL_API_TOKEN",
+        SecretStr("test-internal-token-with-at-least-32-bytes"),
+    )
+
+    calls = []
+
+    async def fake_get_user_exercise_rating(session, user_id):
+        """Фиксирует параметры получения статистики пользователя."""
+        calls.append({"session": session, "user_id": user_id})
+        return [
+            SimpleNamespace(
+                exercise_id=1,
+                exercise_name="Жим лежа",
+                rank_name="Новичок",
+                rank_level=2,
+                rating_value=100.0,
+            )
+        ]
+
+    async def fake_db_session():
+        """Возвращает тестовую заглушку DB-сессии."""
+        yield object()
+
+    monkeypatch.setattr(
+        internal_statistics,
+        "get_user_exercise_rating",
+        fake_get_user_exercise_rating,
+    )
+    app.dependency_overrides[get_db_session] = fake_db_session
+
+    client = TestClient(app)
+    response = client.get(
+        "/internal/bot/statistics/exercise-rating",
+        headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
+        params={"telegram_id": 123456789},
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "exercise_id": 1,
+            "exercise_name": "Жим лежа",
+            "rank_name": "Новичок",
+            "rank_level": 2,
+            "rating_value": 100.0,
+        }
+    ]
+    assert calls == [{"session": calls[0]["session"], "user_id": 123456789}]
+
+
 def _set_required_env(monkeypatch):
     """Заполняет обязательные настройки для импорта FastAPI приложения в тестах."""
     monkeypatch.setenv("MAIN_ADMIN_ID", "1")
