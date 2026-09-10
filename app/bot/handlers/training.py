@@ -3,23 +3,17 @@ from aiogram.filters import Command, StateFilter
 from aiogram.filters.callback_data import CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.bot.client import BotApiClient
 from app.bot.keyboards.training_kb import (
     get_ikb_select_date,
     get_ikb_training_menu,
 )
 from app.bot.middlewares import (
     ChatActionMiddleware,
-    DBSessionMiddleware,
 )
 from app.bot.utils.format_training_data import get_formatted_state_date
 from app.bot.utils.user_access import ensure_bot_user
-from app.db.session import async_session_factory
-from app.domain.trainings.service import (
-    get_exercises_weight_repetitions_modes,
-    get_sorted_exercises_by_sets_count,
-)
 
 from .training_units import (
     TrainingStates,
@@ -37,7 +31,6 @@ from .training_units import (
 
 router = Router()
 router.message.filter(F.chat.type == "private")
-router.message.middleware(DBSessionMiddleware(async_session_factory))
 router.message.middleware(ChatActionMiddleware())
 router.include_routers(
     select_date_router,
@@ -55,7 +48,7 @@ router.include_routers(
 
 
 @router.message(StateFilter(None), Command("training"))
-async def cmd_training(message: Message, state: FSMContext, session: AsyncSession) -> None:
+async def cmd_training(message: Message, state: FSMContext) -> None:
     """
     Команда /training
     """
@@ -63,16 +56,19 @@ async def cmd_training(message: Message, state: FSMContext, session: AsyncSessio
 
     await state.set_state(TrainingStates.select_date)
 
-    await state.update_data(most_frequent_exercises=await get_sorted_exercises_by_sets_count(
-        session = session,
-        user_id = message.from_user.id,
-        page_size = 15
-    ))
-    await state.update_data(weight_repetitions_modes = await get_exercises_weight_repetitions_modes(
-        session = session,
-        user_id = message.from_user.id,
-        last_training_count = 12
-    ))
+    async with BotApiClient() as api_client:
+        start_context = await api_client.get_training_start_context(
+            telegram_id=message.from_user.id,
+            page_size=15,
+            last_training_count=12,
+        )
+
+    await state.update_data(
+        most_frequent_exercises=start_context.most_frequent_exercises,
+    )
+    await state.update_data(
+        weight_repetitions_modes=start_context.weight_repetitions_modes,
+    )
 
     answer = await message.answer(
         text=await get_formatted_state_date(state),

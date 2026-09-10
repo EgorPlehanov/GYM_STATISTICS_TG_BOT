@@ -49,6 +49,19 @@ class BotTrainingByDateResult:
 
 
 @dataclass(frozen=True)
+class BotTrainingStartContext:
+    """Стартовые данные для сценария добавления тренировки.
+
+    Attributes:
+        most_frequent_exercises: упражнения для первичной клавиатуры выбора.
+        weight_repetitions_modes: подсказки веса и повторений по прошлым тренировкам.
+    """
+
+    most_frequent_exercises: list[BotExercise]
+    weight_repetitions_modes: dict[int, dict[str, Any]]
+
+
+@dataclass(frozen=True)
 class BotTrainingSaveResult:
     """Результат сохранения тренировки через backend API.
 
@@ -204,6 +217,46 @@ class BotApiClient:
         )
         response.raise_for_status()
         return [date.fromisoformat(item) for item in response.json()]
+
+    async def get_training_start_context(
+        self,
+        telegram_id: int,
+        page_size: int = 15,
+        last_training_count: int = 12,
+    ) -> BotTrainingStartContext:
+        """Возвращает стартовые данные для команды `/training`.
+
+        Args:
+            telegram_id: Telegram user id пользователя.
+            page_size: количество частых упражнений для первичной клавиатуры.
+            last_training_count: количество последних тренировок для расчета подсказок.
+
+        Returns:
+            контекст для сохранения в FSM state перед выбором даты.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.get(
+            "/internal/bot/trainings/start-context",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+            params={
+                "telegram_id": telegram_id,
+                "page_size": page_size,
+                "last_training_count": last_training_count,
+            },
+        )
+        response.raise_for_status()
+
+        payload = response.json()
+        return BotTrainingStartContext(
+            most_frequent_exercises=[
+                BotExercise(**item) for item in payload["most_frequent_exercises"]
+            ],
+            weight_repetitions_modes=_restore_weight_repetitions_modes(
+                payload["weight_repetitions_modes"]
+            ),
+        )
 
     async def get_training_by_date(
         self,
@@ -484,6 +537,29 @@ def _deserialize_set_data(set_data: dict[str, Any]) -> dict[str, Any]:
     restored = dict(set_data)
     if restored.get("time") is not None:
         restored["time"] = datetime.fromisoformat(restored["time"])
+    return restored
+
+
+def _restore_weight_repetitions_modes(
+    weight_repetitions_modes: dict[str, Any],
+) -> dict[int, dict[str, Any]]:
+    """Восстанавливает числовые ключи подсказок после JSON.
+
+    Args:
+        weight_repetitions_modes: JSON-словарь подсказок с ключами-строками.
+
+    Returns:
+        словарь с `int` ключами упражнений и подходов для старых FSM-утилит.
+    """
+    restored = {}
+    for exercise_id, exercise_mode in weight_repetitions_modes.items():
+        restored[int(exercise_id)] = {
+            **exercise_mode,
+            "sets_modes": {
+                int(set_id): set_mode
+                for set_id, set_mode in exercise_mode.get("sets_modes", {}).items()
+            },
+        }
     return restored
 
 

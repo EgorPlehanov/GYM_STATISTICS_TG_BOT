@@ -319,6 +319,112 @@ def test_internal_bot_training_dates_calls_domain_service(monkeypatch):
     assert calls == [{"session": calls[0]["session"], "user_id": 123456789}]
 
 
+def test_internal_bot_training_start_context_calls_domain_service(monkeypatch):
+    """Проверяет получение стартового контекста тренировки через domain service."""
+    _set_required_env(monkeypatch)
+
+    from app.api.deps import config, get_db_session
+    from app.api.main import app
+    from app.api.routers.internal import trainings as internal_trainings
+
+    monkeypatch.setattr(
+        config,
+        "INTERNAL_API_TOKEN",
+        SecretStr("test-internal-token-with-at-least-32-bytes"),
+    )
+
+    calls = []
+
+    async def fake_get_sorted_exercises_by_sets_count(
+        session,
+        user_id,
+        page_size,
+    ):
+        """Фиксирует параметры получения частых упражнений."""
+        calls.append(("exercises", session, user_id, page_size))
+        return [
+            SimpleNamespace(
+                id=1,
+                name="Жим лежа",
+                description="Упражнение на развитие грудных мышц",
+            )
+        ]
+
+    async def fake_get_exercises_weight_repetitions_modes(
+        session,
+        user_id,
+        last_training_count,
+    ):
+        """Фиксирует параметры получения подсказок веса и повторений."""
+        calls.append(("modes", session, user_id, last_training_count))
+        return {
+            1: {
+                "max_exercise_order": 1,
+                "sets_modes": {
+                    1: {
+                        "weight_mode": 100.0,
+                        "repetitions_mode": 5,
+                    }
+                },
+            }
+        }
+
+    async def fake_db_session():
+        """Возвращает тестовую заглушку DB-сессии."""
+        yield object()
+
+    monkeypatch.setattr(
+        internal_trainings,
+        "get_sorted_exercises_by_sets_count",
+        fake_get_sorted_exercises_by_sets_count,
+    )
+    monkeypatch.setattr(
+        internal_trainings,
+        "get_exercises_weight_repetitions_modes",
+        fake_get_exercises_weight_repetitions_modes,
+    )
+    app.dependency_overrides[get_db_session] = fake_db_session
+
+    client = TestClient(app)
+    response = client.get(
+        "/internal/bot/trainings/start-context",
+        headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
+        params={
+            "telegram_id": 123456789,
+            "page_size": 15,
+            "last_training_count": 12,
+        },
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "most_frequent_exercises": [
+            {
+                "id": 1,
+                "name": "Жим лежа",
+                "description": "Упражнение на развитие грудных мышц",
+            }
+        ],
+        "weight_repetitions_modes": {
+            "1": {
+                "max_exercise_order": 1,
+                "sets_modes": {
+                    "1": {
+                        "weight_mode": 100.0,
+                        "repetitions_mode": 5,
+                    }
+                },
+            }
+        },
+    }
+    assert calls == [
+        ("exercises", calls[0][1], 123456789, 15),
+        ("modes", calls[0][1], 123456789, 12),
+    ]
+
+
 def test_internal_bot_training_by_date_returns_existing_training(monkeypatch):
     """Проверяет получение существующей тренировки для Telegram-бота."""
     _set_required_env(monkeypatch)

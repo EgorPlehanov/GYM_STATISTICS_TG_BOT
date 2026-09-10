@@ -4,6 +4,20 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from app.api.schemas.internal.exercises import InternalBotExerciseResponse
+
+
+class InternalBotTrainingStartContextResponse(BaseModel):
+    """Стартовые данные для сценария добавления тренировки в Telegram-боте.
+
+    Attributes:
+        most_frequent_exercises: упражнения, отсортированные под пользователя.
+        weight_repetitions_modes: подсказки веса и повторений по прошлым тренировкам.
+    """
+
+    most_frequent_exercises: list[InternalBotExerciseResponse]
+    weight_repetitions_modes: dict[int, Any]
+
 
 class InternalBotTrainingByDateResponse(BaseModel):
     """Данные тренировки за дату для сценариев Telegram-бота.

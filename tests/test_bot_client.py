@@ -193,6 +193,84 @@ async def test_bot_api_client_get_training_dates_sends_internal_token(monkeypatc
 
 
 @pytest.mark.asyncio
+async def test_bot_api_client_get_training_start_context_restores_modes(monkeypatch):
+    """Проверяет получение стартового контекста `/training` через internal API."""
+    _set_required_env(monkeypatch)
+
+    from app.bot.client import BotApiClient
+
+    captured_request = {}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        """Фиксирует GET-запрос и возвращает JSON с ключами-строками."""
+        captured_request["method"] = request.method
+        captured_request["url"] = str(request.url)
+        captured_request["token"] = request.headers.get("X-Internal-Api-Key")
+        return httpx.Response(
+            200,
+            json={
+                "most_frequent_exercises": [
+                    {
+                        "id": 1,
+                        "name": "Жим лежа",
+                        "description": "Упражнение на развитие грудных мышц",
+                    }
+                ],
+                "weight_repetitions_modes": {
+                    "1": {
+                        "max_exercise_order": 1,
+                        "sets_modes": {
+                            "1": {
+                                "weight_mode": 100.0,
+                                "repetitions_mode": 5,
+                            }
+                        },
+                    }
+                },
+            },
+        )
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(
+        transport=transport,
+        base_url="http://api:8000",
+    ) as http_client:
+        api_client = BotApiClient(
+            base_url="http://api:8000",
+            internal_api_token="internal-test-token",
+            http_client=http_client,
+        )
+        async with api_client:
+            result = await api_client.get_training_start_context(
+                telegram_id=123456789,
+                page_size=15,
+                last_training_count=12,
+            )
+
+    assert result.most_frequent_exercises[0].id == 1
+    assert result.most_frequent_exercises[0].name == "Жим лежа"
+    assert result.weight_repetitions_modes == {
+        1: {
+            "max_exercise_order": 1,
+            "sets_modes": {
+                1: {
+                    "weight_mode": 100.0,
+                    "repetitions_mode": 5,
+                }
+            },
+        }
+    }
+    assert captured_request == {
+        "method": "GET",
+        "url": (
+            "http://api:8000/internal/bot/trainings/start-context?"
+            "telegram_id=123456789&page_size=15&last_training_count=12"
+        ),
+        "token": "internal-test-token",
+    }
+
+
+@pytest.mark.asyncio
 async def test_bot_api_client_get_training_by_date_restores_fsm_data(monkeypatch):
     """Проверяет восстановление FSM-структуры тренировки после JSON."""
     _set_required_env(monkeypatch)

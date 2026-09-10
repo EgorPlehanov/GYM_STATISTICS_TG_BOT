@@ -9,16 +9,52 @@ from app.api.schemas.internal.trainings import (
     InternalBotTrainingByDateResponse,
     InternalBotTrainingSaveRequest,
     InternalBotTrainingSaveResponse,
+    InternalBotTrainingStartContextResponse,
 )
 from app.domain.trainings.service import (
     check_training_exists_for_user_and_date,
     delete_training_by_id,
+    get_exercises_weight_repetitions_modes,
+    get_sorted_exercises_by_sets_count,
     get_training_data_by_date_and_user,
     get_training_date_by_user_id,
     save_training_data,
 )
 
 router = APIRouter()
+
+
+@router.get("/bot/trainings/start-context", response_model=InternalBotTrainingStartContextResponse)
+async def get_bot_training_start_context(
+    session: DbSession,
+    telegram_id: int,
+    page_size: int = 15,
+    last_training_count: int = 12,
+) -> InternalBotTrainingStartContextResponse:
+    """Возвращает данные, необходимые для старта сценария `/training`.
+
+    Args:
+        telegram_id: Telegram user id пользователя.
+        page_size: количество частых упражнений для первичной клавиатуры.
+        last_training_count: количество последних тренировок для расчета подсказок.
+
+    Returns:
+        стартовый контекст FSM-сценария тренировки.
+    """
+    most_frequent_exercises = await get_sorted_exercises_by_sets_count(
+        session=session,
+        user_id=telegram_id,
+        page_size=page_size,
+    )
+    weight_repetitions_modes = await get_exercises_weight_repetitions_modes(
+        session=session,
+        user_id=telegram_id,
+        last_training_count=last_training_count,
+    )
+    return InternalBotTrainingStartContextResponse(
+        most_frequent_exercises=most_frequent_exercises,
+        weight_repetitions_modes=weight_repetitions_modes,
+    )
 
 
 @router.get("/bot/trainings/dates", response_model=list[date])
