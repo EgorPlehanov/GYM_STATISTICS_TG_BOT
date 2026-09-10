@@ -748,6 +748,307 @@ def test_internal_bot_redirect_targets_calls_domain_service(monkeypatch):
     assert calls == [{"session": calls[0]["session"], "user_id": 123456789}]
 
 
+def test_internal_bot_redirect_settings_calls_domain_service(monkeypatch):
+    """Проверяет получение групп пользователя для настройки редиректа."""
+    _set_required_env(monkeypatch)
+
+    from app.api.deps import config, get_db_session
+    from app.api.main import app
+    from app.api.routers.internal import groups as internal_groups
+
+    monkeypatch.setattr(
+        config,
+        "INTERNAL_API_TOKEN",
+        SecretStr("test-internal-token-with-at-least-32-bytes"),
+    )
+
+    calls = []
+
+    async def fake_get_all_user_redirect_groups(session, user_id):
+        """Фиксирует параметры получения настроек редиректа."""
+        calls.append({"session": session, "user_id": user_id})
+        return [
+            SimpleNamespace(
+                id=7,
+                group_id=-1001,
+                group_name="Спортзал",
+                is_redirect_to_group=True,
+            )
+        ]
+
+    async def fake_db_session():
+        """Возвращает тестовую заглушку DB-сессии."""
+        yield object()
+
+    monkeypatch.setattr(
+        internal_groups,
+        "get_all_user_redirect_groups",
+        fake_get_all_user_redirect_groups,
+    )
+    app.dependency_overrides[get_db_session] = fake_db_session
+
+    client = TestClient(app)
+    response = client.get(
+        "/internal/bot/groups/redirect-settings",
+        headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
+        params={"telegram_id": 123456789},
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": 7,
+            "group_id": -1001,
+            "group_name": "Спортзал",
+            "is_redirect_to_group": True,
+        }
+    ]
+    assert calls == [{"session": calls[0]["session"], "user_id": 123456789}]
+
+
+def test_internal_bot_current_group_redirect_toggle_creates_link(monkeypatch):
+    """Проверяет включение редиректа при первой настройке группы."""
+    _set_required_env(monkeypatch)
+
+    from app.api.deps import config, get_db_session
+    from app.api.main import app
+    from app.api.routers.internal import groups as internal_groups
+
+    monkeypatch.setattr(
+        config,
+        "INTERNAL_API_TOKEN",
+        SecretStr("test-internal-token-with-at-least-32-bytes"),
+    )
+
+    calls = []
+
+    async def fake_create_group_if_not_exists(session, id, group_type, name):
+        """Фиксирует создание группы перед настройкой редиректа."""
+        calls.append(("create_group", session, id, group_type, name))
+        return True
+
+    async def fake_get_group_user_by_user_id_and_group_id(session, user_id, group_id):
+        """Возвращает отсутствие связи пользователя с группой."""
+        calls.append(("get_group_user", session, user_id, group_id))
+        return None
+
+    async def fake_create_group_user(
+        session,
+        user_id,
+        group_id,
+        is_user_admin,
+        is_redirect_to_group,
+    ):
+        """Фиксирует создание связи пользователя с группой."""
+        calls.append(
+            (
+                "create_group_user",
+                session,
+                user_id,
+                group_id,
+                is_user_admin,
+                is_redirect_to_group,
+            )
+        )
+        return True
+
+    async def fake_db_session():
+        """Возвращает тестовую заглушку DB-сессии."""
+        yield object()
+
+    monkeypatch.setattr(
+        internal_groups,
+        "create_group_if_not_exists",
+        fake_create_group_if_not_exists,
+    )
+    monkeypatch.setattr(
+        internal_groups,
+        "get_group_user_by_user_id_and_group_id",
+        fake_get_group_user_by_user_id_and_group_id,
+    )
+    monkeypatch.setattr(internal_groups, "create_group_user", fake_create_group_user)
+    app.dependency_overrides[get_db_session] = fake_db_session
+
+    client = TestClient(app)
+    response = client.post(
+        "/internal/bot/groups/redirect-settings/toggle-current",
+        headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
+        json={
+            "telegram_id": 123456789,
+            "group_id": -1001,
+            "group_name": "Спортзал",
+            "group_type": "supergroup",
+            "is_user_admin": True,
+        },
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "is_redirect_to_group": True,
+        "created": True,
+    }
+    assert [call[:1] + call[2:] for call in calls] == [
+        ("create_group", -1001, "SUPERGROUP", "Спортзал"),
+        ("get_group_user", 123456789, -1001),
+        ("create_group_user", 123456789, -1001, True, True),
+    ]
+
+
+def test_internal_bot_current_group_redirect_toggle_updates_existing_link(monkeypatch):
+    """Проверяет переключение редиректа для существующей связи с группой."""
+    _set_required_env(monkeypatch)
+
+    from app.api.deps import config, get_db_session
+    from app.api.main import app
+    from app.api.routers.internal import groups as internal_groups
+
+    monkeypatch.setattr(
+        config,
+        "INTERNAL_API_TOKEN",
+        SecretStr("test-internal-token-with-at-least-32-bytes"),
+    )
+
+    calls = []
+
+    async def fake_create_group_if_not_exists(session, id, group_type, name):
+        """Фиксирует проверку группы перед настройкой редиректа."""
+        calls.append(("create_group", session, id, group_type, name))
+        return False
+
+    async def fake_get_group_user_by_user_id_and_group_id(session, user_id, group_id):
+        """Возвращает существующую связь пользователя с группой."""
+        calls.append(("get_group_user", session, user_id, group_id))
+        return SimpleNamespace(is_redirect_to_group=True)
+
+    async def fake_update_redirect_to_group(
+        session,
+        group_id,
+        user_id,
+        is_redirect_to_group,
+    ):
+        """Фиксирует обновление состояния редиректа."""
+        calls.append(("update_redirect", session, group_id, user_id, is_redirect_to_group))
+
+    async def fake_db_session():
+        """Возвращает тестовую заглушку DB-сессии."""
+        yield object()
+
+    monkeypatch.setattr(
+        internal_groups,
+        "create_group_if_not_exists",
+        fake_create_group_if_not_exists,
+    )
+    monkeypatch.setattr(
+        internal_groups,
+        "get_group_user_by_user_id_and_group_id",
+        fake_get_group_user_by_user_id_and_group_id,
+    )
+    monkeypatch.setattr(
+        internal_groups,
+        "update_redirect_to_group",
+        fake_update_redirect_to_group,
+    )
+    app.dependency_overrides[get_db_session] = fake_db_session
+
+    client = TestClient(app)
+    response = client.post(
+        "/internal/bot/groups/redirect-settings/toggle-current",
+        headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
+        json={
+            "telegram_id": 123456789,
+            "group_id": -1001,
+            "group_name": "Спортзал",
+            "group_type": "supergroup",
+            "is_user_admin": True,
+        },
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "is_redirect_to_group": False,
+        "created": False,
+    }
+    assert [call[:1] + call[2:] for call in calls] == [
+        ("create_group", -1001, "SUPERGROUP", "Спортзал"),
+        ("get_group_user", 123456789, -1001),
+        ("update_redirect", -1001, 123456789, False),
+    ]
+
+
+def test_internal_bot_redirect_setting_update_calls_domain_service(monkeypatch):
+    """Проверяет обновление настройки редиректа из inline-меню."""
+    _set_required_env(monkeypatch)
+
+    from app.api.deps import config, get_db_session
+    from app.api.main import app
+    from app.api.routers.internal import groups as internal_groups
+
+    monkeypatch.setattr(
+        config,
+        "INTERNAL_API_TOKEN",
+        SecretStr("test-internal-token-with-at-least-32-bytes"),
+    )
+
+    calls = []
+
+    async def fake_update_redirect_to_group(
+        session,
+        group_id,
+        user_id,
+        is_redirect_to_group,
+    ):
+        """Фиксирует обновление состояния редиректа."""
+        calls.append(
+            {
+                "session": session,
+                "group_id": group_id,
+                "user_id": user_id,
+                "is_redirect_to_group": is_redirect_to_group,
+            }
+        )
+
+    async def fake_db_session():
+        """Возвращает тестовую заглушку DB-сессии."""
+        yield object()
+
+    monkeypatch.setattr(
+        internal_groups,
+        "update_redirect_to_group",
+        fake_update_redirect_to_group,
+    )
+    app.dependency_overrides[get_db_session] = fake_db_session
+
+    client = TestClient(app)
+    response = client.patch(
+        "/internal/bot/groups/redirect-settings",
+        headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
+        json={
+            "telegram_id": 123456789,
+            "group_id": -1001,
+            "is_redirect_to_group": False,
+        },
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+    assert calls == [
+        {
+            "session": calls[0]["session"],
+            "group_id": -1001,
+            "user_id": 123456789,
+            "is_redirect_to_group": False,
+        }
+    ]
+
+
 def test_internal_bot_training_result_message_calls_domain_service(monkeypatch):
     """Проверяет операции с Telegram message id результата тренировки."""
     _set_required_env(monkeypatch)

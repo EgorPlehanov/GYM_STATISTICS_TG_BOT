@@ -130,6 +130,7 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Перевести запуск пересчета рейтинга после сохранения тренировки на `/internal/*`.
 - [x] Перевести команду `/statistics` на `/internal/bot/statistics/exercise-rating`.
 - [x] Перевести команду `/export_data` на `/internal/bot/export/data`.
+- [x] Перевести команду `/redirect` на `/internal/bot/groups/redirect-settings`.
 - [~] Перевести основные сценарии бота на вызовы `/internal/*`.
 - [ ] Добавить сценарий генерации одноразового кода для web login.
 - [ ] Описать JSON-friendly формат FSM training draft для Telegram-бота.

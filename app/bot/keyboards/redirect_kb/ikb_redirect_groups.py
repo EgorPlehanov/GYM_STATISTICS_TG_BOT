@@ -1,12 +1,20 @@
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.filters.callback_data import CallbackData
-
-from typing import List
 import math
+from collections.abc import Sequence
+from typing import Protocol
 
-from app.bot.handlers.redirect_units import RedirectGroup
+from aiogram.filters.callback_data import CallbackData
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+
 from ..keyboards_types import PaginationAction
+
+
+class RedirectGroupButtonData(Protocol):
+    """Минимальные данные группы, необходимые для кнопки редиректа."""
+
+    group_id: int
+    group_name: str
+    is_redirect_to_group: bool
 
 
 
@@ -22,7 +30,7 @@ class RedirectGroupPagination(CallbackData, prefix='rg_pag'):
 
 
 def get_ikb_redirect_groups(
-    redirect_groups: List[RedirectGroup],
+    redirect_groups: Sequence[RedirectGroupButtonData],
     page: int = 0,
     page_size: int = 5,
 ) -> InlineKeyboardMarkup:

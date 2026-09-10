@@ -590,6 +590,113 @@ async def test_bot_api_client_redirect_methods_send_internal_token(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_bot_api_client_redirect_settings_methods_send_internal_token(monkeypatch):
+    """Проверяет методы клиента для настройки редиректа пользователем."""
+    _set_required_env(monkeypatch)
+
+    from app.bot.client import BotApiClient
+
+    captured_requests = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        """Возвращает ответы для запросов настройки редиректа."""
+        payload = json.loads(request.content) if request.content else None
+        captured_requests.append(
+            {
+                "method": request.method,
+                "url": str(request.url),
+                "token": request.headers.get("X-Internal-Api-Key"),
+                "payload": payload,
+            }
+        )
+
+        if request.method == "GET":
+            return httpx.Response(
+                200,
+                json=[
+                    {
+                        "id": 7,
+                        "group_id": -1001,
+                        "group_name": "Спортзал",
+                        "is_redirect_to_group": True,
+                    }
+                ],
+            )
+        if request.method == "POST":
+            return httpx.Response(
+                200,
+                json={
+                    "is_redirect_to_group": True,
+                    "created": True,
+                },
+            )
+        return httpx.Response(200, json={"status": "ok"})
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(
+        transport=transport,
+        base_url="http://api:8000",
+    ) as http_client:
+        api_client = BotApiClient(
+            base_url="http://api:8000",
+            internal_api_token="internal-test-token",
+            http_client=http_client,
+        )
+        async with api_client:
+            redirect_groups = await api_client.get_redirect_groups(
+                telegram_id=123456789,
+            )
+            toggle_result = await api_client.toggle_current_group_redirect(
+                telegram_id=123456789,
+                group_id=-1001,
+                group_name="Спортзал",
+                group_type="supergroup",
+                is_user_admin=True,
+            )
+            await api_client.update_redirect_group(
+                telegram_id=123456789,
+                group_id=-1001,
+                is_redirect_to_group=False,
+            )
+
+    assert redirect_groups[0].group_id == -1001
+    assert redirect_groups[0].group_name == "Спортзал"
+    assert redirect_groups[0].is_redirect_to_group is True
+    assert toggle_result.is_redirect_to_group is True
+    assert toggle_result.created is True
+    assert captured_requests == [
+        {
+            "method": "GET",
+            "url": "http://api:8000/internal/bot/groups/redirect-settings?telegram_id=123456789",
+            "token": "internal-test-token",
+            "payload": None,
+        },
+        {
+            "method": "POST",
+            "url": "http://api:8000/internal/bot/groups/redirect-settings/toggle-current",
+            "token": "internal-test-token",
+            "payload": {
+                "telegram_id": 123456789,
+                "group_id": -1001,
+                "group_name": "Спортзал",
+                "group_type": "supergroup",
+                "is_user_admin": True,
+            },
+        },
+        {
+            "method": "PATCH",
+            "url": "http://api:8000/internal/bot/groups/redirect-settings",
+            "token": "internal-test-token",
+            "payload": {
+                "telegram_id": 123456789,
+                "group_id": -1001,
+                "is_redirect_to_group": False,
+            },
+        },
+    ]
+
+
+@pytest.mark.asyncio
 async def test_bot_api_client_recalculate_user_rating_sends_internal_token(monkeypatch):
     """Проверяет запуск пересчета рейтинга через internal API."""
     _set_required_env(monkeypatch)

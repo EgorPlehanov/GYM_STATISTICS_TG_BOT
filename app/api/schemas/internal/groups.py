@@ -1,6 +1,68 @@
 """DTO-схемы internal API для Telegram-групп."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+
+
+class InternalBotRedirectGroupResponse(BaseModel):
+    """Группа пользователя, доступная для настройки редиректа.
+
+    Attributes:
+        id: внутренний id связи пользователя и группы.
+        group_id: Telegram chat id группы.
+        group_name: название группы.
+        is_redirect_to_group: признак включенного редиректа в группу.
+    """
+
+    id: int
+    group_id: int
+    group_name: str
+    is_redirect_to_group: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class InternalBotCurrentGroupRedirectToggleRequest(BaseModel):
+    """Данные для переключения редиректа в текущей Telegram-группе.
+
+    Attributes:
+        telegram_id: Telegram user id пользователя.
+        group_id: Telegram chat id группы.
+        group_name: название группы.
+        group_type: тип Telegram-чата.
+        is_user_admin: признак администратора группы у пользователя.
+    """
+
+    telegram_id: int
+    group_id: int
+    group_name: str
+    group_type: str
+    is_user_admin: bool
+
+
+class InternalBotCurrentGroupRedirectToggleResponse(BaseModel):
+    """Результат переключения редиректа в текущей Telegram-группе.
+
+    Attributes:
+        is_redirect_to_group: новое состояние редиректа.
+        created: признак создания новой связи пользователя с группой.
+    """
+
+    is_redirect_to_group: bool
+    created: bool
+
+
+class InternalBotRedirectGroupUpdateRequest(BaseModel):
+    """Данные для обновления редиректа пользователя в группу.
+
+    Attributes:
+        telegram_id: Telegram user id пользователя.
+        group_id: Telegram chat id группы.
+        is_redirect_to_group: новое состояние редиректа.
+    """
+
+    telegram_id: int
+    group_id: int
+    is_redirect_to_group: bool
 
 
 class InternalBotTrainingResultMessageCreateRequest(BaseModel):

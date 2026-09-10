@@ -127,6 +127,36 @@ class BotExportData:
     all_sets_count: int
 
 
+@dataclass
+class BotRedirectGroup:
+    """Группа пользователя, доступная для настройки редиректа.
+
+    Attributes:
+        id: внутренний id связи пользователя и группы.
+        group_id: Telegram chat id группы.
+        group_name: название группы.
+        is_redirect_to_group: признак включенного редиректа в группу.
+    """
+
+    id: int
+    group_id: int
+    group_name: str
+    is_redirect_to_group: bool
+
+
+@dataclass(frozen=True)
+class BotCurrentGroupRedirectToggleResult:
+    """Результат переключения редиректа в текущей Telegram-группе.
+
+    Attributes:
+        is_redirect_to_group: новое состояние редиректа.
+        created: признак создания новой связи пользователя с группой.
+    """
+
+    is_redirect_to_group: bool
+    created: bool
+
+
 @dataclass(frozen=True)
 class BotTrainingSaveResult:
     """Результат сохранения тренировки через backend API.
@@ -416,6 +446,90 @@ class BotApiClient:
         )
         response.raise_for_status()
         return list(response.json())
+
+    async def get_redirect_groups(self, telegram_id: int) -> list[BotRedirectGroup]:
+        """Возвращает группы пользователя для меню настройки редиректа.
+
+        Args:
+            telegram_id: Telegram user id пользователя.
+
+        Returns:
+            список групп, доступных для настройки редиректа.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.get(
+            "/internal/bot/groups/redirect-settings",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+            params={"telegram_id": telegram_id},
+        )
+        response.raise_for_status()
+        return [BotRedirectGroup(**item) for item in response.json()]
+
+    async def toggle_current_group_redirect(
+        self,
+        telegram_id: int,
+        group_id: int,
+        group_name: str,
+        group_type: str,
+        is_user_admin: bool,
+    ) -> BotCurrentGroupRedirectToggleResult:
+        """Переключает редирект результата тренировки в текущей группе.
+
+        Args:
+            telegram_id: Telegram user id пользователя.
+            group_id: Telegram chat id группы.
+            group_name: название группы.
+            group_type: тип Telegram-чата.
+            is_user_admin: признак администратора группы у пользователя.
+
+        Returns:
+            новое состояние редиректа и признак создания связи пользователя с группой.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.post(
+            "/internal/bot/groups/redirect-settings/toggle-current",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+            json={
+                "telegram_id": telegram_id,
+                "group_id": group_id,
+                "group_name": group_name,
+                "group_type": group_type,
+                "is_user_admin": is_user_admin,
+            },
+        )
+        response.raise_for_status()
+        return BotCurrentGroupRedirectToggleResult(**response.json())
+
+    async def update_redirect_group(
+        self,
+        telegram_id: int,
+        group_id: int,
+        is_redirect_to_group: bool,
+    ) -> None:
+        """Обновляет состояние редиректа пользователя в выбранную группу.
+
+        Args:
+            telegram_id: Telegram user id пользователя.
+            group_id: Telegram chat id группы.
+            is_redirect_to_group: новое состояние редиректа.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.patch(
+            "/internal/bot/groups/redirect-settings",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+            json={
+                "telegram_id": telegram_id,
+                "group_id": group_id,
+                "is_redirect_to_group": is_redirect_to_group,
+            },
+        )
+        response.raise_for_status()
 
     async def get_training_result_message_id(
         self,
