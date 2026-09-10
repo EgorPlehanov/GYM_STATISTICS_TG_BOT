@@ -1,14 +1,13 @@
 from aiogram import Router, html
-from aiogram.types import Message
 from aiogram.filters import Command, StateFilter
-
+from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.middlewares import DBSessionMiddleware
+from app.bot.utils.format_user_exercise_rating import format_user_exercise_rating
+from app.bot.utils.user_access import ensure_bot_user
 from app.db.session import async_session_factory
 from app.domain.statistics.service import get_user_exercise_rating
-from app.bot.utils.format_user_exercise_rating import format_user_exercise_rating
-
 
 router = Router()
 router.message.middleware(DBSessionMiddleware(async_session_factory))
@@ -20,6 +19,8 @@ async def cmd_statistics(message: Message, session: AsyncSession) -> None:
     """
     Команда /statistics
     """
+    await ensure_bot_user(message.from_user)
+
     statistics = await get_user_exercise_rating(
         session = session,
         user_id = message.from_user.id

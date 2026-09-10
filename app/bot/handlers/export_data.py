@@ -1,16 +1,15 @@
 from aiogram import Router
-from aiogram.types import Message, BufferedInputFile
 from aiogram.filters import Command, StateFilter
-
+from aiogram.types import BufferedInputFile, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.middlewares import (
-    DBSessionMiddleware,
     ChatActionMiddleware,
+    DBSessionMiddleware,
 )
-from app.db.session import async_session_factory
 from app.bot.utils.data_export import get_export_data_file
-
+from app.bot.utils.user_access import ensure_bot_user
+from app.db.session import async_session_factory
 
 router = Router()
 router.message.middleware(DBSessionMiddleware(async_session_factory))
@@ -27,6 +26,8 @@ async def cmd_export_data(message: Message, session: AsyncSession) -> None:
     """
     Команда /export_data
     """
+    await ensure_bot_user(message.from_user)
+
     waitig_answer = await message.answer("🗂️")
 
     file_buffer = await get_export_data_file(

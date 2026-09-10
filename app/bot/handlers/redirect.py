@@ -1,15 +1,15 @@
 from aiogram import F, Router, html
-from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
-
+from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from typing import List
-from asyncio import sleep 
-
-from app.core.config import config
+from app.bot.handlers.redirect_units import RedirectGroup, RedirectStates
+from app.bot.keyboards.keyboards_types import PaginationAction
+from app.bot.keyboards.redirect_kb import RedirectGroupPagination, get_ikb_redirect_groups
 from app.bot.middlewares import DBSessionMiddleware
+from app.bot.utils.user_access import ensure_bot_user
+from app.core.config import config
 from app.db.session import async_session_factory
 from app.domain.groups.service import (
     create_group_user,
@@ -17,15 +17,6 @@ from app.domain.groups.service import (
     get_group_user_by_user_id_and_group_id,
     update_redirect_to_group,
 )
-from app.domain.users.service import is_user_in_database
-from app.bot.keyboards.keyboards_types import PaginationAction
-from app.bot.keyboards.redirect_kb import (
-    get_ikb_redirect_groups,
-    RedirectGroupPagination
-)
-from app.bot.handlers.redirect_units import RedirectStates, RedirectGroup
-
-
 
 router = Router()
 router.message.middleware(DBSessionMiddleware(async_session_factory))
@@ -43,12 +34,7 @@ async def cmd_group_redirect(message: Message, session: AsyncSession) -> None:
     Команда /redirect для групп устанавливает пересылку сообщениий о тренировке
     в текущую группу для отправителя сообщения
     """
-    if not await is_user_in_database(
-        session = session,
-        user_id = message.from_user.id,
-    ):
-        await message.answer(f"Сначала нужно запустить бота @{config.TG_BOT_USERNAME}")
-        return
+    await ensure_bot_user(message.from_user)
 
     group_user = await get_group_user_by_user_id_and_group_id(
         session = session,
@@ -86,7 +72,7 @@ async def cmd_group_redirect(message: Message, session: AsyncSession) -> None:
             " отправь повторно /redirect."
         ) + (
             f"\n\nСоздавай тренировки через личку бота @{config.TG_BOT_USERNAME}" + \
-            f" командой /training и результаты будут пересылаться в эту группу"
+            " командой /training и результаты будут пересылаться в эту группу"
             if group_user is None else ""
         )
     )
@@ -102,11 +88,13 @@ async def cmd_private_redirect(message: Message, state: FSMContext, session: Asy
     """
     Команда /redirect для лс с ботом
     """
+    await ensure_bot_user(message.from_user)
+
     await message.delete()
 
     await state.set_state(RedirectStates.edit_redirect_group)
 
-    redirect_groups: List[RedirectGroup] = await get_all_user_redirect_groups(
+    redirect_groups: list[RedirectGroup] = await get_all_user_redirect_groups(
         session = session,
         user_id = message.from_user.id
     )
@@ -140,7 +128,7 @@ async def redirect_group_pagination(
     page = int(callback_data.page)
 
     user_data = await state.get_data()
-    redirect_groups: List[RedirectGroup] = user_data.get("redirect_groups")
+    redirect_groups: list[RedirectGroup] = user_data.get("redirect_groups")
 
     if callback_data.action == PaginationAction.PREV:
         page = page - 1 if page > 0 else 0
@@ -170,9 +158,12 @@ async def edit_redirect_group(
     Инлайн кнопка "Меню настройки редиректа в группы" возврат в меню
     """
     user_data = await state.get_data()
-    redirect_groups: List[RedirectGroup] = user_data.get("redirect_groups")
+    redirect_groups: list[RedirectGroup] = user_data.get("redirect_groups")
 
-    edited_r_gr = next((r_gr for r_gr in redirect_groups if r_gr.group_id == callback_data.redirect_group_id), None)
+    edited_r_gr = next(
+        (r_gr for r_gr in redirect_groups if r_gr.group_id == callback_data.redirect_group_id),
+        None,
+    )
     edited_r_gr.is_redirect_to_group = not edited_r_gr.is_redirect_to_group
 
     await update_redirect_to_group(

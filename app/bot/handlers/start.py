@@ -3,7 +3,7 @@ from aiogram.filters import CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
-from app.bot.client import BotApiClient
+from app.bot.utils.user_access import ensure_bot_user
 
 router = Router()
 router.message.filter(F.chat.type == "private")
@@ -11,16 +11,11 @@ router.message.filter(F.chat.type == "private")
 
 
 @router.message(StateFilter(None), CommandStart())
-async def cmd_training(message: Message, state: FSMContext) -> None:
+async def cmd_start(message: Message, state: FSMContext) -> None:
     """
     Команда /start
     """
-    async with BotApiClient() as api_client:
-        result = await api_client.ensure_user(
-            telegram_id=message.from_user.id,
-            name=message.from_user.full_name,
-            language_code=message.from_user.language_code,
-        )
+    result = await ensure_bot_user(message.from_user)
 
     if result.created:
         await message.answer(

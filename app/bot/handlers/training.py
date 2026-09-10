@@ -1,41 +1,39 @@
-from aiogram import Router, F
-from aiogram.types import Message
+from aiogram import F, Router
 from aiogram.filters import Command, StateFilter
-from aiogram.fsm.context import FSMContext
 from aiogram.filters.callback_data import CallbackQuery
-
-from typing import Dict, Union
+from aiogram.fsm.context import FSMContext
+from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .training_units import (
-    TrainingStates,
-    select_date_router,
-    select_exercise_router,
-    select_weight_router,
-    select_repetitions_router,
-    select_sets_count_router,
-    acept_router,
-    edit_menu_router,
-    edit_select_exercise_router,
-    edit_select_set_router,
-    finish_add_comment_router,
-)
-from app.bot.utils.format_training_data import get_formatted_state_date
 from app.bot.keyboards.training_kb import (
     get_ikb_select_date,
     get_ikb_training_menu,
 )
 from app.bot.middlewares import (
-    DBSessionMiddleware,
     ChatActionMiddleware,
+    DBSessionMiddleware,
 )
+from app.bot.utils.format_training_data import get_formatted_state_date
+from app.bot.utils.user_access import ensure_bot_user
 from app.db.session import async_session_factory
 from app.domain.trainings.service import (
+    get_exercises_weight_repetitions_modes,
     get_sorted_exercises_by_sets_count,
-    get_exercises_weight_repetitions_modes
 )
 
-
+from .training_units import (
+    TrainingStates,
+    acept_router,
+    edit_menu_router,
+    edit_select_exercise_router,
+    edit_select_set_router,
+    finish_add_comment_router,
+    select_date_router,
+    select_exercise_router,
+    select_repetitions_router,
+    select_sets_count_router,
+    select_weight_router,
+)
 
 router = Router()
 router.message.filter(F.chat.type == "private")
@@ -61,6 +59,8 @@ async def cmd_training(message: Message, state: FSMContext, session: AsyncSessio
     """
     Команда /training
     """
+    await ensure_bot_user(message.from_user)
+
     await state.set_state(TrainingStates.select_date)
 
     await state.update_data(most_frequent_exercises=await get_sorted_exercises_by_sets_count(
@@ -101,7 +101,7 @@ async def back_to_menu(callback: CallbackQuery, state: FSMContext):
     await state.update_data(repetitions=None)
     await state.update_data(sets_count=None)
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
     exercises = user_data.get('exercise_data')['exercises']
 
     last_weight = str(user_data.get('last_weight', '')).rstrip('0').rstrip(".")
