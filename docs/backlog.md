@@ -65,6 +65,7 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Создать `app/db/repositories/export.py`.
 - [x] Перенести SQL-запросы из старого `db/queries`.
 - [x] Убрать Telegram/UI-логику из слоя работы с данными.
+- [ ] Типизировать сложные результаты repositories через dataclass/TypedDict/domain result objects без привязки к Pydantic API-схемам.
 
 ## 6. Domain Services
 
@@ -132,6 +133,7 @@ Backlog фиксирует крупные задачи перехода на н�
 - [ ] Описать JSON-friendly формат FSM training draft для Telegram-бота.
 - [ ] Заменить временный `training_data: dict[str, Any]` в internal training API на строгие DTO.
 - [ ] Добавить adapter `API DTO -> FSM draft -> API DTO` для сценариев тренировки.
+- [ ] Разделить `app/bot/client.py` на пакет `app/bot/api_client/` по доменным зонам после завершения переноса основных сценариев на internal API.
 - [ ] Убрать переходную поддержку `datetime` для `Training.date` после перевода FSM/API на строгие `date`-контракты.
 - [ ] Перевести aiogram FSM storage с `MemoryStorage` на Redis после выбора Redis как инфраструктурного сервиса.
 - [ ] Заменить `app/bot/utils/migration_cache.py` на Redis TTL key для обработки миграции Telegram group -> supergroup.
