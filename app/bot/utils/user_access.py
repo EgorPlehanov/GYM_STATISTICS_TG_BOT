@@ -2,7 +2,8 @@
 
 from aiogram.types import User as TelegramUser
 
-from app.bot.client import BotApiClient, EnsureUserResult
+from app.bot.api_client.schemas.users import EnsureUserResult
+from app.bot.client import BotApiClient
 
 
 async def ensure_bot_user(telegram_user: TelegramUser) -> EnsureUserResult:

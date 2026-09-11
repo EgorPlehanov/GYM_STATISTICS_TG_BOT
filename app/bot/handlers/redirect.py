@@ -3,7 +3,8 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from app.bot.client import BotApiClient, BotRedirectGroup
+from app.bot.api_client.schemas.groups import BotRedirectGroup
+from app.bot.client import BotApiClient
 from app.bot.handlers.redirect_units import RedirectStates
 from app.bot.keyboards.keyboards_types import PaginationAction
 from app.bot.keyboards.redirect_kb import RedirectGroupPagination, get_ikb_redirect_groups
@@ -13,12 +14,7 @@ from app.core.config import config
 router = Router()
 
 
-
-@router.message(
-    StateFilter(None),
-    Command("redirect"),
-    F.chat.type.in_({"group", "supergroup"})
-)
+@router.message(StateFilter(None), Command("redirect"), F.chat.type.in_({"group", "supergroup"}))
 async def cmd_group_redirect(message: Message) -> None:
     """
     Команда /redirect для групп устанавливает пересылку сообщениий о тренировке
@@ -39,27 +35,24 @@ async def cmd_group_redirect(message: Message) -> None:
         )
 
     await message.answer(
-        text = (
+        text=(
             f"📤{'✅' if result.is_redirect_to_group else '❌'}"
             f" @{message.from_user.username}, я "
             f"{html.bold('ВКЛЮЧИЛ' if result.is_redirect_to_group else 'ОТКЛЮЧИЛ')}"
             " редирект в эту группу! Чтобы "
             f"{html.bold('отключить' if result.is_redirect_to_group else 'включить')}"
             " отправь повторно /redirect."
-        ) + (
-            f"\n\nСоздавай тренировки через личку бота @{config.TG_BOT_USERNAME}" + \
-            " командой /training и результаты будут пересылаться в эту группу"
-            if result.created else ""
+        )
+        + (
+            f"\n\nСоздавай тренировки через личку бота @{config.TG_BOT_USERNAME}"
+            + " командой /training и результаты будут пересылаться в эту группу"
+            if result.created
+            else ""
         )
     )
 
 
-
-@router.message(
-    StateFilter(None),
-    Command("redirect"),
-    F.chat.type == "private"
-)
+@router.message(StateFilter(None), Command("redirect"), F.chat.type == "private")
 async def cmd_private_redirect(message: Message, state: FSMContext) -> None:
     """
     Команда /redirect для лс с ботом
@@ -76,15 +69,12 @@ async def cmd_private_redirect(message: Message, state: FSMContext) -> None:
     await state.update_data(redirect_groups=redirect_groups)
 
     await message.answer(
-        text = (
+        text=(
             "📤 Спиок чатов в которых настроен редирект результатов тренировок:\n"
             f"{html.italic('(✅ - вкл | ⛔ - выкл)')}"
         ),
-        reply_markup = get_ikb_redirect_groups(
-            redirect_groups = redirect_groups
-        )
+        reply_markup=get_ikb_redirect_groups(redirect_groups=redirect_groups),
     )
-
 
 
 @router.callback_query(
@@ -92,9 +82,7 @@ async def cmd_private_redirect(message: Message, state: FSMContext) -> None:
     RedirectStates.edit_redirect_group,
 )
 async def redirect_group_pagination(
-    callback: CallbackQuery,
-    callback_data: RedirectGroupPagination,
-    state: FSMContext
+    callback: CallbackQuery, callback_data: RedirectGroupPagination, state: FSMContext
 ):
     """
     Пагинация редиректа в группы
@@ -110,17 +98,13 @@ async def redirect_group_pagination(
         page = page + 1 if page < len(redirect_groups) - 1 else page
 
     await callback.message.edit_reply_markup(
-        reply_markup = get_ikb_redirect_groups(
-            redirect_groups = redirect_groups,
-            page = page
-        )
+        reply_markup=get_ikb_redirect_groups(redirect_groups=redirect_groups, page=page)
     )
-    
 
 
 @router.callback_query(
     RedirectGroupPagination.filter(F.action == PaginationAction.SET),
-    RedirectStates.edit_redirect_group
+    RedirectStates.edit_redirect_group,
 )
 async def edit_redirect_group(
     callback: CallbackQuery,
@@ -147,12 +131,10 @@ async def edit_redirect_group(
         )
 
     await callback.message.edit_reply_markup(
-        reply_markup = get_ikb_redirect_groups(
-            redirect_groups = redirect_groups,
-            page = callback_data.page
+        reply_markup=get_ikb_redirect_groups(
+            redirect_groups=redirect_groups, page=callback_data.page
         )
     )
-
 
 
 @router.callback_query(RedirectStates.edit_redirect_group, F.data == "redirect_quit")
@@ -163,4 +145,3 @@ async def redirect_quit(callback: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
     await callback.message.delete()
     await callback.answer(text="✅ Настройки редиректа сохранены 💾")
-
