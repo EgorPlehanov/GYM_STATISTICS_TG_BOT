@@ -151,6 +151,8 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Перенести DTO `app/bot/api_client` в отдельный пакет `app/bot/api_client/schemas/`.
 - [x] Вынести методы и DTO `exercises` из `app/bot/client.py` в пакет `app/bot/api_client/`.
 - [x] Вынести методы и DTO `statistics/export` из `app/bot/client.py` в пакет `app/bot/api_client/`.
+- [x] Вынести методы и DTO `groups` из `app/bot/client.py` в пакет `app/bot/api_client/`.
+- [ ] Решить, нужен ли отдельный пакет `app/bot/api_client/mappers/`, если преобразований API payload -> DTO станет больше одного простого случая.
 - [ ] Разделить `app/bot/client.py` на пакет `app/bot/api_client/` по доменным зонам после завершения переноса основных сценариев на internal API.
 - [ ] Убрать переходную поддержку `datetime` для `Training.date` после перевода FSM/API на строгие `date`-контракты.
 - [ ] Перевести aiogram FSM storage с `MemoryStorage` на Redis после выбора Redis как инфраструктурного сервиса.
