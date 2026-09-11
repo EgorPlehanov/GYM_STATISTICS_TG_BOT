@@ -116,6 +116,9 @@ GYM_STATISTICS_TG_BOT/
     bot/
       main.py
       client.py
+      api_client/
+        base.py
+        schemas/
       handlers/
       keyboards/
       middlewares/
@@ -153,6 +156,32 @@ GYM_STATISTICS_TG_BOT/
 ```
 
 ## Слои
+
+## Правило размещения схем
+
+Схемы размещаются по назначению слоя, а не одинаково во всех каталогах.
+
+Interface-слои отделяют DTO-контракты от логики обработки:
+
+```text
+app/api/routers/   HTTP endpoints
+app/api/schemas/   HTTP request/response DTO
+
+app/bot/handlers/            Telegram handlers
+app/bot/api_client/          методы обращения бота к internal API
+app/bot/api_client/schemas/  DTO internal API с точки зрения бота
+```
+
+Domain-слой группируется по бизнес-областям, поэтому внутренние domain-схемы
+лежат рядом с сервисом своей области:
+
+```text
+app/domain/trainings/service.py
+app/domain/trainings/schemas.py
+```
+
+Это осознанное разделение: API/Bot схемы описывают контракты интерфейсов, а
+domain-схемы описывают внутренние структуры конкретного бизнес-сценария.
 
 ### API
 
