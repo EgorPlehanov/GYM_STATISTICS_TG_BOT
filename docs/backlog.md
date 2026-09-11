@@ -149,6 +149,7 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Вынести проверку открытого HTTP-клиента в `BotApiClient` в приватный helper вместо повторения проверки в каждом методе.
 - [x] Вынести базовый HTTP-контекст и методы `users/admin` из `app/bot/client.py` в пакет `app/bot/api_client/`.
 - [x] Перенести DTO `app/bot/api_client` в отдельный пакет `app/bot/api_client/schemas/`.
+- [x] Вынести методы и DTO `exercises` из `app/bot/client.py` в пакет `app/bot/api_client/`.
 - [ ] Разделить `app/bot/client.py` на пакет `app/bot/api_client/` по доменным зонам после завершения переноса основных сценариев на internal API.
 - [ ] Убрать переходную поддержку `datetime` для `Training.date` после перевода FSM/API на строгие `date`-контракты.
 - [ ] Перевести aiogram FSM storage с `MemoryStorage` на Redis после выбора Redis как инфраструктурного сервиса.
