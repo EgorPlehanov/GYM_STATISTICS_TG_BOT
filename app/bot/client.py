@@ -238,6 +238,27 @@ class BotApiClient:
         response.raise_for_status()
         return EnsureUserResult(**response.json())
 
+    async def update_user_private_chat_banned(
+        self,
+        telegram_id: int,
+        is_private_chat_banned: bool,
+    ) -> None:
+        """Обновляет признак блокировки бота пользователем в личном чате.
+
+        Args:
+            telegram_id: Telegram user id пользователя.
+            is_private_chat_banned: признак того, что пользователь заблокировал бота.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.patch(
+            f"/internal/bot/users/{telegram_id}/private-chat-banned",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+            json={"is_private_chat_banned": is_private_chat_banned},
+        )
+        response.raise_for_status()
+
     async def get_exercises(
         self,
         telegram_id: int,
@@ -447,6 +468,37 @@ class BotApiClient:
         response.raise_for_status()
         return list(response.json())
 
+    async def ensure_group(
+        self,
+        group_id: int,
+        group_name: str,
+        group_type: str,
+    ) -> bool:
+        """Создает Telegram-группу или восстанавливает ее доступность для бота.
+
+        Args:
+            group_id: Telegram chat id группы.
+            group_name: название группы.
+            group_type: тип Telegram-чата.
+
+        Returns:
+            признак того, что группа была создана в текущем запросе.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.post(
+            "/internal/bot/groups/ensure",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+            json={
+                "group_id": group_id,
+                "group_name": group_name,
+                "group_type": group_type,
+            },
+        )
+        response.raise_for_status()
+        return response.json()["created"]
+
     async def get_redirect_groups(self, telegram_id: int) -> list[BotRedirectGroup]:
         """Возвращает группы пользователя для меню настройки редиректа.
 
@@ -631,6 +683,57 @@ class BotApiClient:
             f"/internal/bot/groups/{group_id}/bot-banned",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             json={"is_bot_banned": is_bot_banned},
+        )
+        response.raise_for_status()
+
+    async def update_group_bot_admin(
+        self,
+        group_id: int,
+        is_bot_admin: bool,
+    ) -> None:
+        """Обновляет признак администратора у Telegram-бота в группе.
+
+        Args:
+            group_id: Telegram chat id группы.
+            is_bot_admin: признак того, что бот является администратором группы.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.patch(
+            f"/internal/bot/groups/{group_id}/bot-admin",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+            json={"is_bot_admin": is_bot_admin},
+        )
+        response.raise_for_status()
+
+    async def migrate_group_to_supergroup(
+        self,
+        group_id: int,
+        supergroup_id: int,
+        supergroup_name: str,
+        supergroup_type: str,
+    ) -> None:
+        """Переносит связи старой Telegram-группы на новую супергруппу.
+
+        Args:
+            group_id: старый Telegram chat id группы.
+            supergroup_id: новый Telegram chat id супергруппы.
+            supergroup_name: название супергруппы.
+            supergroup_type: тип Telegram-чата после миграции.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.patch(
+            "/internal/bot/groups/migrate-to-supergroup",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+            json={
+                "group_id": group_id,
+                "supergroup_id": supergroup_id,
+                "supergroup_name": supergroup_name,
+                "supergroup_type": supergroup_type,
+            },
         )
         response.raise_for_status()
 

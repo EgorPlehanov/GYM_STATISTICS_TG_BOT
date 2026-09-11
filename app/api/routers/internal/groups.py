@@ -6,7 +6,11 @@ from app.api.deps import DbSession
 from app.api.schemas.internal.groups import (
     InternalBotCurrentGroupRedirectToggleRequest,
     InternalBotCurrentGroupRedirectToggleResponse,
+    InternalBotGroupBotAdminRequest,
     InternalBotGroupBotBannedRequest,
+    InternalBotGroupEnsureRequest,
+    InternalBotGroupEnsureResponse,
+    InternalBotGroupMigrateToSupergroupRequest,
     InternalBotRedirectGroupResponse,
     InternalBotRedirectGroupUpdateRequest,
     InternalBotTrainingResultMessageCreateRequest,
@@ -21,7 +25,9 @@ from app.domain.groups.service import (
     get_group_training_result_messages_id,
     get_group_user_by_user_id_and_group_id,
     get_user_group_to_redirect,
+    update_group_is_bot_admin,
     update_group_is_bot_banned,
+    update_group_to_supergroup,
     update_group_training_result_message_id,
     update_redirect_to_group,
 )
@@ -43,6 +49,74 @@ async def get_bot_redirect_targets(
         список Telegram chat id групп с включенным редиректом результата.
     """
     return await get_user_group_to_redirect(session=session, user_id=telegram_id)
+
+
+@router.post("/bot/groups/ensure", response_model=InternalBotGroupEnsureResponse)
+async def ensure_bot_group(
+    payload: InternalBotGroupEnsureRequest,
+    session: DbSession,
+) -> InternalBotGroupEnsureResponse:
+    """Создает Telegram-группу или восстанавливает ее доступность для бота.
+
+    Args:
+        payload: Telegram chat id, название и тип группы.
+
+    Returns:
+        признак того, что группа была создана в текущем запросе.
+    """
+    created = await create_group_if_not_exists(
+        session=session,
+        id=payload.group_id,
+        group_type=payload.group_type,
+        name=payload.group_name,
+    )
+    return InternalBotGroupEnsureResponse(created=created)
+
+
+@router.patch("/bot/groups/{group_id}/bot-admin")
+async def update_bot_group_admin(
+    group_id: int,
+    payload: InternalBotGroupBotAdminRequest,
+    session: DbSession,
+) -> dict[str, str]:
+    """Обновляет признак администратора у Telegram-бота в группе.
+
+    Args:
+        group_id: Telegram chat id группы.
+        payload: новое состояние прав администратора.
+
+    Returns:
+        короткий статус успешного выполнения операции.
+    """
+    await update_group_is_bot_admin(
+        session=session,
+        group_id=group_id,
+        is_bot_admin=payload.is_bot_admin,
+    )
+    return {"status": "ok"}
+
+
+@router.patch("/bot/groups/migrate-to-supergroup")
+async def migrate_bot_group_to_supergroup(
+    payload: InternalBotGroupMigrateToSupergroupRequest,
+    session: DbSession,
+) -> dict[str, str]:
+    """Переносит связи Telegram-группы на новую супергруппу.
+
+    Args:
+        payload: старый и новый Telegram chat id с данными супергруппы.
+
+    Returns:
+        короткий статус успешного выполнения операции.
+    """
+    await update_group_to_supergroup(
+        session=session,
+        group_id=payload.group_id,
+        supergroup_id=payload.supergroup_id,
+        supergroup_name=payload.supergroup_name,
+        supergroup_type=payload.supergroup_type,
+    )
+    return {"status": "ok"}
 
 
 @router.get(

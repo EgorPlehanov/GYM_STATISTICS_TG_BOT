@@ -147,6 +147,67 @@ def test_internal_bot_user_ensure_calls_domain_service(monkeypatch):
     ]
 
 
+def test_internal_bot_user_private_chat_banned_calls_domain_service(monkeypatch):
+    """Проверяет обновление блокировки личного чата через internal API."""
+    _set_required_env(monkeypatch)
+
+    from app.api.deps import config, get_db_session
+    from app.api.main import app
+    from app.api.routers.internal import users as internal_users
+
+    monkeypatch.setattr(
+        config,
+        "INTERNAL_API_TOKEN",
+        SecretStr("test-internal-token-with-at-least-32-bytes"),
+    )
+
+    calls = []
+
+    async def fake_update_user_private_chat_banned(
+        session,
+        user_id,
+        is_private_chat_banned,
+    ):
+        """Фиксирует параметры обновления блокировки личного чата."""
+        calls.append(
+            {
+                "session": session,
+                "user_id": user_id,
+                "is_private_chat_banned": is_private_chat_banned,
+            }
+        )
+
+    async def fake_db_session():
+        """Возвращает тестовую заглушку DB-сессии."""
+        yield object()
+
+    monkeypatch.setattr(
+        internal_users,
+        "update_user_private_chat_banned",
+        fake_update_user_private_chat_banned,
+    )
+    app.dependency_overrides[get_db_session] = fake_db_session
+
+    client = TestClient(app)
+    response = client.patch(
+        "/internal/bot/users/123456789/private-chat-banned",
+        headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
+        json={"is_private_chat_banned": True},
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+    assert calls == [
+        {
+            "session": calls[0]["session"],
+            "user_id": 123456789,
+            "is_private_chat_banned": True,
+        }
+    ]
+
+
 def test_internal_bot_exercises_calls_domain_service(monkeypatch):
     """Проверяет, что список упражнений для бота берется через domain service."""
     _set_required_env(monkeypatch)
@@ -746,6 +807,199 @@ def test_internal_bot_redirect_targets_calls_domain_service(monkeypatch):
     assert response.status_code == 200
     assert response.json() == [-1001, -1002]
     assert calls == [{"session": calls[0]["session"], "user_id": 123456789}]
+
+
+def test_internal_bot_group_ensure_calls_domain_service(monkeypatch):
+    """Проверяет создание или восстановление группы через internal API."""
+    _set_required_env(monkeypatch)
+
+    from app.api.deps import config, get_db_session
+    from app.api.main import app
+    from app.api.routers.internal import groups as internal_groups
+
+    monkeypatch.setattr(
+        config,
+        "INTERNAL_API_TOKEN",
+        SecretStr("test-internal-token-with-at-least-32-bytes"),
+    )
+
+    calls = []
+
+    async def fake_create_group_if_not_exists(session, id, group_type, name):
+        """Фиксирует параметры создания или восстановления группы."""
+        calls.append(
+            {
+                "session": session,
+                "id": id,
+                "group_type": group_type,
+                "name": name,
+            }
+        )
+        return True
+
+    async def fake_db_session():
+        """Возвращает тестовую заглушку DB-сессии."""
+        yield object()
+
+    monkeypatch.setattr(
+        internal_groups,
+        "create_group_if_not_exists",
+        fake_create_group_if_not_exists,
+    )
+    app.dependency_overrides[get_db_session] = fake_db_session
+
+    client = TestClient(app)
+    response = client.post(
+        "/internal/bot/groups/ensure",
+        headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
+        json={
+            "group_id": -1001,
+            "group_name": "Спортзал",
+            "group_type": "supergroup",
+        },
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {"created": True}
+    assert calls == [
+        {
+            "session": calls[0]["session"],
+            "id": -1001,
+            "group_type": "supergroup",
+            "name": "Спортзал",
+        }
+    ]
+
+
+def test_internal_bot_group_admin_calls_domain_service(monkeypatch):
+    """Проверяет обновление признака администратора бота через internal API."""
+    _set_required_env(monkeypatch)
+
+    from app.api.deps import config, get_db_session
+    from app.api.main import app
+    from app.api.routers.internal import groups as internal_groups
+
+    monkeypatch.setattr(
+        config,
+        "INTERNAL_API_TOKEN",
+        SecretStr("test-internal-token-with-at-least-32-bytes"),
+    )
+
+    calls = []
+
+    async def fake_update_group_is_bot_admin(session, group_id, is_bot_admin):
+        """Фиксирует параметры обновления признака администратора бота."""
+        calls.append(
+            {
+                "session": session,
+                "group_id": group_id,
+                "is_bot_admin": is_bot_admin,
+            }
+        )
+
+    async def fake_db_session():
+        """Возвращает тестовую заглушку DB-сессии."""
+        yield object()
+
+    monkeypatch.setattr(
+        internal_groups,
+        "update_group_is_bot_admin",
+        fake_update_group_is_bot_admin,
+    )
+    app.dependency_overrides[get_db_session] = fake_db_session
+
+    client = TestClient(app)
+    response = client.patch(
+        "/internal/bot/groups/-1001/bot-admin",
+        headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
+        json={"is_bot_admin": True},
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+    assert calls == [
+        {
+            "session": calls[0]["session"],
+            "group_id": -1001,
+            "is_bot_admin": True,
+        }
+    ]
+
+
+def test_internal_bot_group_migrate_to_supergroup_calls_domain_service(monkeypatch):
+    """Проверяет миграцию группы в супергруппу через internal API."""
+    _set_required_env(monkeypatch)
+
+    from app.api.deps import config, get_db_session
+    from app.api.main import app
+    from app.api.routers.internal import groups as internal_groups
+
+    monkeypatch.setattr(
+        config,
+        "INTERNAL_API_TOKEN",
+        SecretStr("test-internal-token-with-at-least-32-bytes"),
+    )
+
+    calls = []
+
+    async def fake_update_group_to_supergroup(
+        session,
+        group_id,
+        supergroup_id,
+        supergroup_name,
+        supergroup_type,
+    ):
+        """Фиксирует параметры миграции группы в супергруппу."""
+        calls.append(
+            {
+                "session": session,
+                "group_id": group_id,
+                "supergroup_id": supergroup_id,
+                "supergroup_name": supergroup_name,
+                "supergroup_type": supergroup_type,
+            }
+        )
+
+    async def fake_db_session():
+        """Возвращает тестовую заглушку DB-сессии."""
+        yield object()
+
+    monkeypatch.setattr(
+        internal_groups,
+        "update_group_to_supergroup",
+        fake_update_group_to_supergroup,
+    )
+    app.dependency_overrides[get_db_session] = fake_db_session
+
+    client = TestClient(app)
+    response = client.patch(
+        "/internal/bot/groups/migrate-to-supergroup",
+        headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
+        json={
+            "group_id": -1001,
+            "supergroup_id": -1002,
+            "supergroup_name": "Новый спортзал",
+            "supergroup_type": "supergroup",
+        },
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+    assert calls == [
+        {
+            "session": calls[0]["session"],
+            "group_id": -1001,
+            "supergroup_id": -1002,
+            "supergroup_name": "Новый спортзал",
+            "supergroup_type": "supergroup",
+        }
+    ]
 
 
 def test_internal_bot_redirect_settings_calls_domain_service(monkeypatch):

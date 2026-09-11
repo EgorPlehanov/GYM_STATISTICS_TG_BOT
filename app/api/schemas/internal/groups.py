@@ -111,3 +111,53 @@ class InternalBotGroupBotBannedRequest(BaseModel):
     """
 
     is_bot_banned: bool
+
+
+class InternalBotGroupEnsureRequest(BaseModel):
+    """Данные Telegram-группы, которую нужно создать или восстановить.
+
+    Attributes:
+        group_id: Telegram chat id группы.
+        group_name: название группы.
+        group_type: тип Telegram-чата.
+    """
+
+    group_id: int
+    group_name: str
+    group_type: str
+
+
+class InternalBotGroupEnsureResponse(BaseModel):
+    """Результат создания или восстановления Telegram-группы.
+
+    Attributes:
+        created: признак того, что группа была создана в текущем запросе.
+    """
+
+    created: bool
+
+
+class InternalBotGroupBotAdminRequest(BaseModel):
+    """Данные для обновления признака администратора у Telegram-бота.
+
+    Attributes:
+        is_bot_admin: признак того, что бот является администратором группы.
+    """
+
+    is_bot_admin: bool
+
+
+class InternalBotGroupMigrateToSupergroupRequest(BaseModel):
+    """Данные для переноса старой группы в новую супергруппу.
+
+    Attributes:
+        group_id: старый Telegram chat id группы.
+        supergroup_id: новый Telegram chat id супергруппы.
+        supergroup_name: название супергруппы.
+        supergroup_type: тип Telegram-чата после миграции.
+    """
+
+    group_id: int
+    supergroup_id: int
+    supergroup_name: str
+    supergroup_type: str

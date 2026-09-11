@@ -15,3 +15,13 @@ class InternalBotUserEnsureResponse(BaseModel):
     """Результат регистрации пользователя из Telegram-бота."""
 
     created: bool
+
+
+class InternalBotUserPrivateChatBannedRequest(BaseModel):
+    """Данные для обновления блокировки бота пользователем.
+
+    Attributes:
+        is_private_chat_banned: признак того, что пользователь заблокировал бота.
+    """
+
+    is_private_chat_banned: bool
