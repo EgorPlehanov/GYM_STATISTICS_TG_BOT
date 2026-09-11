@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 
 from app.api.deps import get_internal_service
 
-from . import exercises, export, groups, health, ratings, statistics, trainings, users
+from . import admin, exercises, export, groups, health, ratings, statistics, trainings, users
 
 router = APIRouter(
     prefix="/internal",
@@ -13,6 +13,7 @@ router = APIRouter(
 )
 
 router.include_router(health.router)
+router.include_router(admin.router)
 router.include_router(users.router)
 router.include_router(exercises.router)
 router.include_router(trainings.router)

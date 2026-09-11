@@ -59,6 +59,18 @@ def upgrade() -> None:
     op.create_index(op.f("ix_user_telegram_id"), "user", ["telegram_id"], unique=True)
 
     op.create_table(
+        "role",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("code", sa.String(length=256), nullable=False),
+        sa.Column("name", sa.String(length=256), nullable=False),
+        sa.Column("description", sa.String(length=2048), nullable=False),
+        sa.Column("created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
+        sa.Column("updated_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_index(op.f("ix_role_code"), "role", ["code"], unique=True)
+
+    op.create_table(
         "group",
         sa.Column("id", sa.BigInteger(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
@@ -99,6 +111,20 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["user_id"], ["user.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("group_id", "user_id", name="uq_group_user_group_id_user_id"),
+    )
+
+    op.create_table(
+        "user_role",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("user_id", sa.Integer(), nullable=False),
+        sa.Column("role_id", sa.Integer(), nullable=False),
+        sa.Column("assigned_by_user_id", sa.Integer(), nullable=True),
+        sa.Column("assigned_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
+        sa.ForeignKeyConstraint(["assigned_by_user_id"], ["user.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(["role_id"], ["role.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["user_id"], ["user.id"], ondelete="CASCADE"),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("user_id", "role_id", name="uq_user_role_user_id_role_id"),
     )
 
     op.create_table(
@@ -179,10 +205,13 @@ def downgrade() -> None:
     op.drop_table("set")
     op.drop_table("exercise_rank")
     op.drop_table("training")
+    op.drop_table("user_role")
     op.drop_table("group_user")
     op.drop_table("rank")
     op.drop_table("exercise")
     op.drop_table("group")
+    op.drop_index(op.f("ix_role_code"), table_name="role")
+    op.drop_table("role")
     op.drop_index(op.f("ix_user_telegram_id"), table_name="user")
     op.drop_table("user")
 

@@ -2,6 +2,7 @@
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import config
 from app.db.repositories import users as user_repository
 
 
@@ -15,12 +16,16 @@ class UsersService:
     get_user_by_telegram_id = staticmethod(user_repository.get_user_by_telegram_id)
     is_user_in_database = staticmethod(user_repository.is_user_in_database)
     create_user = staticmethod(user_repository.create_user)
-    update_user_private_chat_banned = staticmethod(
-        user_repository.update_user_private_chat_banned
-    )
+    update_user_private_chat_banned = staticmethod(user_repository.update_user_private_chat_banned)
     create_user_if_not_exists = staticmethod(user_repository.create_user_if_not_exists)
     create_or_update_user_from_telegram = staticmethod(
         user_repository.create_or_update_user_from_telegram
+    )
+    get_user_role_codes_by_telegram_id = staticmethod(
+        user_repository.get_user_role_codes_by_telegram_id
+    )
+    user_has_any_role_by_telegram_id = staticmethod(
+        user_repository.user_has_any_role_by_telegram_id
     )
 
 
@@ -77,7 +82,14 @@ async def create_user_if_not_exists(
     language_code: str | None,
 ) -> bool:
     """Создает пользователя из Telegram-профиля, если он еще не зарегистрирован."""
-    return await user_repository.create_user_if_not_exists(session, user_id, name, language_code)
+    created = await user_repository.create_user_if_not_exists(
+        session,
+        user_id,
+        name,
+        language_code,
+    )
+    await ensure_bootstrap_owner_role(session, user_id)
+    return created
 
 
 async def create_or_update_user_from_telegram(
@@ -87,9 +99,51 @@ async def create_or_update_user_from_telegram(
     language_code: str | None = None,
 ):
     """Создает или обновляет пользователя по данным Telegram."""
-    return await user_repository.create_or_update_user_from_telegram(
+    user = await user_repository.create_or_update_user_from_telegram(
         session,
         telegram_id,
         name,
         language_code,
+    )
+    await ensure_bootstrap_owner_role(session, telegram_id)
+    return user
+
+
+async def ensure_bootstrap_owner_role(session: AsyncSession, telegram_id: int) -> None:
+    """Назначает роль `owner` пользователю из `MAIN_ADMIN_ID`.
+
+    Args:
+        session: асинхронная SQLAlchemy-сессия.
+        telegram_id: внешний Telegram user id пользователя.
+    """
+    main_admin_id = int(config.MAIN_ADMIN_ID.get_secret_value())
+    if telegram_id != main_admin_id:
+        return
+
+    user = await user_repository.get_user_by_telegram_id(session, telegram_id)
+    if user is None:
+        return
+
+    await user_repository.assign_role_to_user(session, user.id, "owner")
+    await session.commit()
+
+
+async def get_user_role_codes_by_telegram_id(
+    session: AsyncSession,
+    telegram_id: int,
+) -> list[str]:
+    """Возвращает коды ролей пользователя по Telegram id."""
+    return await user_repository.get_user_role_codes_by_telegram_id(session, telegram_id)
+
+
+async def user_has_any_role_by_telegram_id(
+    session: AsyncSession,
+    telegram_id: int,
+    role_codes: list[str],
+) -> bool:
+    """Проверяет наличие хотя бы одной роли у пользователя."""
+    return await user_repository.user_has_any_role_by_telegram_id(
+        session,
+        telegram_id,
+        role_codes,
     )

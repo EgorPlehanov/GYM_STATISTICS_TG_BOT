@@ -98,6 +98,75 @@ async def test_bot_api_client_update_user_private_chat_banned_sends_internal_tok
 
 
 @pytest.mark.asyncio
+async def test_bot_api_client_admin_methods_send_internal_token(monkeypatch):
+    """Проверяет методы клиента для минимальной Telegram admin-панели."""
+    _set_required_env(monkeypatch)
+
+    from app.bot.client import BotApiClient
+
+    captured_requests = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        """Возвращает ответы для проверки доступа и статуса admin-панели."""
+        captured_requests.append(
+            {
+                "method": request.method,
+                "url": str(request.url),
+                "token": request.headers.get("X-Internal-Api-Key"),
+            }
+        )
+        if request.url.path.endswith("/access"):
+            return httpx.Response(
+                200,
+                json={
+                    "has_access": True,
+                    "roles": ["owner"],
+                },
+            )
+        return httpx.Response(
+            200,
+            json={
+                "api_status": "ok",
+                "app_env": "test",
+                "has_access": True,
+                "roles": ["owner"],
+            },
+        )
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(
+        transport=transport,
+        base_url="http://api:8000",
+    ) as http_client:
+        api_client = BotApiClient(
+            base_url="http://api:8000",
+            internal_api_token="internal-test-token",
+            http_client=http_client,
+        )
+        async with api_client:
+            access = await api_client.get_admin_access(telegram_id=123456789)
+            status = await api_client.get_admin_status(telegram_id=123456789)
+
+    assert access.has_access is True
+    assert access.roles == ["owner"]
+    assert status.api_status == "ok"
+    assert status.app_env == "test"
+    assert status.roles == ["owner"]
+    assert captured_requests == [
+        {
+            "method": "GET",
+            "url": "http://api:8000/internal/bot/admin/access?telegram_id=123456789",
+            "token": "internal-test-token",
+        },
+        {
+            "method": "GET",
+            "url": "http://api:8000/internal/bot/admin/status?telegram_id=123456789",
+            "token": "internal-test-token",
+        },
+    ]
+
+
+@pytest.mark.asyncio
 async def test_bot_api_client_get_exercises_sends_internal_token(monkeypatch):
     """Проверяет запрос списка упражнений через internal API."""
     _set_required_env(monkeypatch)
@@ -966,10 +1035,7 @@ async def test_bot_api_client_get_user_exercise_rating_sends_internal_token(monk
     assert result[0].rating_value == 100.0
     assert captured_request == {
         "method": "GET",
-        "url": (
-            "http://api:8000/internal/bot/statistics/exercise-rating?"
-            "telegram_id=123456789"
-        ),
+        "url": ("http://api:8000/internal/bot/statistics/exercise-rating?telegram_id=123456789"),
         "token": "internal-test-token",
     }
 

@@ -208,6 +208,107 @@ def test_internal_bot_user_private_chat_banned_calls_domain_service(monkeypatch)
     ]
 
 
+def test_internal_bot_admin_access_calls_domain_service(monkeypatch):
+    """Проверяет получение доступа к Telegram admin-панели через internal API."""
+    _set_required_env(monkeypatch)
+
+    from app.api.deps import config, get_db_session
+    from app.api.main import app
+    from app.api.routers.internal import admin as internal_admin
+
+    monkeypatch.setattr(
+        config,
+        "INTERNAL_API_TOKEN",
+        SecretStr("test-internal-token-with-at-least-32-bytes"),
+    )
+
+    calls = []
+
+    async def fake_get_user_role_codes_by_telegram_id(session, telegram_id):
+        """Фиксирует параметры получения ролей пользователя."""
+        calls.append({"session": session, "telegram_id": telegram_id})
+        return ["owner"]
+
+    async def fake_db_session():
+        """Возвращает тестовую заглушку DB-сессии."""
+        yield object()
+
+    monkeypatch.setattr(
+        internal_admin,
+        "get_user_role_codes_by_telegram_id",
+        fake_get_user_role_codes_by_telegram_id,
+    )
+    app.dependency_overrides[get_db_session] = fake_db_session
+
+    client = TestClient(app)
+    response = client.get(
+        "/internal/bot/admin/access",
+        headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
+        params={"telegram_id": 123456789},
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "has_access": True,
+        "roles": ["owner"],
+    }
+    assert calls == [{"session": calls[0]["session"], "telegram_id": 123456789}]
+
+
+def test_internal_bot_admin_status_calls_domain_service(monkeypatch):
+    """Проверяет минимальный статус backend API для Telegram admin-панели."""
+    _set_required_env(monkeypatch)
+
+    from app.api.deps import config, get_db_session
+    from app.api.main import app
+    from app.api.routers.internal import admin as internal_admin
+
+    monkeypatch.setattr(config, "APP_ENV", "test")
+    monkeypatch.setattr(
+        config,
+        "INTERNAL_API_TOKEN",
+        SecretStr("test-internal-token-with-at-least-32-bytes"),
+    )
+
+    calls = []
+
+    async def fake_get_user_role_codes_by_telegram_id(session, telegram_id):
+        """Фиксирует параметры получения ролей пользователя."""
+        calls.append({"session": session, "telegram_id": telegram_id})
+        return ["admin"]
+
+    async def fake_db_session():
+        """Возвращает тестовую заглушку DB-сессии."""
+        yield object()
+
+    monkeypatch.setattr(
+        internal_admin,
+        "get_user_role_codes_by_telegram_id",
+        fake_get_user_role_codes_by_telegram_id,
+    )
+    app.dependency_overrides[get_db_session] = fake_db_session
+
+    client = TestClient(app)
+    response = client.get(
+        "/internal/bot/admin/status",
+        headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
+        params={"telegram_id": 123456789},
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "api_status": "ok",
+        "app_env": "test",
+        "has_access": True,
+        "roles": ["admin"],
+    }
+    assert calls == [{"session": calls[0]["session"], "telegram_id": 123456789}]
+
+
 def test_internal_bot_exercises_calls_domain_service(monkeypatch):
     """Проверяет, что список упражнений для бота берется через domain service."""
     _set_required_env(monkeypatch)

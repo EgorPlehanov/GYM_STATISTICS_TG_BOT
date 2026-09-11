@@ -158,6 +158,36 @@ class BotCurrentGroupRedirectToggleResult:
 
 
 @dataclass(frozen=True)
+class BotAdminAccess:
+    """Результат проверки доступа к Telegram admin-панели.
+
+    Attributes:
+        has_access: признак доступа к admin-панели.
+        roles: коды ролей пользователя.
+    """
+
+    has_access: bool
+    roles: list[str]
+
+
+@dataclass(frozen=True)
+class BotAdminStatus:
+    """Минимальный статус backend API для Telegram admin-панели.
+
+    Attributes:
+        api_status: состояние backend API.
+        app_env: текущее окружение приложения.
+        has_access: признак доступа пользователя к admin-панели.
+        roles: коды ролей пользователя.
+    """
+
+    api_status: str
+    app_env: str
+    has_access: bool
+    roles: list[str]
+
+
+@dataclass(frozen=True)
 class BotTrainingSaveResult:
     """Результат сохранения тренировки через backend API.
 
@@ -189,9 +219,7 @@ class BotApiClient:
             http_client: готовый `httpx.AsyncClient` для тестов или внешнего управления.
         """
         self.base_url = (base_url or config.BOT_API_BASE_URL).rstrip("/")
-        self.internal_api_token = (
-            internal_api_token or config.INTERNAL_API_TOKEN.get_secret_value()
-        )
+        self.internal_api_token = internal_api_token or config.INTERNAL_API_TOKEN.get_secret_value()
         self._client = http_client
         self._owns_client = http_client is None
 
@@ -237,6 +265,46 @@ class BotApiClient:
         )
         response.raise_for_status()
         return EnsureUserResult(**response.json())
+
+    async def get_admin_access(self, telegram_id: int) -> BotAdminAccess:
+        """Проверяет доступ пользователя к Telegram admin-панели.
+
+        Args:
+            telegram_id: Telegram user id пользователя.
+
+        Returns:
+            результат проверки доступа и роли пользователя.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.get(
+            "/internal/bot/admin/access",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+            params={"telegram_id": telegram_id},
+        )
+        response.raise_for_status()
+        return BotAdminAccess(**response.json())
+
+    async def get_admin_status(self, telegram_id: int) -> BotAdminStatus:
+        """Возвращает минимальный статус backend API для Telegram admin-панели.
+
+        Args:
+            telegram_id: Telegram user id пользователя.
+
+        Returns:
+            безопасный статус системы для администратора.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.get(
+            "/internal/bot/admin/status",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+            params={"telegram_id": telegram_id},
+        )
+        response.raise_for_status()
+        return BotAdminStatus(**response.json())
 
     async def update_user_private_chat_banned(
         self,
@@ -941,5 +1009,3 @@ def _deserialize_export_data(export_data: dict[str, Any]) -> BotExportData:
     restored = dict(export_data)
     restored["date"] = date.fromisoformat(restored["date"])
     return BotExportData(**restored)
-
-

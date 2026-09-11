@@ -29,6 +29,7 @@ class User(Base):
         updated_at: дата и время последнего обновления записи.
         trainings: тренировки пользователя.
         ratings: текущие рейтинги пользователя по упражнениям.
+        roles: роли пользователя в системе.
     """
 
     __tablename__ = "user"
@@ -45,6 +46,79 @@ class User(Base):
     ratings: Mapped[list["UserExerciseRating"]] = relationship(
         "UserExerciseRating",
         back_populates="user",
+    )
+    roles: Mapped[list["UserRole"]] = relationship(
+        "UserRole",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        foreign_keys="UserRole.user_id",
+    )
+
+
+class Role(Base):
+    """Роль пользователя в системе.
+
+    Attributes:
+        id: внутренний primary key роли.
+        code: стабильный код роли для проверок доступа.
+        name: отображаемое название роли.
+        description: описание назначения роли.
+        created_at: дата и время создания записи.
+        updated_at: дата и время последнего обновления записи.
+        users: назначения роли пользователям.
+    """
+
+    __tablename__ = "role"
+
+    id: Mapped[intpk]
+    code: Mapped[str_256] = mapped_column(unique=True, index=True)
+    name: Mapped[str_256]
+    description: Mapped[str_2048]
+    created_at: Mapped[created_at]
+    updated_at: Mapped[updated_at]
+
+    users: Mapped[list["UserRole"]] = relationship(
+        "UserRole",
+        back_populates="role",
+        cascade="all, delete-orphan",
+    )
+
+
+class UserRole(Base):
+    """Назначение роли пользователю.
+
+    Attributes:
+        id: внутренний primary key назначения.
+        user_id: внутренний id пользователя, которому назначена роль.
+        role_id: id назначенной роли.
+        assigned_by_user_id: внутренний id пользователя, который назначил роль.
+            `None` означает системное назначение, например bootstrap owner.
+        assigned_at: дата и время назначения роли.
+        user: пользователь, которому назначена роль.
+        role: назначенная роль.
+        assigned_by: пользователь, который назначил роль.
+    """
+
+    __tablename__ = "user_role"
+    __table_args__ = (UniqueConstraint("user_id", "role_id", name="uq_user_role_user_id_role_id"),)
+
+    id: Mapped[intpk]
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"))
+    role_id: Mapped[int] = mapped_column(ForeignKey("role.id", ondelete="CASCADE"))
+    assigned_by_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("user.id", ondelete="SET NULL"),
+    )
+    assigned_at: Mapped[created_at]
+
+    user: Mapped["User"] = relationship(
+        "User",
+        back_populates="roles",
+        foreign_keys=[user_id],
+    )
+    role: Mapped["Role"] = relationship("Role", back_populates="users")
+    assigned_by: Mapped["User | None"] = relationship(
+        "User",
+        foreign_keys=[assigned_by_user_id],
     )
 
 
@@ -283,9 +357,7 @@ class ExerciseRank(Base):
     """
 
     __tablename__ = "exercise_rank"
-    __table_args__ = (
-        CheckConstraint("level >= 0 AND level <= 5", name="level_check"),
-    )
+    __table_args__ = (CheckConstraint("level >= 0 AND level <= 5", name="level_check"),)
 
     id: Mapped[intpk]
     exercise_id: Mapped[int | None] = mapped_column(ForeignKey("exercise.id"))
@@ -315,9 +387,7 @@ class UserExerciseRating(Base):
     """
 
     __tablename__ = "user_exercise_rating"
-    __table_args__ = (
-        UniqueConstraint("user_id", "exercise_id", name="uq_user_exercise_rating"),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "exercise_id", name="uq_user_exercise_rating"),)
 
     id: Mapped[intpk]
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"))

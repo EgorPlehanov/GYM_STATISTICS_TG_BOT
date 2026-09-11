@@ -96,6 +96,7 @@ Backlog фиксирует крупные задачи перехода на н�
 - [ ] Описать базовый API contract.
 - [x] Создать `/internal/*` router group для bot-service и worker.
 - [x] Добавить service-to-service auth для `/internal/*`.
+- [x] Добавить internal endpoints для минимальной Telegram admin-panel.
 
 ## 8. Авторизация
 
@@ -106,8 +107,12 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Добавить logout.
 - [x] Добавить `GET /api/auth/me`.
 - [x] Добавить тесты на validation Telegram auth.
+- [x] Добавить базовые RBAC-таблицы `role` и `user_role`.
+- [x] Добавить seed базовых ролей `owner`, `admin`, `user`.
+- [x] Назначать `owner` через bootstrap-настройку `MAIN_ADMIN_ID`.
 - [ ] Перейти на server-side sessions через таблицу сессий или Redis.
 - [ ] Использовать случайный `sid` в cookie/session token вместо пользовательских идентификаторов.
+- [ ] Реализовать управление ролями через admin API и web admin-panel.
 - [ ] Добавить модель пользовательских согласий: факт, дата, версия, источник, отзыв и правила удаления/обезличивания данных.
 - [ ] Расширить проверку доступа пользователя до `ensure_user_access`: создание пользователя, проверка согласия и ограничение сценариев без активного согласия.
 
@@ -133,16 +138,21 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Перевести команду `/redirect` на `/internal/bot/groups/redirect-settings`.
 - [x] Перевести события состояния бота в группах и личных чатах на `/internal/*`.
 - [x] Перевести события участников групп на `/internal/*`.
+- [x] Заменить старую Telegram admin-panel на минимальную панель `/admincmd` и `/admin_status`.
+- [x] Удалить admin photo handler.
+- [x] Удалить старую команду `/db_monitoring` с прямым доступом к БД.
 - [~] Перевести основные сценарии бота на вызовы `/internal/*`.
 - [ ] Добавить сценарий генерации одноразового кода для web login.
 - [ ] Описать JSON-friendly формат FSM training draft для Telegram-бота.
 - [ ] Заменить временный `training_data: dict[str, Any]` в internal training API на строгие DTO.
 - [ ] Добавить adapter `API DTO -> FSM draft -> API DTO` для сценариев тренировки.
+- [ ] Вынести проверку открытого HTTP-клиента в `BotApiClient` в приватный helper вместо повторения проверки в каждом методе.
 - [ ] Разделить `app/bot/client.py` на пакет `app/bot/api_client/` по доменным зонам после завершения переноса основных сценариев на internal API.
 - [ ] Убрать переходную поддержку `datetime` для `Training.date` после перевода FSM/API на строгие `date`-контракты.
 - [ ] Перевести aiogram FSM storage с `MemoryStorage` на Redis после выбора Redis как инфраструктурного сервиса.
 - [ ] Заменить `app/bot/utils/migration_cache.py` на Redis TTL key для обработки миграции Telegram group -> supergroup.
 - [ ] Отвязать локальный календарь `app/bot/keyboards/training_kb/date` от внешней зависимости `aiogram3-calendar`.
+- [ ] Спроектировать расширенную Telegram admin-panel после появления реальных административных сценариев.
 
 ## 10. Worker
 
