@@ -4,8 +4,10 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
 
-from app.bot.api_client.admin import BotAdminAccess, BotAdminApiClientMixin, BotAdminStatus
-from app.bot.api_client.users import BotUsersApiClientMixin, EnsureUserResult
+from app.bot.api_client.admin import BotAdminApiClientMixin
+from app.bot.api_client.schemas.admin import BotAdminAccess, BotAdminStatus
+from app.bot.api_client.schemas.users import EnsureUserResult
+from app.bot.api_client.users import BotUsersApiClientMixin
 
 __all__ = [
     "BotAdminAccess",

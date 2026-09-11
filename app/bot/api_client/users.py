@@ -1,19 +1,7 @@
 """Методы API-клиента Telegram-бота для пользователей."""
 
-from dataclasses import dataclass
-
 from app.bot.api_client.base import BotApiClientBase
-
-
-@dataclass(frozen=True)
-class EnsureUserResult:
-    """Результат регистрации пользователя через internal API.
-
-    Attributes:
-        created: признак того, что пользователь был создан в текущем запросе.
-    """
-
-    created: bool
+from app.bot.api_client.schemas.users import EnsureUserResult
 
 
 class BotUsersApiClientMixin(BotApiClientBase):
