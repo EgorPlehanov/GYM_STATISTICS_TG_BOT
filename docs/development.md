@@ -41,6 +41,22 @@ docker compose --profile tools run --rm db-reset
 без него Compose может использовать ранее собранный образ со старой миграцией.
 Для обновления образа удалять volume базы не требуется.
 
+Полный dev-запуск с нуля:
+
+```text
+docker compose down -v --remove-orphans --rmi local
+docker compose pull db
+docker compose --profile tools build --no-cache
+docker compose up -d db
+docker compose --profile tools run --rm migrate
+docker compose up -d api bot
+```
+
+Эта последовательность удаляет контейнеры проекта, Docker volume базы, локальные
+образы сервисов приложения и пересобирает `api`, `bot`, `migrate`, `db-reset`.
+`db` не собирается из `Dockerfile`, а скачивается как готовый image
+`postgres:18-alpine`.
+
 Для Docker-запуска значения PostgreSQL и API должны указывать на имена сервисов Docker Compose:
 
 ```text

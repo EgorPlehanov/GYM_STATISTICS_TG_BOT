@@ -132,6 +132,10 @@ Seed-команда добавляет только отсутствующие �
 docker compose --profile tools run --build --rm migrate
 ```
 
+Команда `migrate` применяет Alembic-миграции и загружает seed-данные. Флаг
+`--build` важен после изменений схемы или справочников: без него Docker Compose
+может запустить ранее собранный образ `migrate` со старыми файлами.
+
 Для разработки есть отдельный полный сброс:
 
 ```text
@@ -139,5 +143,19 @@ docker compose --profile tools run --rm db-reset
 ```
 
 `db-reset` удаляет схему `public`, применяет миграции и загружает справочники. Команда защищена проверкой `APP_ENV=dev` и не должна использоваться в production.
+
+Полное пересоздание локальной Docker-среды:
+
+```text
+docker compose down -v --remove-orphans --rmi local
+docker compose pull db
+docker compose --profile tools build --no-cache
+docker compose up -d db
+docker compose --profile tools run --rm migrate
+docker compose up -d api bot
+```
+
+Профиль `tools` нужен, чтобы в сборку попали `migrate` и `db-reset`.
+PostgreSQL-сервис `db` не собирается, а скачивается через `docker compose pull db`.
 
 Бизнес-слой и UI-слои не должны вызывать repositories напрямую. Для сценариев приложения используется `app.domain`.

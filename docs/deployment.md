@@ -93,6 +93,10 @@ GET /health
 docker compose --profile tools run --build --rm migrate
 ```
 
+`--build` нужен, чтобы сервис `migrate` использовал свежие файлы миграций и
+seed-данных из текущего исходного кода. Если перед этим уже выполнялась команда
+`docker compose --profile tools build`, можно запускать миграции без `--build`.
+
 Полный сброс базы предназначен только для разработки:
 
 ```text
@@ -100,6 +104,21 @@ docker compose --profile tools run --rm db-reset
 ```
 
 Команда `db-reset` должна выполняться только при `APP_ENV=dev`.
+
+Локальный запуск с полным пересозданием окружения:
+
+```text
+docker compose down -v --remove-orphans --rmi local
+docker compose pull db
+docker compose --profile tools build --no-cache
+docker compose up -d db
+docker compose --profile tools run --rm migrate
+docker compose up -d api bot
+```
+
+`docker compose --profile tools build --no-cache` пересобирает сервисы приложения:
+`api`, `bot`, `migrate`, `db-reset`. PostgreSQL не собирается, потому что
+использует готовый image `postgres:18-alpine`.
 
 ## Что нужно будет описать перед production
 
