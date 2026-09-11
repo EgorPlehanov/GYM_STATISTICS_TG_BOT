@@ -235,6 +235,20 @@ class BotApiClient:
             await self._client.aclose()
         self._client = None
 
+    def _get_client(self) -> httpx.AsyncClient:
+        """Возвращает открытый HTTP-клиент.
+
+        Raises:
+            RuntimeError: если `BotApiClient` используется без `async with`.
+
+        Returns:
+            активный `httpx.AsyncClient` для internal API-запросов.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        return self._client
+
     async def ensure_user(
         self,
         telegram_id: int,
@@ -251,10 +265,9 @@ class BotApiClient:
         Returns:
             `EnsureUserResult` с признаком создания пользователя.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.post(
+        response = await client.post(
             "/internal/bot/users/ensure",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             json={
@@ -275,10 +288,9 @@ class BotApiClient:
         Returns:
             результат проверки доступа и роли пользователя.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.get(
+        response = await client.get(
             "/internal/bot/admin/access",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             params={"telegram_id": telegram_id},
@@ -295,10 +307,9 @@ class BotApiClient:
         Returns:
             безопасный статус системы для администратора.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.get(
+        response = await client.get(
             "/internal/bot/admin/status",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             params={"telegram_id": telegram_id},
@@ -317,10 +328,9 @@ class BotApiClient:
             telegram_id: Telegram user id пользователя.
             is_private_chat_banned: признак того, что пользователь заблокировал бота.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.patch(
+        response = await client.patch(
             f"/internal/bot/users/{telegram_id}/private-chat-banned",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             json={"is_private_chat_banned": is_private_chat_banned},
@@ -345,8 +355,7 @@ class BotApiClient:
         Returns:
             список упражнений в формате, удобном для handlers/keyboards бота.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
         params: dict[str, int | str] = {
             "telegram_id": telegram_id,
@@ -356,7 +365,7 @@ class BotApiClient:
         if substring is not None:
             params["substring"] = substring
 
-        response = await self._client.get(
+        response = await client.get(
             "/internal/bot/exercises",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             params=params,
@@ -373,10 +382,9 @@ class BotApiClient:
         Returns:
             упражнение, найденное backend API.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.get(
+        response = await client.get(
             f"/internal/bot/exercises/{exercise_id}",
             headers={"X-Internal-Api-Key": self.internal_api_token},
         )
@@ -392,10 +400,9 @@ class BotApiClient:
         Returns:
             список дат тренировок, преобразованный из JSON-строк в `date`.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.get(
+        response = await client.get(
             "/internal/bot/trainings/dates",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             params={"telegram_id": telegram_id},
@@ -419,10 +426,9 @@ class BotApiClient:
         Returns:
             контекст для сохранения в FSM state перед выбором даты.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.get(
+        response = await client.get(
             "/internal/bot/trainings/start-context",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             params={
@@ -457,10 +463,9 @@ class BotApiClient:
         Returns:
             результат с флагом существования и FSM-структурой тренировки.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.get(
+        response = await client.get(
             "/internal/bot/trainings/by-date",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             params={
@@ -488,10 +493,9 @@ class BotApiClient:
         Returns:
             результат сохранения тренировки в backend API.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.post(
+        response = await client.post(
             "/internal/bot/trainings",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             json={
@@ -507,10 +511,9 @@ class BotApiClient:
         Args:
             training_id: внутренний id тренировки.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.delete(
+        response = await client.delete(
             f"/internal/bot/trainings/{training_id}",
             headers={"X-Internal-Api-Key": self.internal_api_token},
         )
@@ -525,10 +528,9 @@ class BotApiClient:
         Returns:
             список Telegram chat id групп с включенным редиректом результата.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.get(
+        response = await client.get(
             "/internal/bot/groups/redirect-targets",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             params={"telegram_id": telegram_id},
@@ -552,10 +554,9 @@ class BotApiClient:
         Returns:
             признак того, что группа была создана в текущем запросе.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.post(
+        response = await client.post(
             "/internal/bot/groups/ensure",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             json={
@@ -576,10 +577,9 @@ class BotApiClient:
         Returns:
             список групп, доступных для настройки редиректа.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.get(
+        response = await client.get(
             "/internal/bot/groups/redirect-settings",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             params={"telegram_id": telegram_id},
@@ -607,10 +607,9 @@ class BotApiClient:
         Returns:
             новое состояние редиректа и признак создания связи пользователя с группой.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.post(
+        response = await client.post(
             "/internal/bot/groups/redirect-settings/toggle-current",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             json={
@@ -637,10 +636,9 @@ class BotApiClient:
             group_id: Telegram chat id группы.
             is_redirect_to_group: новое состояние редиректа.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.patch(
+        response = await client.patch(
             "/internal/bot/groups/redirect-settings",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             json={
@@ -665,10 +663,9 @@ class BotApiClient:
         Returns:
             Telegram message id или `None`, если запись не найдена.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.get(
+        response = await client.get(
             f"/internal/bot/groups/{group_id}/training-results/{training_id}/message",
             headers={"X-Internal-Api-Key": self.internal_api_token},
         )
@@ -688,10 +685,9 @@ class BotApiClient:
             training_id: id сохраненной тренировки.
             message_id: Telegram message id отправленного результата.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.post(
+        response = await client.post(
             "/internal/bot/groups/training-result-messages",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             json={
@@ -718,10 +714,9 @@ class BotApiClient:
         Returns:
             признак того, что существующая запись была найдена и обновлена.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.patch(
+        response = await client.patch(
             "/internal/bot/groups/training-result-messages",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             json={
@@ -744,10 +739,9 @@ class BotApiClient:
             group_id: Telegram chat id группы.
             is_bot_banned: признак того, что бот удален или заблокирован в группе.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.patch(
+        response = await client.patch(
             f"/internal/bot/groups/{group_id}/bot-banned",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             json={"is_bot_banned": is_bot_banned},
@@ -765,10 +759,9 @@ class BotApiClient:
             group_id: Telegram chat id группы.
             is_bot_admin: признак того, что бот является администратором группы.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.patch(
+        response = await client.patch(
             f"/internal/bot/groups/{group_id}/bot-admin",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             json={"is_bot_admin": is_bot_admin},
@@ -786,10 +779,9 @@ class BotApiClient:
             group_id: Telegram chat id группы.
             telegram_id: Telegram user id пользователя.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.delete(
+        response = await client.delete(
             f"/internal/bot/groups/{group_id}/users/{telegram_id}",
             headers={"X-Internal-Api-Key": self.internal_api_token},
         )
@@ -808,10 +800,9 @@ class BotApiClient:
             telegram_id: Telegram user id пользователя.
             is_admin: признак того, что пользователь является администратором группы.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.patch(
+        response = await client.patch(
             f"/internal/bot/groups/{group_id}/users/{telegram_id}/admin",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             json={"is_admin": is_admin},
@@ -833,10 +824,9 @@ class BotApiClient:
             supergroup_name: название супергруппы.
             supergroup_type: тип Telegram-чата после миграции.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.patch(
+        response = await client.patch(
             "/internal/bot/groups/migrate-to-supergroup",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             json={
@@ -854,10 +844,9 @@ class BotApiClient:
         Args:
             telegram_id: Telegram user id пользователя.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.post(
+        response = await client.post(
             f"/internal/bot/users/{telegram_id}/rating/recalculate",
             headers={"X-Internal-Api-Key": self.internal_api_token},
         )
@@ -872,10 +861,9 @@ class BotApiClient:
         Returns:
             список рейтингов упражнений для вывода в команде `/statistics`.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.get(
+        response = await client.get(
             "/internal/bot/statistics/exercise-rating",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             params={"telegram_id": telegram_id},
@@ -892,10 +880,9 @@ class BotApiClient:
         Returns:
             строки данных для формирования файла экспорта в Telegram-боте.
         """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+        client = self._get_client()
 
-        response = await self._client.get(
+        response = await client.get(
             "/internal/bot/export/data",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             params={"telegram_id": telegram_id},

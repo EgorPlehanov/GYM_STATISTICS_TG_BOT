@@ -146,7 +146,7 @@ Backlog фиксирует крупные задачи перехода на н�
 - [ ] Описать JSON-friendly формат FSM training draft для Telegram-бота.
 - [ ] Заменить временный `training_data: dict[str, Any]` в internal training API на строгие DTO.
 - [ ] Добавить adapter `API DTO -> FSM draft -> API DTO` для сценариев тренировки.
-- [ ] Вынести проверку открытого HTTP-клиента в `BotApiClient` в приватный helper вместо повторения проверки в каждом методе.
+- [x] Вынести проверку открытого HTTP-клиента в `BotApiClient` в приватный helper вместо повторения проверки в каждом методе.
 - [ ] Разделить `app/bot/client.py` на пакет `app/bot/api_client/` по доменным зонам после завершения переноса основных сценариев на internal API.
 - [ ] Убрать переходную поддержку `datetime` для `Training.date` после перевода FSM/API на строгие `date`-контракты.
 - [ ] Перевести aiogram FSM storage с `MemoryStorage` на Redis после выбора Redis как инфраструктурного сервиса.
