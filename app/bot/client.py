@@ -4,20 +4,23 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
 
-import httpx
+from app.bot.api_client.admin import BotAdminAccess, BotAdminApiClientMixin, BotAdminStatus
+from app.bot.api_client.users import BotUsersApiClientMixin, EnsureUserResult
 
-from app.core.config import config
-
-
-@dataclass(frozen=True)
-class EnsureUserResult:
-    """Результат регистрации пользователя через internal API.
-
-    Attributes:
-        created: признак того, что пользователь был создан в текущем запросе.
-    """
-
-    created: bool
+__all__ = [
+    "BotAdminAccess",
+    "BotAdminStatus",
+    "BotApiClient",
+    "BotCurrentGroupRedirectToggleResult",
+    "BotExercise",
+    "BotExerciseRating",
+    "BotExportData",
+    "BotRedirectGroup",
+    "BotTrainingByDateResult",
+    "BotTrainingSaveResult",
+    "BotTrainingStartContext",
+    "EnsureUserResult",
+]
 
 
 @dataclass(frozen=True)
@@ -158,36 +161,6 @@ class BotCurrentGroupRedirectToggleResult:
 
 
 @dataclass(frozen=True)
-class BotAdminAccess:
-    """Результат проверки доступа к Telegram admin-панели.
-
-    Attributes:
-        has_access: признак доступа к admin-панели.
-        roles: коды ролей пользователя.
-    """
-
-    has_access: bool
-    roles: list[str]
-
-
-@dataclass(frozen=True)
-class BotAdminStatus:
-    """Минимальный статус backend API для Telegram admin-панели.
-
-    Attributes:
-        api_status: состояние backend API.
-        app_env: текущее окружение приложения.
-        has_access: признак доступа пользователя к admin-панели.
-        roles: коды ролей пользователя.
-    """
-
-    api_status: str
-    app_env: str
-    has_access: bool
-    roles: list[str]
-
-
-@dataclass(frozen=True)
 class BotTrainingSaveResult:
     """Результат сохранения тренировки через backend API.
 
@@ -202,140 +175,8 @@ class BotTrainingSaveResult:
     created: bool
 
 
-class BotApiClient:
+class BotApiClient(BotUsersApiClientMixin, BotAdminApiClientMixin):
     """HTTP-клиент, через который Telegram-бот обращается к backend API."""
-
-    def __init__(
-        self,
-        base_url: str | None = None,
-        internal_api_token: str | None = None,
-        http_client: httpx.AsyncClient | None = None,
-    ) -> None:
-        """Создает клиент backend API для Telegram-бота.
-
-        Args:
-            base_url: базовый URL API. По умолчанию берется из `BOT_API_BASE_URL`.
-            internal_api_token: service token для `/internal/*`.
-            http_client: готовый `httpx.AsyncClient` для тестов или внешнего управления.
-        """
-        self.base_url = (base_url or config.BOT_API_BASE_URL).rstrip("/")
-        self.internal_api_token = internal_api_token or config.INTERNAL_API_TOKEN.get_secret_value()
-        self._client = http_client
-        self._owns_client = http_client is None
-
-    async def __aenter__(self) -> "BotApiClient":
-        """Открывает HTTP-клиент, если он не был передан извне."""
-        if self._client is None:
-            self._client = httpx.AsyncClient(base_url=self.base_url, timeout=10.0)
-        return self
-
-    async def __aexit__(self, exc_type, exc, traceback) -> None:
-        """Закрывает HTTP-клиент, созданный внутри `BotApiClient`."""
-        if self._owns_client and self._client is not None:
-            await self._client.aclose()
-        self._client = None
-
-    def _get_client(self) -> httpx.AsyncClient:
-        """Возвращает открытый HTTP-клиент.
-
-        Raises:
-            RuntimeError: если `BotApiClient` используется без `async with`.
-
-        Returns:
-            активный `httpx.AsyncClient` для internal API-запросов.
-        """
-        if self._client is None:
-            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
-
-        return self._client
-
-    async def ensure_user(
-        self,
-        telegram_id: int,
-        name: str,
-        language_code: str | None,
-    ) -> EnsureUserResult:
-        """Создает пользователя через internal API, если его еще нет.
-
-        Args:
-            telegram_id: Telegram user id из update-а бота.
-            name: отображаемое имя пользователя.
-            language_code: языковой код пользователя из Telegram.
-
-        Returns:
-            `EnsureUserResult` с признаком создания пользователя.
-        """
-        client = self._get_client()
-
-        response = await client.post(
-            "/internal/bot/users/ensure",
-            headers={"X-Internal-Api-Key": self.internal_api_token},
-            json={
-                "telegram_id": telegram_id,
-                "name": name,
-                "language_code": language_code,
-            },
-        )
-        response.raise_for_status()
-        return EnsureUserResult(**response.json())
-
-    async def get_admin_access(self, telegram_id: int) -> BotAdminAccess:
-        """Проверяет доступ пользователя к Telegram admin-панели.
-
-        Args:
-            telegram_id: Telegram user id пользователя.
-
-        Returns:
-            результат проверки доступа и роли пользователя.
-        """
-        client = self._get_client()
-
-        response = await client.get(
-            "/internal/bot/admin/access",
-            headers={"X-Internal-Api-Key": self.internal_api_token},
-            params={"telegram_id": telegram_id},
-        )
-        response.raise_for_status()
-        return BotAdminAccess(**response.json())
-
-    async def get_admin_status(self, telegram_id: int) -> BotAdminStatus:
-        """Возвращает минимальный статус backend API для Telegram admin-панели.
-
-        Args:
-            telegram_id: Telegram user id пользователя.
-
-        Returns:
-            безопасный статус системы для администратора.
-        """
-        client = self._get_client()
-
-        response = await client.get(
-            "/internal/bot/admin/status",
-            headers={"X-Internal-Api-Key": self.internal_api_token},
-            params={"telegram_id": telegram_id},
-        )
-        response.raise_for_status()
-        return BotAdminStatus(**response.json())
-
-    async def update_user_private_chat_banned(
-        self,
-        telegram_id: int,
-        is_private_chat_banned: bool,
-    ) -> None:
-        """Обновляет признак блокировки бота пользователем в личном чате.
-
-        Args:
-            telegram_id: Telegram user id пользователя.
-            is_private_chat_banned: признак того, что пользователь заблокировал бота.
-        """
-        client = self._get_client()
-
-        response = await client.patch(
-            f"/internal/bot/users/{telegram_id}/private-chat-banned",
-            headers={"X-Internal-Api-Key": self.internal_api_token},
-            json={"is_private_chat_banned": is_private_chat_banned},
-        )
-        response.raise_for_status()
 
     async def get_exercises(
         self,
@@ -835,20 +676,6 @@ class BotApiClient:
                 "supergroup_name": supergroup_name,
                 "supergroup_type": supergroup_type,
             },
-        )
-        response.raise_for_status()
-
-    async def recalculate_user_rating(self, telegram_id: int) -> None:
-        """Запускает пересчет рейтингов пользователя через internal API.
-
-        Args:
-            telegram_id: Telegram user id пользователя.
-        """
-        client = self._get_client()
-
-        response = await client.post(
-            f"/internal/bot/users/{telegram_id}/rating/recalculate",
-            headers={"X-Internal-Api-Key": self.internal_api_token},
         )
         response.raise_for_status()
 
