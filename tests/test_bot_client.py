@@ -824,6 +824,65 @@ async def test_bot_api_client_group_lifecycle_methods_send_internal_token(monkey
 
 
 @pytest.mark.asyncio
+async def test_bot_api_client_group_user_methods_send_internal_token(monkeypatch):
+    """Проверяет методы клиента для событий участников Telegram-группы."""
+    _set_required_env(monkeypatch)
+
+    from app.bot.client import BotApiClient
+
+    captured_requests = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        """Фиксирует запросы к endpoints участников группы."""
+        payload = json.loads(request.content) if request.content else None
+        captured_requests.append(
+            {
+                "method": request.method,
+                "url": str(request.url),
+                "token": request.headers.get("X-Internal-Api-Key"),
+                "payload": payload,
+            }
+        )
+        return httpx.Response(200, json={"status": "ok"})
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(
+        transport=transport,
+        base_url="http://api:8000",
+    ) as http_client:
+        api_client = BotApiClient(
+            base_url="http://api:8000",
+            internal_api_token="internal-test-token",
+            http_client=http_client,
+        )
+        async with api_client:
+            await api_client.delete_group_user(
+                group_id=-1001,
+                telegram_id=123456789,
+            )
+            await api_client.update_group_user_admin(
+                group_id=-1001,
+                telegram_id=123456789,
+                is_admin=True,
+            )
+
+    assert captured_requests == [
+        {
+            "method": "DELETE",
+            "url": "http://api:8000/internal/bot/groups/-1001/users/123456789",
+            "token": "internal-test-token",
+            "payload": None,
+        },
+        {
+            "method": "PATCH",
+            "url": "http://api:8000/internal/bot/groups/-1001/users/123456789/admin",
+            "token": "internal-test-token",
+            "payload": {"is_admin": True},
+        },
+    ]
+
+
+@pytest.mark.asyncio
 async def test_bot_api_client_recalculate_user_rating_sends_internal_token(monkeypatch):
     """Проверяет запуск пересчета рейтинга через internal API."""
     _set_required_env(monkeypatch)

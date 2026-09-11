@@ -1,31 +1,26 @@
 from aiogram import F, Router
-from aiogram.types import ChatMemberUpdated
 from aiogram.filters import (
+    ADMINISTRATOR,
+    CREATOR,
+    IS_MEMBER,
+    IS_NOT_MEMBER,
+    KICKED,
+    LEFT,
+    MEMBER,
+    RESTRICTED,
     ChatMemberUpdatedFilter,
-    KICKED, MEMBER, LEFT, RESTRICTED,
-    ADMINISTRATOR, CREATOR,
-    IS_MEMBER, IS_NOT_MEMBER
-) 
-
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.bot.middlewares import DBSessionMiddleware
-from app.db.session import async_session_factory
-from app.domain.groups.service import (
-    delete_group_user,
-    update_group_user_is_admin,
 )
+from aiogram.types import ChatMemberUpdated
 
-
+from app.bot.client import BotApiClient
 
 router = Router()
 router.chat_member.filter(F.chat.type.in_({"group", "supergroup"}))
-router.chat_member.middleware(DBSessionMiddleware(async_session_factory))
 
 
 
 @router.chat_member(ChatMemberUpdatedFilter(IS_NOT_MEMBER >> IS_MEMBER))
-async def on_user_join(event: ChatMemberUpdated, session: AsyncSession):
+async def on_user_join(event: ChatMemberUpdated):
     """
     Пользователь покинул чат
     """
@@ -39,19 +34,19 @@ async def on_user_join(event: ChatMemberUpdated, session: AsyncSession):
 
 
 @router.chat_member(ChatMemberUpdatedFilter(IS_MEMBER >> IS_NOT_MEMBER))
-async def on_user_leave(event: ChatMemberUpdated, session: AsyncSession):
+async def on_user_leave(event: ChatMemberUpdated):
     """
     Пользователь покинул чат
     """
     if event.old_chat_member.user.is_bot:
         return
-    await delete_group_user(
-        session=session,
-        group_id=event.chat.id,
-        user_id=event.old_chat_member.user.id
-    )
+    async with BotApiClient() as api_client:
+        await api_client.delete_group_user(
+            group_id=event.chat.id,
+            telegram_id=event.old_chat_member.user.id,
+        )
     await event.answer(
-        text=f"Мб еще вернется(",
+        text="Мб еще вернется(",
     )
 
 
@@ -64,16 +59,16 @@ async def on_user_leave(event: ChatMemberUpdated, session: AsyncSession):
         (ADMINISTRATOR | CREATOR)
     )
 )
-async def admin_promoted(event: ChatMemberUpdated, session: AsyncSession):
+async def admin_promoted(event: ChatMemberUpdated):
     """
     Ползователь повышен до админа
     """
-    await update_group_user_is_admin(
-        session=session,
-        group_id=event.chat.id,
-        user_id=event.new_chat_member.user.id,
-        is_admin=True
-    )
+    async with BotApiClient() as api_client:
+        await api_client.update_group_user_admin(
+            group_id=event.chat.id,
+            telegram_id=event.new_chat_member.user.id,
+            is_admin=True,
+        )
 
 
 
@@ -85,15 +80,15 @@ async def admin_promoted(event: ChatMemberUpdated, session: AsyncSession):
         (KICKED | LEFT | RESTRICTED | MEMBER)
     )
 )
-async def admin_demoted(event: ChatMemberUpdated, session: AsyncSession):
+async def admin_demoted(event: ChatMemberUpdated):
     """
     Ползователь понижен до обычного юзера
     """
-    await update_group_user_is_admin(
-        session=session,
-        group_id=event.chat.id,
-        user_id=event.new_chat_member.user.id,
-        is_admin=False
-    )
+    async with BotApiClient() as api_client:
+        await api_client.update_group_user_admin(
+            group_id=event.chat.id,
+            telegram_id=event.new_chat_member.user.id,
+            is_admin=False,
+        )
 
 

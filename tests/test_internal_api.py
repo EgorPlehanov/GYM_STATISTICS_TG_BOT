@@ -1002,6 +1002,117 @@ def test_internal_bot_group_migrate_to_supergroup_calls_domain_service(monkeypat
     ]
 
 
+def test_internal_bot_group_user_delete_calls_domain_service(monkeypatch):
+    """Проверяет удаление связи пользователя с группой через internal API."""
+    _set_required_env(monkeypatch)
+
+    from app.api.deps import config, get_db_session
+    from app.api.main import app
+    from app.api.routers.internal import groups as internal_groups
+
+    monkeypatch.setattr(
+        config,
+        "INTERNAL_API_TOKEN",
+        SecretStr("test-internal-token-with-at-least-32-bytes"),
+    )
+
+    calls = []
+
+    async def fake_delete_group_user(session, group_id, user_id):
+        """Фиксирует параметры удаления связи пользователя с группой."""
+        calls.append(
+            {
+                "session": session,
+                "group_id": group_id,
+                "user_id": user_id,
+            }
+        )
+
+    async def fake_db_session():
+        """Возвращает тестовую заглушку DB-сессии."""
+        yield object()
+
+    monkeypatch.setattr(internal_groups, "delete_group_user", fake_delete_group_user)
+    app.dependency_overrides[get_db_session] = fake_db_session
+
+    client = TestClient(app)
+    response = client.delete(
+        "/internal/bot/groups/-1001/users/123456789",
+        headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+    assert calls == [
+        {
+            "session": calls[0]["session"],
+            "group_id": -1001,
+            "user_id": 123456789,
+        }
+    ]
+
+
+def test_internal_bot_group_user_admin_calls_domain_service(monkeypatch):
+    """Проверяет обновление статуса администратора пользователя через internal API."""
+    _set_required_env(monkeypatch)
+
+    from app.api.deps import config, get_db_session
+    from app.api.main import app
+    from app.api.routers.internal import groups as internal_groups
+
+    monkeypatch.setattr(
+        config,
+        "INTERNAL_API_TOKEN",
+        SecretStr("test-internal-token-with-at-least-32-bytes"),
+    )
+
+    calls = []
+
+    async def fake_update_group_user_is_admin(session, group_id, user_id, is_admin):
+        """Фиксирует параметры обновления статуса администратора."""
+        calls.append(
+            {
+                "session": session,
+                "group_id": group_id,
+                "user_id": user_id,
+                "is_admin": is_admin,
+            }
+        )
+
+    async def fake_db_session():
+        """Возвращает тестовую заглушку DB-сессии."""
+        yield object()
+
+    monkeypatch.setattr(
+        internal_groups,
+        "update_group_user_is_admin",
+        fake_update_group_user_is_admin,
+    )
+    app.dependency_overrides[get_db_session] = fake_db_session
+
+    client = TestClient(app)
+    response = client.patch(
+        "/internal/bot/groups/-1001/users/123456789/admin",
+        headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
+        json={"is_admin": True},
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+    assert calls == [
+        {
+            "session": calls[0]["session"],
+            "group_id": -1001,
+            "user_id": 123456789,
+            "is_admin": True,
+        }
+    ]
+
+
 def test_internal_bot_redirect_settings_calls_domain_service(monkeypatch):
     """Проверяет получение групп пользователя для настройки редиректа."""
     _set_required_env(monkeypatch)

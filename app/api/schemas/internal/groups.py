@@ -161,3 +161,13 @@ class InternalBotGroupMigrateToSupergroupRequest(BaseModel):
     supergroup_id: int
     supergroup_name: str
     supergroup_type: str
+
+
+class InternalBotGroupUserAdminRequest(BaseModel):
+    """Данные для обновления признака администратора пользователя в группе.
+
+    Attributes:
+        is_admin: признак того, что пользователь является администратором группы.
+    """
+
+    is_admin: bool

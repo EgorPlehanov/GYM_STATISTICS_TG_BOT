@@ -707,6 +707,49 @@ class BotApiClient:
         )
         response.raise_for_status()
 
+    async def delete_group_user(
+        self,
+        group_id: int,
+        telegram_id: int,
+    ) -> None:
+        """Удаляет связь пользователя с Telegram-группой.
+
+        Args:
+            group_id: Telegram chat id группы.
+            telegram_id: Telegram user id пользователя.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.delete(
+            f"/internal/bot/groups/{group_id}/users/{telegram_id}",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+        )
+        response.raise_for_status()
+
+    async def update_group_user_admin(
+        self,
+        group_id: int,
+        telegram_id: int,
+        is_admin: bool,
+    ) -> None:
+        """Обновляет признак администратора пользователя в Telegram-группе.
+
+        Args:
+            group_id: Telegram chat id группы.
+            telegram_id: Telegram user id пользователя.
+            is_admin: признак того, что пользователь является администратором группы.
+        """
+        if self._client is None:
+            raise RuntimeError("BotApiClient должен использоваться внутри async context manager")
+
+        response = await self._client.patch(
+            f"/internal/bot/groups/{group_id}/users/{telegram_id}/admin",
+            headers={"X-Internal-Api-Key": self.internal_api_token},
+            json={"is_admin": is_admin},
+        )
+        response.raise_for_status()
+
     async def migrate_group_to_supergroup(
         self,
         group_id: int,

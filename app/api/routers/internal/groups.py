@@ -11,6 +11,7 @@ from app.api.schemas.internal.groups import (
     InternalBotGroupEnsureRequest,
     InternalBotGroupEnsureResponse,
     InternalBotGroupMigrateToSupergroupRequest,
+    InternalBotGroupUserAdminRequest,
     InternalBotRedirectGroupResponse,
     InternalBotRedirectGroupUpdateRequest,
     InternalBotTrainingResultMessageCreateRequest,
@@ -21,6 +22,7 @@ from app.domain.groups.service import (
     create_group_if_not_exists,
     create_group_training_result_message,
     create_group_user,
+    delete_group_user,
     get_all_user_redirect_groups,
     get_group_training_result_messages_id,
     get_group_user_by_user_id_and_group_id,
@@ -29,6 +31,7 @@ from app.domain.groups.service import (
     update_group_is_bot_banned,
     update_group_to_supergroup,
     update_group_training_result_message_id,
+    update_group_user_is_admin,
     update_redirect_to_group,
 )
 
@@ -115,6 +118,55 @@ async def migrate_bot_group_to_supergroup(
         supergroup_id=payload.supergroup_id,
         supergroup_name=payload.supergroup_name,
         supergroup_type=payload.supergroup_type,
+    )
+    return {"status": "ok"}
+
+
+@router.delete("/bot/groups/{group_id}/users/{telegram_id}")
+async def delete_bot_group_user(
+    group_id: int,
+    telegram_id: int,
+    session: DbSession,
+) -> dict[str, str]:
+    """Удаляет связь пользователя с Telegram-группой.
+
+    Args:
+        group_id: Telegram chat id группы.
+        telegram_id: Telegram user id пользователя.
+
+    Returns:
+        короткий статус успешного выполнения операции.
+    """
+    await delete_group_user(
+        session=session,
+        group_id=group_id,
+        user_id=telegram_id,
+    )
+    return {"status": "ok"}
+
+
+@router.patch("/bot/groups/{group_id}/users/{telegram_id}/admin")
+async def update_bot_group_user_admin(
+    group_id: int,
+    telegram_id: int,
+    payload: InternalBotGroupUserAdminRequest,
+    session: DbSession,
+) -> dict[str, str]:
+    """Обновляет признак администратора пользователя в Telegram-группе.
+
+    Args:
+        group_id: Telegram chat id группы.
+        telegram_id: Telegram user id пользователя.
+        payload: новое состояние прав администратора.
+
+    Returns:
+        короткий статус успешного выполнения операции.
+    """
+    await update_group_user_is_admin(
+        session=session,
+        group_id=group_id,
+        user_id=telegram_id,
+        is_admin=payload.is_admin,
     )
     return {"status": "ok"}
 
