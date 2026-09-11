@@ -20,7 +20,7 @@ from app.bot.utils.check_acept_addition import check_acept_addition
 from app.bot.utils.format_training_data import get_formatted_state_date
 from app.bot.utils.weight_repetitions_modes import get_weight_repetitions_modes_values
 
-from .training_types import Button, TrainingMode, TrainingStates, exercise_button_by_mode
+from app.bot.training_types import Button, TrainingMode, TrainingStates, exercise_button_by_mode
 
 router = Router()
 

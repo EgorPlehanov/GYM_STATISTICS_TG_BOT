@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 
 from typing import Dict, Union
 
-from .training_types import (
+from app.bot.training_types import (
     TrainingStates,
     TrainingMode,
     acept_button_by_mode,

@@ -7,7 +7,7 @@ from aiogram.fsm.context import FSMContext
 
 from typing import List, Dict, Union
 
-from .training_types import TrainingStates, TrainingMode, acept_button_by_mode
+from app.bot.training_types import TrainingStates, TrainingMode, acept_button_by_mode
 from app.bot.utils.format_training_data import get_formatted_state_date
 from app.bot.utils.check_acept_addition import check_acept_addition
 from app.bot.keyboards.training_kb import (

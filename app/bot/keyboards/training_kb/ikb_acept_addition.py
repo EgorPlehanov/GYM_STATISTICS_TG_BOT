@@ -1,7 +1,7 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from app.bot.handlers.training_units import TrainingMode, acept_button_by_mode
+from app.bot.training_types import TrainingMode, acept_button_by_mode
 
 
 def get_ikb_acept_addition(

@@ -1,4 +1,4 @@
-from .training_types import *
+from app.bot.training_types import TrainingStates
 
 from .training_select_date import router as select_date_router
 from .training_select_exercise import router as select_exercise_router

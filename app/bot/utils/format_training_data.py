@@ -6,7 +6,7 @@ from datetime import datetime
 import json
 
 from .formate_set_data_text import format_set_data_to_text
-from app.bot.handlers.training_units import TrainingStates, TrainingMode
+from app.bot.training_types import TrainingStates, TrainingMode
 
 
 
