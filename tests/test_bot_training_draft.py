@@ -11,8 +11,37 @@ from app.bot.fsm.training import (
     draft_from_json,
     draft_to_json,
     draft_to_legacy_exercise_data,
+    get_legacy_exercise_data,
+    get_training_draft,
     legacy_exercise_data_to_draft,
+    set_legacy_exercise_data,
+    set_training_draft,
 )
+from app.bot.fsm.training.states import TrainingMode
+
+
+class FakeFSMContext:
+    """Минимальная заглушка aiogram FSMContext для тестов draft helpers."""
+
+    def __init__(self, data: dict):
+        """Сохраняет стартовые данные FSM.
+
+        Args:
+            data: начальный словарь FSM data.
+        """
+        self.data = data
+
+    async def get_data(self) -> dict:
+        """Возвращает текущие данные FSM."""
+        return self.data
+
+    async def update_data(self, **kwargs) -> None:
+        """Обновляет данные FSM как `FSMContext.update_data`.
+
+        Args:
+            kwargs: значения, которые нужно записать в FSM data.
+        """
+        self.data.update(kwargs)
 
 
 def test_training_draft_serializes_dates_to_json_friendly_strings() -> None:
@@ -278,3 +307,144 @@ def test_legacy_exercise_data_round_trip_preserves_save_contract() -> None:
     restored = draft_to_legacy_exercise_data(draft, user_id=legacy_data["user_id"])
 
     assert restored == legacy_data
+
+
+async def test_get_training_draft_reads_legacy_fsm_context() -> None:
+    """Проверяет чтение типизированного draft из текущего legacy FSMContext."""
+    state = FakeFSMContext(
+        {
+            "exercise_data": {
+                "id": 10,
+                "user_id": 123456789,
+                "date": date(2026, 9, 12),
+                "comment": "Тест",
+                "global_set_counter": 1,
+                "exercises": {
+                    1: {
+                        "exercise_name": "Жим лежа",
+                        "local_set_counter": 1,
+                        "sets": {
+                            1: {
+                                "id": 21,
+                                "set_number": 1,
+                                "weight": 80.0,
+                                "repetitions": 8,
+                                "time": datetime(2026, 9, 12, 18, 30),
+                            }
+                        },
+                    }
+                },
+            },
+            "mode": TrainingMode.ADD_SET,
+            "cur_exercise_id": 1,
+            "cur_exercise_name": "Жим лежа",
+            "weight": 82.5,
+            "repetitions": 6,
+            "sets_count": 2,
+            "message_id": 500,
+            "training_date": [date(2026, 9, 12)],
+        }
+    )
+
+    draft = await get_training_draft(state)
+
+    assert draft.training.training_id == 10
+    assert draft.training.training_date == "2026-09-12"
+    assert draft.training.exercises[0].sets[0].execution_time == "2026-09-12T18:30:00"
+    assert draft.selection.mode == "add_set"
+    assert draft.selection.exercise_id == 1
+    assert draft.selection.weight == 82.5
+    assert draft.ui.message_id == 500
+    assert draft.suggestions.training_dates == ["2026-09-12"]
+
+
+async def test_set_training_draft_writes_legacy_fsm_context() -> None:
+    """Проверяет сохранение типизированного draft обратно в legacy FSMContext."""
+    state = FakeFSMContext(
+        {
+            "exercise_data": {
+                "id": None,
+                "user_id": 123456789,
+                "date": date(2026, 9, 12),
+                "comment": None,
+                "global_set_counter": 0,
+                "exercises": {},
+            }
+        }
+    )
+    draft = TrainingDraft(
+        training=TrainingDraftData(
+            training_id=10,
+            training_date="2026-09-13",
+            comment="Новая дата",
+            exercises=[
+                TrainingDraftExercise(
+                    exercise_id=1,
+                    exercise_name="Жим лежа",
+                    sets=[
+                        TrainingDraftSet(
+                            set_id=None,
+                            set_number=1,
+                            weight=80.0,
+                            repetitions=8,
+                            execution_time="2026-09-13T18:30:00",
+                        )
+                    ],
+                )
+            ],
+        )
+    )
+    draft.selection.mode = "add_set"
+    draft.selection.exercise_id = 1
+    draft.selection.exercise_name = "Жим лежа"
+    draft.selection.weight = 80.0
+    draft.selection.repetitions = 8
+    draft.selection.sets_count = 1
+    draft.ui.message_id = 501
+    draft.suggestions.training_dates = ["2026-09-13"]
+
+    await set_training_draft(state, draft)
+
+    assert state.data["mode"] == TrainingMode.ADD_SET
+    assert state.data["cur_exercise_id"] == 1
+    assert state.data["message_id"] == 501
+    assert state.data["training_date"] == [date(2026, 9, 13)]
+    assert state.data["exercise_data"] == {
+        "id": 10,
+        "user_id": 123456789,
+        "date": date(2026, 9, 13),
+        "comment": "Новая дата",
+        "global_set_counter": 1,
+        "exercises": {
+            1: {
+                "exercise_name": "Жим лежа",
+                "local_set_counter": 1,
+                "sets": {
+                    1: {
+                        "id": None,
+                        "set_number": 1,
+                        "weight": 80.0,
+                        "repetitions": 8,
+                        "time": datetime(2026, 9, 13, 18, 30),
+                    }
+                },
+            }
+        },
+    }
+
+
+async def test_legacy_exercise_data_helpers_read_and_write_fsm_context() -> None:
+    """Проверяет короткие helpers для прямой работы с legacy `exercise_data`."""
+    state = FakeFSMContext({})
+    exercise_data = {
+        "id": None,
+        "user_id": 123456789,
+        "date": date(2026, 9, 12),
+        "comment": None,
+        "global_set_counter": 0,
+        "exercises": {},
+    }
+
+    await set_legacy_exercise_data(state, exercise_data)
+
+    assert await get_legacy_exercise_data(state) == exercise_data

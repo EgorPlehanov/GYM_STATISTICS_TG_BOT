@@ -151,6 +151,7 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Добавить adapter `legacy exercise_data -> FSM draft -> legacy exercise_data` для переходного сценария тренировки.
 - [ ] Добавить adapter `API DTO -> FSM draft -> API DTO` для сценариев тренировки.
 - [x] Добавить типизированные структуры и JSON helpers для FSM training draft.
+- [x] Добавить helpers доступа к FSM training draft поверх текущего legacy FSMContext.
 - [ ] Ввести строгий FSM training draft и helpers доступа к нему.
 - [ ] Перевести handlers тренировки с прямого доступа к вложенным dict-ключам на FSM draft helpers.
 - [x] Вынести проверку открытого HTTP-клиента в `BotApiClient` в приватный helper вместо повторения проверки в каждом методе.
