@@ -172,6 +172,7 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Вынести training-specific helpers `check_accept_addition` и `weight_repetitions_modes` из `app/bot/utils` в FSM-пакет тренировки.
 - [x] Перенести форматирование тренировок и рейтингов из `app/bot/utils` в `app/bot/formatters`.
 - [x] Перенести простой bot export presentation helper из `app/bot/utils` в `app/bot/formatters/export.py`.
+- [x] Перенести отправку результата тренировки в группы из `app/bot/utils` в training flow и исправить параметры helper-а.
 - [ ] Пересмотреть inline payload выбора упражнения: убрать runtime-only `Fernet.generate_key()` и заменить на устойчивый signed/Redis-backed payload.
 - [x] Описать правила структуры `app/bot`: где живут handlers, keyboards, formatters, filters, middlewares, FSM draft и API client.
 - [ ] Перевести aiogram FSM storage с `MemoryStorage` на Redis после выбора Redis как инфраструктурного сервиса.

@@ -14,9 +14,9 @@ from aiogram.types import (
 from app.bot.client import BotApiClient
 from app.bot.keyboards.training_kb import get_ikb_finish_add_comment
 from app.bot.formatters.training import get_formatted_state_date
-from app.bot.utils.redirect_result_to_user_group import redirect_result_to_user_group
 
 from app.bot.fsm.training import TrainingStates
+from .redirect_result import send_training_result_to_redirect_groups
 
 router = Router()
 
@@ -114,25 +114,25 @@ async def finish(callback: CallbackQuery, state: FSMContext):
 
     training_id = save_result.training_id
     is_update = save_result.updated
-    is_create = save_result.created
+    is_created = save_result.created
 
     result_text = await get_formatted_state_date(state, is_result=True)
     await callback.message.edit_text(
-        text = result_text,
+        text=result_text,
     )
     await callback.answer(
-        text = "✅ Тренировка сохранена 💾",
+        text="✅ Тренировка сохранена 💾",
     )
     await callback.message.answer("Красава жестко!")
     await state.clear()
 
-    await redirect_result_to_user_group(
-        bot = callback.message.bot,
-        result_text = f"@{callback.from_user.username}\n{result_text}",
+    await send_training_result_to_redirect_groups(
+        bot=callback.message.bot,
+        result_text=f"@{callback.from_user.username}\n{result_text}",
         telegram_id=callback.from_user.id,
-        id_upadate = is_update,
-        is_create = is_create,
-        training_id = training_id
+        is_update=is_update,
+        is_created=is_created,
+        training_id=training_id,
     )
 
     async with BotApiClient() as api_client:
