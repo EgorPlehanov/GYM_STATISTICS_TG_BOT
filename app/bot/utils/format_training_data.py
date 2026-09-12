@@ -270,8 +270,6 @@ async def get_formatted_state_date(state: FSMContext, is_result: bool = False) -
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
     text_list = []
 
-    # print(json.dumps(user_data.get('exercise_data', {}), default=serialize_datetime, indent=4))
-
     training_values = get_training_values(user_data, is_result)
     if training_values is not None:
         text_list.append(training_values)

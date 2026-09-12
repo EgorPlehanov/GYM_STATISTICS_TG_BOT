@@ -22,9 +22,8 @@ router.chat_member.filter(F.chat.type.in_({"group", "supergroup"}))
 @router.chat_member(ChatMemberUpdatedFilter(IS_NOT_MEMBER >> IS_MEMBER))
 async def on_user_join(event: ChatMemberUpdated):
     """
-    Пользователь покинул чат
+    Пользователь присоединился к чату
     """
-    print(event.new_chat_member.user.first_name, event.new_chat_member.user.is_bot)
     if event.new_chat_member.user.is_bot:
         return
     await event.answer(
@@ -61,7 +60,7 @@ async def on_user_leave(event: ChatMemberUpdated):
 )
 async def admin_promoted(event: ChatMemberUpdated):
     """
-    Ползователь повышен до админа
+    Пользователь повышен до админа
     """
     async with BotApiClient() as api_client:
         await api_client.update_group_user_admin(
@@ -82,7 +81,7 @@ async def admin_promoted(event: ChatMemberUpdated):
 )
 async def admin_demoted(event: ChatMemberUpdated):
     """
-    Ползователь понижен до обычного юзера
+    Пользователь понижен до обычного юзера
     """
     async with BotApiClient() as api_client:
         await api_client.update_group_user_admin(

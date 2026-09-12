@@ -15,8 +15,6 @@ from app.bot.client import BotApiClient
 from app.bot.utils.migration_cache import cache
 from app.core.config import config
 
-# from app.bot.utils.get_chat_members import get_chat_members
-
 
 
 router = Router()
