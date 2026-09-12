@@ -11,21 +11,23 @@ from cryptography.fernet import Fernet
 
 from app.bot.api_client.schemas.exercises import BotExercise
 from app.bot.client import BotApiClient
-from app.bot.keyboards.keyboards_types import PaginationAction
-from app.bot.keyboards.training_kb import (
-    TrainingExercisePagination,
-    get_ikb_open_inline_search,
-    get_ikb_select_exercise_fab,
-)
+from app.bot.formatters.training import get_formatted_state_date
 from app.bot.fsm.training import (
     Button,
     TrainingMode,
     TrainingStates,
     check_accept_addition,
     exercise_button_by_mode,
+    get_training_draft,
     get_weight_repetitions_modes_values,
+    set_training_draft,
 )
-from app.bot.formatters.training import get_formatted_state_date
+from app.bot.keyboards.keyboards_types import PaginationAction
+from app.bot.keyboards.training_kb import (
+    TrainingExercisePagination,
+    get_ikb_open_inline_search,
+    get_ikb_select_exercise_fab,
+)
 
 router = Router()
 
@@ -40,13 +42,17 @@ cipher = Fernet(key)
 async def add_exercise_handler(callback: CallbackQuery, state: FSMContext):
     """Открывает выбор упражнения для добавления в тренировку."""
     await state.set_state(TrainingStates.select_exercise)
-    await state.update_data(mode=TrainingMode.ADD_EXERCISE)
-    await state.update_data(sets_count=1)
 
     user_data: dict[str, int | dict] = await state.get_data()
+    draft = await get_training_draft(state)
+    draft.selection.mode = TrainingMode.ADD_EXERCISE.value
+    draft.selection.sets_count = 1
+    await set_training_draft(state, draft)
+
+    user_data = await state.get_data()
     most_frequent_exercises = user_data.get("most_frequent_exercises", [])
 
-    selected_exercise_id = user_data.get("cur_exercise_id") or user_data.get("exercise_id")
+    selected_exercise_id = draft.selection.exercise_id or user_data.get("exercise_id")
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
@@ -66,6 +72,7 @@ async def selected_exercise_pagination(
     """Переключает страницу списка частых упражнений."""
     page = int(callback_data.page)
     user_data: dict[str, int | dict] = await state.get_data()
+    draft = await get_training_draft(state)
     most_frequent_exercises = user_data.get("most_frequent_exercises", [])
 
     if callback_data.action == PaginationAction.PREV:
@@ -73,7 +80,7 @@ async def selected_exercise_pagination(
     elif callback_data.action == PaginationAction.NEXT:
         page = page + 1 if page < len(most_frequent_exercises) - 1 else page
 
-    selected_exercise_id = user_data.get("cur_exercise_id") or user_data.get("exercise_id")
+    selected_exercise_id = draft.selection.exercise_id or user_data.get("exercise_id")
 
     await callback.message.edit_reply_markup(
         reply_markup=get_ikb_select_exercise_fab(
@@ -105,10 +112,14 @@ async def selected_exercise(
     most_frequent_exercises.remove(exercise)
     most_frequent_exercises.insert(0, exercise)
 
-    await state.update_data(cur_exercise_name=exercise.name)
-    await state.update_data(cur_exercise_id=exercise_id)
+    draft = await get_training_draft(state)
+    draft.selection.exercise_id = exercise_id
+    draft.selection.exercise_name = exercise.name
+    await set_training_draft(state, draft)
+    user_data = await state.get_data()
 
-    back_button: Button = exercise_button_by_mode.get(user_data.get("mode"))
+    mode = TrainingMode(draft.selection.mode)
+    back_button: Button = exercise_button_by_mode.get(mode)
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
@@ -119,7 +130,7 @@ async def selected_exercise(
             has_next_button=user_data.get("weight") is not None,
             next_button_text="Повторения",
             next_button_callback_data="to_repetitions",
-            has_delete_set_button=user_data.get("mode") == TrainingMode.EDIT_SET,
+            has_delete_set_button=mode == TrainingMode.EDIT_SET,
             switch_inline_query=get_weight_repetitions_modes_values(
                 user_data=await state.get_data(), is_weight=True
             ),
@@ -134,15 +145,16 @@ async def back_to_exercise(callback: CallbackQuery, state: FSMContext):
     await state.set_state(TrainingStates.select_exercise)
 
     user_data: dict[str, int | dict] = await state.get_data()
+    draft = await get_training_draft(state)
     most_frequent_exercises = user_data.get("most_frequent_exercises", [])
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
         reply_markup=get_ikb_select_exercise_fab(
             exercise_data=most_frequent_exercises,
-            has_next_button=user_data.get("cur_exercise_id") is not None,
+            has_next_button=draft.selection.exercise_id is not None,
             has_accept_addition_button=await check_accept_addition(state),
-            selected_exercise_id=user_data.get("cur_exercise_id"),
+            selected_exercise_id=draft.selection.exercise_id,
         ),
     )
 
@@ -207,10 +219,14 @@ async def inline_selected_exercise(
         most_frequent_exercises.pop(index_to_remove)
     most_frequent_exercises.insert(0, exercise)
 
-    await state.update_data(cur_exercise_name=exercise.name)
-    await state.update_data(cur_exercise_id=exercise_id)
+    draft = await get_training_draft(state)
+    draft.selection.exercise_id = exercise_id
+    draft.selection.exercise_name = exercise.name
+    await set_training_draft(state, draft)
+    user_data = await state.get_data()
 
-    back_button: Button = exercise_button_by_mode.get(user_data.get("mode"))
+    mode = TrainingMode(draft.selection.mode)
+    back_button: Button = exercise_button_by_mode.get(mode)
 
     await message.bot.edit_message_text(
         chat_id=message.chat.id,
@@ -223,7 +239,7 @@ async def inline_selected_exercise(
             has_next_button=user_data.get("weight") is not None,
             next_button_text="Повторения",
             next_button_callback_data="to_repetitions",
-            has_delete_set_button=user_data.get("mode") == TrainingMode.EDIT_SET,
+            has_delete_set_button=mode == TrainingMode.EDIT_SET,
             switch_inline_query=get_weight_repetitions_modes_values(
                 user_data=await state.get_data(), is_weight=True
             ),
