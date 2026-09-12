@@ -146,6 +146,11 @@ app/bot/
   handlers/
     common/
     training/
+      date.py
+      exercise.py
+      set_input/
+      edit/
+      finish.py
     statistics/
     export/
     redirect/
@@ -190,7 +195,12 @@ app/bot/
 
 Целевое разделение:
 
-- `handlers/training` - Telegram-обработчики сценария;
+- `handlers/training` - входная команда `/training` и общая сборка router-ов;
+- `handlers/training_units/date.py` - выбор и смена даты тренировки;
+- `handlers/training_units/exercise.py` - выбор упражнения;
+- `handlers/training_units/set_input/` - ввод веса, повторений, количества подходов и подтверждение добавления;
+- `handlers/training_units/edit/` - меню редактирования, выбор упражнения и подхода;
+- `handlers/training_units/finish.py` - комментарий, сохранение и завершение тренировки;
 - `fsm/training` - состояния, draft и адаптеры сериализации;
 - `keyboards/training` - клавиатуры сценария;
 - `formatters/training.py` - текстовое представление тренировки;

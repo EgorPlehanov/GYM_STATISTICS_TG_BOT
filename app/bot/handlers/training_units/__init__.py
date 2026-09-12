@@ -1,14 +1,32 @@
 from app.bot.fsm.training import TrainingStates
 
-from .training_select_date import router as select_date_router
-from .training_select_exercise import router as select_exercise_router
-from .training_select_weight import router as select_weight_router
-from .training_select_repetitions import router as select_repetitions_router
-from .training_select_sets_count import router as select_sets_count_router
-from .training_accept import router as accept_router
-from .training_edit_menu import router as edit_menu_router
-from .training_edit_select_exercise import router as edit_select_exercise_router
-from .training_edit_select_set import router as edit_select_set_router
-from .training_finish_add_comment import router as finish_add_comment_router
+from .date import router as select_date_router
+from .edit import (
+    edit_menu_router,
+    edit_select_exercise_router,
+    edit_select_set_router,
+)
+from .exercise import router as select_exercise_router
+from .finish import router as finish_add_comment_router
+from .set_input import (
+    accept_router,
+    select_repetitions_router,
+    select_sets_count_router,
+    select_weight_router,
+)
+
+__all__ = [
+    "TrainingStates",
+    "accept_router",
+    "edit_menu_router",
+    "edit_select_exercise_router",
+    "edit_select_set_router",
+    "finish_add_comment_router",
+    "select_date_router",
+    "select_exercise_router",
+    "select_repetitions_router",
+    "select_sets_count_router",
+    "select_weight_router",
+]
 
 
