@@ -13,7 +13,11 @@ from aiogram.types import (
 
 from app.bot.client import BotApiClient
 from app.bot.formatters.training import get_formatted_state_date
-from app.bot.fsm.training import TrainingStates
+from app.bot.fsm.training import (
+    TrainingStates,
+    get_training_draft,
+    set_training_draft,
+)
 from app.bot.keyboards.training_kb import get_ikb_finish_add_comment
 
 from .redirect_result import send_training_result_to_redirect_groups
@@ -30,12 +34,12 @@ async def finish_training(callback: CallbackQuery, state: FSMContext):
     """Открывает шаг добавления комментария перед сохранением тренировки."""
     await state.set_state(TrainingStates.add_comment)
 
-    user_data: dict[str, Any] = await state.get_data()
+    draft = await get_training_draft(state)
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
-        reply_markup = get_ikb_finish_add_comment(
-            current_comment = user_data.get('exercise_data').get('comment')
+        reply_markup=get_ikb_finish_add_comment(
+            current_comment=draft.training.comment
         ),
     )
 
@@ -68,24 +72,27 @@ async def add_comment(message: Message, state: FSMContext):
 
     new_comment = message.text[:500]
 
-    user_data: dict[str, Any] = await state.get_data()
-    
-    if user_data['exercise_data']['comment'] == new_comment:
+    draft = await get_training_draft(state)
+
+    if draft.training.comment == new_comment:
         return
-    
-    user_data['exercise_data']['comment'] = new_comment
+
+    draft.training.comment = new_comment
+    await set_training_draft(state, draft)
+
+    user_data: dict[str, Any] = await state.get_data()
 
     await message.bot.edit_message_text(
         chat_id=message.chat.id,
-        message_id=user_data.get('message_id'),
+        message_id=user_data.get("message_id"),
         text=await get_formatted_state_date(state),
-        reply_markup = get_ikb_finish_add_comment(
-            current_comment = new_comment
+        reply_markup=get_ikb_finish_add_comment(
+            current_comment=new_comment
         ),
     )
     if len(message.text) > 500:
         warning = await message.answer(
-            text = "❗ Комментарий сокращён до 500 символов."
+            text="❗ Комментарий сокращён до 500 символов."
         )
         await sleep(3)
         await warning.delete()
@@ -98,8 +105,11 @@ async def add_comment(message: Message, state: FSMContext):
 )
 async def finish(callback: CallbackQuery, state: FSMContext):
     """Сохраняет тренировку, отправляет редирект в группы и запускает пересчет рейтинга."""
+    draft = await get_training_draft(state)
+    await set_training_draft(state, draft)
+
     user_data: dict[str, Any] = await state.get_data()
-    exercise_data = user_data.get('exercise_data')
+    exercise_data = user_data.get("exercise_data")
 
     async with BotApiClient() as api_client:
         save_result = await api_client.save_training(exercise_data)
