@@ -155,6 +155,7 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Перевести handlers ввода подхода `training_units/set_input` на FSM draft helpers.
 - [x] Перевести handler выбора упражнения `training_units/exercise.py` на FSM draft helpers.
 - [x] Перевести handlers редактирования `training_units/edit` на FSM draft helpers.
+- [x] Перевести handler выбора и смены даты `training_units/date.py` на FSM draft helpers.
 - [ ] Ввести строгий FSM training draft и helpers доступа к нему.
 - [ ] Перевести handlers тренировки с прямого доступа к вложенным dict-ключам на FSM draft helpers.
 - [x] Вынести проверку открытого HTTP-клиента в `BotApiClient` в приватный helper вместо повторения проверки в каждом методе.
