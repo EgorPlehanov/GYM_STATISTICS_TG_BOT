@@ -298,6 +298,102 @@ internal API DTO -> FSM draft -> internal API DTO
 Это позволит держать Telegram-специфичный формат состояния отдельно от контрактов
 backend API.
 
+## FSM Training Draft
+
+Сейчас черновик тренировки в aiogram FSM хранится как набор loosely typed значений
+в одном `dict`. Это рабочий legacy-формат, но его сложно проверять, сериализовать
+и безопасно развивать.
+
+Текущий формат содержит данные нескольких типов:
+
+```text
+exercise_data              текущий черновик тренировки
+changed_exercise_data      тренировка выбранной даты при смене даты
+most_frequent_exercises    подсказки частых упражнений
+weight_repetitions_modes   подсказки веса и повторений
+message_id                 Telegram message id основного сообщения сценария
+mode                       текущий режим добавления или редактирования
+exercise_id                последнее выбранное упражнение
+exercise_name              имя последнего выбранного упражнения
+cur_exercise_id            упражнение текущего ввода
+cur_exercise_name          имя упражнения текущего ввода
+weight                     текущий ввод веса
+repetitions                текущий ввод повторений
+sets_count                 текущий ввод количества подходов
+last_weight                последний сохраненный вес
+last_repetitions           последнее сохраненное количество повторений
+edit_exercise_id           упражнение, выбранное для редактирования
+edit_exercise_name         имя упражнения, выбранного для редактирования
+edit_set_id                подход, выбранный для редактирования
+edit_set_number            номер подхода, выбранного для редактирования
+delete_acept_flag          legacy-флаг подтверждения удаления
+state_before_delete        состояние до экрана подтверждения удаления
+reply_markup_before_delete клавиатура до экрана подтверждения удаления
+training_date              список дат тренировок для календаря
+```
+
+Целевой FSM draft должен быть JSON-friendly и явно разделять постоянный черновик,
+текущий ввод и UI-контекст:
+
+```text
+training:
+  id: int | null
+  date: YYYY-MM-DD
+  comment: str | null
+  exercises:
+    - exercise_id: int
+      exercise_name: str
+      sets:
+        - set_id: int | null
+          set_number: int
+          weight: float
+          repetitions: int
+          execution_time: ISO datetime | null
+
+selection:
+  mode: add_exercise | add_set | edit_set | edit_date | null
+  exercise_id: int | null
+  exercise_name: str | null
+  weight: float | null
+  repetitions: int | null
+  sets_count: int | null
+
+edit:
+  exercise_id: int | null
+  exercise_name: str | null
+  set_id: int | null
+  set_number: int | null
+
+ui:
+  message_id: int | null
+  state_before_delete: str | null
+  reply_markup_before_delete: JSON-compatible markup | null
+
+suggestions:
+  most_frequent_exercises: list
+  weight_repetitions_modes: list
+  training_dates: list[YYYY-MM-DD]
+```
+
+В целевом формате не должно быть Python-only объектов, которые нельзя напрямую
+положить в Redis FSM storage или передать через JSON. Даты должны храниться строками
+формата `YYYY-MM-DD`, время подходов - строками ISO datetime.
+
+Переход к целевому draft должен выполняться через adapter layer:
+
+```text
+internal API DTO -> FSM training draft -> internal API DTO
+```
+
+Правила перехода:
+
+- handlers читают и меняют draft через helpers из `app/bot/fsm/training`;
+- прямой доступ к вложенным dict-ключам постепенно убирается из handlers;
+- callback/state values `acept_*` меняются только после появления строгого draft;
+- DTO backend API не используются напрямую как FSM-хранилище;
+- тесты draft helpers должны покрывать добавление упражнения, добавление подхода,
+  редактирование подхода, удаление подхода и смену даты.
+
 ## Inline payload
 
 Inline payload не должен зависеть от runtime-only ключа, созданного при старте процесса.

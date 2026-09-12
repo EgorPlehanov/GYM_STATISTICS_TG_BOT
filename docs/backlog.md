@@ -146,9 +146,11 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Удалить старую команду `/db_monitoring` с прямым доступом к БД.
 - [~] Перевести основные сценарии бота на вызовы `/internal/*`.
 - [ ] Добавить сценарий генерации одноразового кода для web login.
-- [ ] Описать JSON-friendly формат FSM training draft для Telegram-бота.
+- [x] Описать JSON-friendly формат FSM training draft для Telegram-бота.
 - [ ] Заменить временный `training_data: dict[str, Any]` в internal training API на строгие DTO.
 - [ ] Добавить adapter `API DTO -> FSM draft -> API DTO` для сценариев тренировки.
+- [ ] Ввести строгий FSM training draft и helpers доступа к нему.
+- [ ] Перевести handlers тренировки с прямого доступа к вложенным dict-ключам на FSM draft helpers.
 - [x] Вынести проверку открытого HTTP-клиента в `BotApiClient` в приватный helper вместо повторения проверки в каждом методе.
 - [x] Вынести базовый HTTP-контекст и методы `users/admin` из `app/bot/client.py` в пакет `app/bot/api_client/`.
 - [x] Перенести DTO `app/bot/api_client` в отдельный пакет `app/bot/api_client/schemas/`.
