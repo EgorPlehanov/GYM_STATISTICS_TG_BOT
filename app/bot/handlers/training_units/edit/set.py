@@ -1,22 +1,23 @@
-from aiogram import Router, F
-from aiogram.types import CallbackQuery
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery
 
+from app.bot.formatters.training import get_formatted_state_date
 from app.bot.fsm.training import (
     TrainingMode,
     TrainingStates,
     accept_button_by_mode,
     check_accept_addition,
+    get_training_draft,
     get_weight_repetitions_modes_values,
+    set_training_draft,
 )
-from app.bot.formatters.training import get_formatted_state_date
 from app.bot.keyboards.keyboards_types import PaginationAction
 from app.bot.keyboards.training_kb import (
     EditTrainingSetPagination,
     get_ikb_edit_select_set_fab,
     get_ikb_open_inline_search,
 )
-
 
 router = Router()
 
@@ -26,18 +27,19 @@ router = Router()
     EditTrainingSetPagination.filter(
         F.action.in_([PaginationAction.NEXT, PaginationAction.PREV])
     ),
-    TrainingStates.edit_select_set
+    TrainingStates.edit_select_set,
 )
 async def selected_set_pagination(
     callback: CallbackQuery,
     callback_data: EditTrainingSetPagination,
-    state: FSMContext
+    state: FSMContext,
 ):
     """Переключает страницу списка подходов выбранного упражнения."""
     page = int(callback_data.page)
     user_data: dict[str, int | dict] = await state.get_data()
-    edit_exercise_id = user_data['edit_exercise_id']
-    exercise_sets = user_data['exercise_data']['exercises'][edit_exercise_id]['sets']
+    draft = await get_training_draft(state)
+    edit_exercise_id = draft.edit.exercise_id
+    exercise_sets = user_data["exercise_data"]["exercises"][edit_exercise_id]["sets"]
 
     if callback_data.action == PaginationAction.PREV:
         page = page - 1 if page > 0 else 0
@@ -45,19 +47,19 @@ async def selected_set_pagination(
         page = page + 1 if page < len(exercise_sets) - 1 else page
 
     await callback.message.edit_reply_markup(
-        reply_markup = get_ikb_edit_select_set_fab(exercise_sets, page),
+        reply_markup=get_ikb_edit_select_set_fab(exercise_sets, page),
     )
 
 
     
 @router.callback_query(
     EditTrainingSetPagination.filter(F.action == PaginationAction.SET),
-    TrainingStates.edit_select_set
+    TrainingStates.edit_select_set,
 )
 async def selected_set(
     callback: CallbackQuery,
     callback_data: EditTrainingSetPagination,
-    state: FSMContext
+    state: FSMContext,
 ):
     """Открывает выбранный подход для редактирования веса и повторений."""
     await state.set_state(TrainingStates.select_weight)
@@ -65,36 +67,37 @@ async def selected_set(
     set_id = callback_data.set_id
 
     user_data: dict[str, int | dict] = await state.get_data()
-    edit_exercise_id = user_data['edit_exercise_id']
-    sets = user_data['exercise_data']['exercises'][edit_exercise_id]['sets']
+    draft = await get_training_draft(state)
+    edit_exercise_id = draft.edit.exercise_id
+    sets = user_data["exercise_data"]["exercises"][edit_exercise_id]["sets"]
     set_data: dict[str, int | float] = sets.get(set_id, {})
 
-    await state.update_data(edit_set_id=set_id)
-    await state.update_data(edit_set_number=set_data.get('set_number'))
-    await state.update_data(weight=set_data.get('weight'))
-    await state.update_data(repetitions=set_data.get('repetitions'))
-
-    await state.update_data(mode=TrainingMode.EDIT_SET)
+    draft.edit.set_id = set_id
+    draft.edit.set_number = set_data.get("set_number")
+    draft.selection.mode = TrainingMode.EDIT_SET.value
+    draft.selection.weight = set_data.get("weight")
+    draft.selection.repetitions = set_data.get("repetitions")
+    await set_training_draft(state, draft)
 
     accept_button = accept_button_by_mode.get(TrainingMode.EDIT_SET)
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
-        reply_markup = get_ikb_open_inline_search(
-            entity_name = "вес",
-            back_button_text = "Подход",
-            back_button_callback_data = "to_edit_menu_set",
-            has_next_button = True,
-            next_button_text = "Повторения",
-            next_button_callback_data = "to_repetitions",
-            has_accept_button = await check_accept_addition(state),
-            accept_button_text = accept_button.text,
-            accept_button_callback_data = accept_button.callback_data,
-            has_delete_set_button = True,
-            switch_inline_query = get_weight_repetitions_modes_values(
-                user_data = await state.get_data(),
-                is_weight = True
-            )
+        reply_markup=get_ikb_open_inline_search(
+            entity_name="вес",
+            back_button_text="Подход",
+            back_button_callback_data="to_edit_menu_set",
+            has_next_button=True,
+            next_button_text="Повторения",
+            next_button_callback_data="to_repetitions",
+            has_accept_button=await check_accept_addition(state),
+            accept_button_text=accept_button.text,
+            accept_button_callback_data=accept_button.callback_data,
+            has_delete_set_button=True,
+            switch_inline_query=get_weight_repetitions_modes_values(
+                user_data=await state.get_data(),
+                is_weight=True,
+            ),
         ),
     )
 
@@ -108,14 +111,16 @@ async def back_to_edit_set(callback: CallbackQuery, state: FSMContext):
     """Возвращает пользователя к выбору подхода для редактирования."""
     await state.set_state(TrainingStates.edit_select_set)
 
-    await state.update_data(edit_set_id=None)
-    await state.update_data(edit_set_number=None)
-    await state.update_data(weight=None)
-    await state.update_data(repetitions=None)
+    draft = await get_training_draft(state)
+    draft.edit.set_id = None
+    draft.edit.set_number = None
+    draft.selection.weight = None
+    draft.selection.repetitions = None
+    await set_training_draft(state, draft)
 
     user_data: dict[str, int | dict] = await state.get_data()
-    edit_exercise_id = user_data['edit_exercise_id']
-    exercise_sets = user_data['exercise_data']['exercises'][edit_exercise_id]['sets']
+    edit_exercise_id = draft.edit.exercise_id
+    exercise_sets = user_data["exercise_data"]["exercises"][edit_exercise_id]["sets"]
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),

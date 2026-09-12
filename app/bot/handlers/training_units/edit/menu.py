@@ -1,29 +1,29 @@
-from aiogram import Router, F
-from aiogram.types import CallbackQuery
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery
 
+from app.bot.formatters.training import get_formatted_state_date
 from app.bot.fsm.training import (
     TrainingStates,
     delete_all_exercise_sets,
     delete_all_exercises,
     delete_set,
+    get_training_draft,
+    set_training_draft,
     update_set,
 )
-from app.bot.formatters.training import get_formatted_state_date
 from app.bot.keyboards.training_kb import (
     get_ikb_edit_menu,
     ikb_edit_accept_delete,
 )
 
-
-
 router = Router()
 
 
 
-@router.callback_query(F.data == 'to_edit_menu', TrainingStates.menu)
-@router.callback_query(F.data == 'to_edit_menu', TrainingStates.select_date)
-@router.callback_query(F.data == 'to_edit_menu', TrainingStates.edit_select_exercise)
+@router.callback_query(F.data == "to_edit_menu", TrainingStates.menu)
+@router.callback_query(F.data == "to_edit_menu", TrainingStates.select_date)
+@router.callback_query(F.data == "to_edit_menu", TrainingStates.edit_select_exercise)
 async def open_edit_menu(callback: CallbackQuery, state: FSMContext):
     """Открывает меню редактирования текущей тренировки."""
     await state.set_state(TrainingStates.edit_menu)
@@ -33,50 +33,54 @@ async def open_edit_menu(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
         reply_markup=get_ikb_edit_menu(
-            has_edit_exercise_button = len(user_data['exercise_data']['exercises']) > 0
+            has_edit_exercise_button=len(user_data["exercise_data"]["exercises"]) > 0
         ),
     )
 
 
 
-@router.callback_query(F.data == 'acept_edit', TrainingStates.select_weight)
-@router.callback_query(F.data == 'acept_edit', TrainingStates.select_repetitions)
-@router.callback_query(F.data == 'acept_edit', TrainingStates.acept_addition)
+@router.callback_query(F.data == "acept_edit", TrainingStates.select_weight)
+@router.callback_query(F.data == "acept_edit", TrainingStates.select_repetitions)
+@router.callback_query(F.data == "acept_edit", TrainingStates.acept_addition)
 async def accept_edit(callback: CallbackQuery, state: FSMContext):
     """Применяет изменения выбранного подхода в FSM draft."""
     await state.set_state(TrainingStates.edit_menu)
 
     user_data: dict[str, int | dict] = await state.get_data()
+    draft = await get_training_draft(state)
 
-    exercise_data = user_data.get('exercise_data')
-    edit_exercise_id = user_data.get('edit_exercise_id')
-    edit_set_id = user_data.get('edit_set_id')
-    new_weight = user_data.get('weight')
-    new_repetitions = user_data.get('repetitions')
+    exercise_data = user_data.get("exercise_data")
+    edit_exercise_id = draft.edit.exercise_id
+    edit_set_id = draft.edit.set_id
+    new_weight = draft.selection.weight
+    new_repetitions = draft.selection.repetitions
 
     update_set(exercise_data, edit_exercise_id, edit_set_id, new_weight, new_repetitions)
 
-    await state.update_data(mode=None)
-    await state.update_data(edit_exercise_id=None)
-    await state.update_data(edit_exercise_name=None)
-    await state.update_data(edit_set_id=None)
-    await state.update_data(edit_set_number=None)
-    await state.update_data(weight=None)
-    await state.update_data(repetitions=None)
+    await state.update_data(exercise_data=exercise_data)
+    draft = await get_training_draft(state)
+    draft.selection.mode = None
+    draft.selection.weight = None
+    draft.selection.repetitions = None
+    draft.edit.exercise_id = None
+    draft.edit.exercise_name = None
+    draft.edit.set_id = None
+    draft.edit.set_number = None
+    await set_training_draft(state, draft)
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
         reply_markup=get_ikb_edit_menu(
-            has_edit_exercise_button = len(exercise_data['exercises']) > 0
-        )
+            has_edit_exercise_button=len(exercise_data["exercises"]) > 0
+        ),
     )
 
 
 
-@router.callback_query(F.data == 'delete_all_exercises', TrainingStates.edit_select_exercise)
-@router.callback_query(F.data == 'delete_all_sets', TrainingStates.edit_select_set)
-@router.callback_query(F.data == 'delete_set', TrainingStates.select_weight)
-@router.callback_query(F.data == 'delete_set', TrainingStates.select_repetitions)
+@router.callback_query(F.data == "delete_all_exercises", TrainingStates.edit_select_exercise)
+@router.callback_query(F.data == "delete_all_sets", TrainingStates.edit_select_set)
+@router.callback_query(F.data == "delete_set", TrainingStates.select_weight)
+@router.callback_query(F.data == "delete_set", TrainingStates.select_repetitions)
 async def delete_accept(callback: CallbackQuery, state: FSMContext):
     """Открывает подтверждение удаления упражнения, всех подходов или одного подхода."""
     state_before_delete = await state.get_state()
@@ -95,66 +99,74 @@ async def delete_accept(callback: CallbackQuery, state: FSMContext):
 
 
 
-@router.callback_query(F.data == 'delete_cancel', TrainingStates.edit_delete)
+@router.callback_query(F.data == "delete_cancel", TrainingStates.edit_delete)
 async def delete_cancel(callback: CallbackQuery, state: FSMContext):
     """Отменяет удаление и возвращает пользователя к предыдущему экрану."""
     user_data = await state.get_data()
-    state_before_delete = user_data.get('state_before_delete')
-    reply_markup_before_delete = user_data.get('reply_markup_before_delete')
+    state_before_delete = user_data.get("state_before_delete")
+    reply_markup_before_delete = user_data.get("reply_markup_before_delete")
 
     await state.set_state(state_before_delete)
 
     await state.update_data(delete_acept_flag=None)
-    
+
     await state.update_data(state_before_delete=None)
     await state.update_data(reply_markup_before_delete=None)
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
-        reply_markup=reply_markup_before_delete
+        reply_markup=reply_markup_before_delete,
     )
 
 
 
-@router.callback_query(F.data == 'delete_acepted', TrainingStates.edit_delete)
+@router.callback_query(F.data == "delete_acepted", TrainingStates.edit_delete)
 async def delete_exercises_sets(callback: CallbackQuery, state: FSMContext):
     """Удаляет выбранную сущность из FSM draft после подтверждения."""
     await state.set_state(TrainingStates.edit_menu)
 
     user_data: dict[str, int | dict] = await state.get_data()
-    edit_exercise_id = user_data.get('edit_exercise_id')
-    edit_set_id = user_data.get('edit_set_id')
+    draft = await get_training_draft(state)
+    edit_exercise_id = draft.edit.exercise_id
+    edit_set_id = draft.edit.set_id
 
     if edit_exercise_id is None:
-        delete_all_exercises(user_data['exercise_data'])
+        delete_all_exercises(user_data["exercise_data"])
     elif edit_set_id is None:
-        delete_all_exercise_sets(user_data['exercise_data'], edit_exercise_id)
+        delete_all_exercise_sets(user_data["exercise_data"], edit_exercise_id)
     else:
-        delete_set(user_data['exercise_data'], edit_exercise_id, edit_set_id)
+        delete_set(user_data["exercise_data"], edit_exercise_id, edit_set_id)
 
-    exercise_data = user_data.get('exercise_data')
-    cur_exercise_id = exercise_data.get('cur_exercise_id')
-    if cur_exercise_id not in exercise_data['exercises']:
-        await state.update_data(exercise_id=None)
-        await state.update_data(exercise_name=None)
-        await state.update_data(last_weight=None)
-        await state.update_data(last_repetitions=None)
+    exercise_data = user_data.get("exercise_data")
+    update_data = {"exercise_data": exercise_data}
+    current_exercise_id = user_data.get("exercise_id")
+    if current_exercise_id not in exercise_data["exercises"]:
+        update_data.update(
+            exercise_id=None,
+            exercise_name=None,
+            last_weight=None,
+            last_repetitions=None,
+        )
+    await state.update_data(**update_data)
 
     await state.update_data(delete_acept_flag=None)
     await state.update_data(state_before_delete=None)
     await state.update_data(reply_markup_before_delete=None)
-    await state.update_data(mode=None)
-    await state.update_data(edit_exercise_id=None)
-    await state.update_data(edit_exercise_name=None)
-    await state.update_data(edit_set_id=None)
-    await state.update_data(edit_set_number=None)
-    await state.update_data(weight=None)
-    await state.update_data(repetitions=None)
+
+    draft = await get_training_draft(state)
+    draft.selection.mode = None
+    draft.selection.weight = None
+    draft.selection.repetitions = None
+    draft.edit.exercise_id = None
+    draft.edit.exercise_name = None
+    draft.edit.set_id = None
+    draft.edit.set_number = None
+    await set_training_draft(state, draft)
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
         reply_markup=get_ikb_edit_menu(
-            has_edit_exercise_button = len(user_data['exercise_data']['exercises']) > 0
+            has_edit_exercise_button=len(user_data["exercise_data"]["exercises"]) > 0
         ),
     )
     
