@@ -176,6 +176,7 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Перенести отправку результата тренировки в группы из `app/bot/utils` в training flow и исправить параметры helper-а.
 - [x] Перенести разбиение Telegram-сообщений из `app/bot/utils` в `app/bot/formatters/messages.py`.
 - [x] Удалить неиспользуемый helper `app/bot/utils/number_to_emojis.py`.
+- [ ] Решить, оставляем ли `ikb_` как постоянную конвенцию именования inline-клавиатур или переходим на более явное `inline_keyboard`/`reply_keyboard`.
 - [ ] Пересмотреть inline payload выбора упражнения: убрать runtime-only `Fernet.generate_key()` и заменить на устойчивый signed/Redis-backed payload.
 - [x] Описать правила структуры `app/bot`: где живут handlers, keyboards, formatters, filters, middlewares, FSM draft и API client.
 - [ ] Перевести aiogram FSM storage с `MemoryStorage` на Redis после выбора Redis как инфраструктурного сервиса.
