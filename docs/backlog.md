@@ -17,6 +17,7 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Разделить DTO-схемы internal API по доменным зонам.
 - [ ] Описать правила импортов между слоями.
 - [ ] Описать lifecycle запроса от web/bot до базы.
+- [x] Зафиксировать целевую архитектуру Telegram-бота.
 - [x] Обновить корневой README после создания новой структуры.
 
 ## 2. Структура проекта
@@ -157,6 +158,19 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Разделить `app/bot/client.py` на пакет `app/bot/api_client/` по доменным зонам после завершения переноса основных сценариев на internal API.
 - [x] Убрать реэкспорт DTO из `app/bot/client.py` и перевести handlers/utils на прямые импорты из `app/bot/api_client/schemas/`.
 - [ ] Убрать переходную поддержку `datetime` для `Training.date` после перевода FSM/API на строгие `date`-контракты.
+- [ ] Удалить устаревший `DBSessionMiddleware` из `app/bot/middlewares`, так как бот больше не должен обращаться к БД напрямую.
+- [ ] Удалить или перенести неиспользуемый `app/bot/utils/get_chat_members.py` после проверки, что сценарии синхронизации участников групп больше на него не опираются.
+- [ ] Убрать debug-выводы `print()` из обработчиков бота и заменить их логированием после появления централизованного logging.
+- [ ] Почистить `app/bot/handlers/error.py`: удалить старые закомментированные заготовки, убрать дубли импортов, вынести форматирование admin-уведомления в отдельную функцию.
+- [ ] Заменить wildcard imports в `app/bot/keyboards/*/__init__.py` и `app/bot/handlers/redirect_units/__init__.py` на явные импорты и `__all__`.
+- [ ] Исправить старые опечатки в именах файлов, функций, callback/state names и переменных: `acept` -> `accept`, `atribute` -> `attribute`, `formate` -> `format`.
+- [ ] Выделить `TrainingStates`, `TrainingMode` и связанные кнопочные настройки из `app/bot/training_types.py` в feature-пакет тренировки.
+- [ ] Разделить `app/bot/handlers/training_units` по устойчивым зонам сценария: выбор даты, выбор упражнения, ввод подхода, редактирование, завершение тренировки.
+- [ ] Вынести операции изменения FSM-структуры тренировки из `app/bot/utils/edit_exercise_data.py` в модуль draft/use-case helpers внутри feature-пакета тренировки.
+- [ ] Перенести форматирование тренировок и рейтингов из `app/bot/utils` в `app/bot/formatters`.
+- [ ] Отделить export-утилиты бота от общего `utils`: оставить как отдельный bot export adapter или перенести в feature-пакет export.
+- [ ] Пересмотреть inline payload выбора упражнения: убрать runtime-only `Fernet.generate_key()` и заменить на устойчивый signed/Redis-backed payload.
+- [x] Описать правила структуры `app/bot`: где живут handlers, keyboards, formatters, filters, middlewares, FSM draft и API client.
 - [ ] Перевести aiogram FSM storage с `MemoryStorage` на Redis после выбора Redis как инфраструктурного сервиса.
 - [ ] Заменить `app/bot/utils/migration_cache.py` на Redis TTL key для обработки миграции Telegram group -> supergroup.
 - [ ] Отвязать локальный календарь `app/bot/keyboards/training_kb/date` от внешней зависимости `aiogram3-calendar`.
@@ -234,6 +248,10 @@ Backlog фиксирует крупные задачи перехода на н�
 - [ ] Добавить тесты repositories.
 - [ ] Добавить тесты API.
 - [x] Добавить тесты auth.
+- [ ] Добавить тесты сериализации и восстановления FSM training draft.
+- [ ] Добавить тесты операций над draft тренировки: добавить упражнение, добавить подход, изменить подход, удалить подход, удалить упражнение.
+- [ ] Добавить тесты bot formatters для текста тренировки, рейтинга и export-представления.
+- [ ] Добавить тесты устойчивости inline payload выбора упражнения после рестарта процесса или смены контейнера.
 - [ ] Добавить тесты worker-задач.
 - [x] Добавить smoke-тест запуска backend.
 - [ ] Добавить smoke-тест web build.
@@ -245,5 +263,7 @@ Backlog фиксирует крупные задачи перехода на н�
 - [ ] Выбрать Caddy или Nginx для VPS.
 - [ ] Выбрать механизм фоновых задач: простой async worker, task queue, Redis/RQ, Celery, Dramatiq или другой вариант.
 - [ ] Ввести Redis для временных данных: одноразовые auth-коды, будущие `sid`-сессии, aiogram FSM storage и короткие TTL-флаги бота.
+- [ ] Решить, хранить ли inline payload бота через Redis TTL или через подписанный payload с постоянным секретом.
+- [ ] Решить, нужно ли выделять отдельные feature-пакеты внутри `app/bot` для training, redirect, admin и export.
 - [ ] После удаления `aiogram3-calendar` пересмотреть ограничение Python `>=3.10,<3.11`.
 - [x] Решить, нужен ли отдельный API token для bot-service при обращении к backend.

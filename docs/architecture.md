@@ -121,9 +121,9 @@ GYM_STATISTICS_TG_BOT/
         schemas/
       handlers/
       keyboards/
+      fsm/
       middlewares/
       filters/
-      states/
       formatters/
       utils/
 
@@ -304,7 +304,7 @@ Repositories не должны форматировать сообщения д�
 
 ### Bot
 
-Telegram Bot является API-клиентом.
+Telegram Bot является отдельным UI-сервисом и API-клиентом backend.
 
 Он отвечает за:
 
@@ -314,7 +314,11 @@ Telegram Bot является API-клиентом.
 - форматирование сообщений;
 - вызовы internal FastAPI API.
 
-Бот не должен содержать основную бизнес-логику.
+Бот не должен содержать основную бизнес-логику, выполнять SQL-запросы,
+обращаться к repositories или вызывать domain services напрямую.
+
+Подробные правила внутренней структуры bot layer описаны в
+[`bot-architecture.md`](bot-architecture.md).
 
 ### Web
 

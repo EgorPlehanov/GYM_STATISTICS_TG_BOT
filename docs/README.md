@@ -9,6 +9,7 @@
 - [development.md](development.md) - правила локальной разработки.
 - [deployment.md](deployment.md) - план деплоя на VPS.
 - [database.md](database.md) - слой базы данных, миграции и справочники.
+- [bot-architecture.md](bot-architecture.md) - целевая архитектура Telegram-бота.
 - [telegram-mini-app.md](telegram-mini-app.md) - особенности Telegram Web App / Mini App.
 
 ## Архитектурные решения
