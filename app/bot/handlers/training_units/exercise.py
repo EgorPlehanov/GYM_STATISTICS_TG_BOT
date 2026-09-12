@@ -30,16 +30,15 @@ from app.bot.formatters.training import get_formatted_state_date
 router = Router()
 
 
-# Генерация ключа для шифрования
+# Временный payload для inline-выбора упражнения. Позже будет заменен на
+# устойчивый signed/Redis-backed payload.
 key = Fernet.generate_key()
 cipher = Fernet(key)
 
 
 @router.callback_query(F.data == "add_exercise", TrainingStates.menu)
 async def add_exercise_handler(callback: CallbackQuery, state: FSMContext):
-    """
-    Инлайн кнопка "Добавить упражнение"
-    """
+    """Открывает выбор упражнения для добавления в тренировку."""
     await state.set_state(TrainingStates.select_exercise)
     await state.update_data(mode=TrainingMode.ADD_EXERCISE)
     await state.update_data(sets_count=1)
@@ -64,9 +63,7 @@ async def add_exercise_handler(callback: CallbackQuery, state: FSMContext):
 async def selected_exercise_pagination(
     callback: CallbackQuery, callback_data: TrainingExercisePagination, state: FSMContext
 ):
-    """
-    Пагинация выбора упражнения
-    """
+    """Переключает страницу списка частых упражнений."""
     page = int(callback_data.page)
     user_data: dict[str, int | dict] = await state.get_data()
     most_frequent_exercises = user_data.get("most_frequent_exercises", [])
@@ -95,9 +92,7 @@ async def selected_exercise_pagination(
 async def selected_exercise(
     callback: CallbackQuery, callback_data: TrainingExercisePagination, state: FSMContext
 ):
-    """
-    Кнопка выбора упражнения
-    """
+    """Сохраняет упражнение, выбранное из списка частых упражнений."""
     await state.set_state(TrainingStates.select_weight)
 
     user_data: dict[str, int | dict] = await state.get_data()
@@ -135,9 +130,7 @@ async def selected_exercise(
 @router.callback_query(F.data == "to_exercise", TrainingStates.select_weight)
 @router.callback_query(F.data == "to_exercise", TrainingStates.acept_addition)
 async def back_to_exercise(callback: CallbackQuery, state: FSMContext):
-    """
-    Инлайн кнопка "Назад" возврат к выбору упражнения
-    """
+    """Возвращает пользователя к выбору упражнения."""
     await state.set_state(TrainingStates.select_exercise)
 
     user_data: dict[str, int | dict] = await state.get_data()
@@ -155,10 +148,8 @@ async def back_to_exercise(callback: CallbackQuery, state: FSMContext):
 
 
 @router.inline_query(TrainingStates.select_exercise)
-async def inline_exercise(inline_query: InlineQuery, state: FSMContext):
-    """
-    Инлайн выбор упражнения: возвращает список значений
-    """
+async def inline_exercise_search(inline_query: InlineQuery, state: FSMContext):
+    """Возвращает inline-результаты поиска упражнений."""
     offset = int(inline_query.offset) if inline_query.offset else 0
     page_size = 50
 
@@ -195,9 +186,7 @@ async def inline_selected_exercise(
     message: Message,
     state: FSMContext,
 ):
-    """
-    Инлайн упражнение: обработка выбранного значения
-    """
+    """Сохраняет упражнение, выбранное через inline-поиск."""
     await message.delete()
 
     await state.set_state(TrainingStates.select_weight)

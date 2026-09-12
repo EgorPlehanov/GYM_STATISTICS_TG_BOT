@@ -2,8 +2,6 @@ from aiogram import Router, F
 from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 
-from typing import Dict, Union
-
 from app.bot.fsm.training import (
     TrainingStates,
     delete_all_exercise_sets,
@@ -27,12 +25,10 @@ router = Router()
 @router.callback_query(F.data == 'to_edit_menu', TrainingStates.select_date)
 @router.callback_query(F.data == 'to_edit_menu', TrainingStates.edit_select_exercise)
 async def open_edit_menu(callback: CallbackQuery, state: FSMContext):
-    """
-    Инлайн кнопка "Редактировать тренировку"
-    """
+    """Открывает меню редактирования текущей тренировки."""
     await state.set_state(TrainingStates.edit_menu)
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
@@ -47,12 +43,10 @@ async def open_edit_menu(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data == 'acept_edit', TrainingStates.select_repetitions)
 @router.callback_query(F.data == 'acept_edit', TrainingStates.acept_addition)
 async def accept_edit(callback: CallbackQuery, state: FSMContext):
-    """
-    Инлайн кнопка "Подтвердить изменения"
-    """
+    """Применяет изменения выбранного подхода в FSM draft."""
     await state.set_state(TrainingStates.edit_menu)
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
 
     exercise_data = user_data.get('exercise_data')
     edit_exercise_id = user_data.get('edit_exercise_id')
@@ -60,7 +54,7 @@ async def accept_edit(callback: CallbackQuery, state: FSMContext):
     new_weight = user_data.get('weight')
     new_repetitions = user_data.get('repetitions')
 
-    is_updated = update_set(exercise_data, edit_exercise_id, edit_set_id, new_weight, new_repetitions)
+    update_set(exercise_data, edit_exercise_id, edit_set_id, new_weight, new_repetitions)
 
     await state.update_data(mode=None)
     await state.update_data(edit_exercise_id=None)
@@ -84,9 +78,7 @@ async def accept_edit(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data == 'delete_set', TrainingStates.select_weight)
 @router.callback_query(F.data == 'delete_set', TrainingStates.select_repetitions)
 async def delete_accept(callback: CallbackQuery, state: FSMContext):
-    """
-    Подтвержнение удаления
-    """
+    """Открывает подтверждение удаления упражнения, всех подходов или одного подхода."""
     state_before_delete = await state.get_state()
 
     await state.update_data(delete_acept_flag=True)
@@ -105,9 +97,7 @@ async def delete_accept(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == 'delete_cancel', TrainingStates.edit_delete)
 async def delete_cancel(callback: CallbackQuery, state: FSMContext):
-    """
-    Инлайн кнопка "Отмена удаления"
-    """
+    """Отменяет удаление и возвращает пользователя к предыдущему экрану."""
     user_data = await state.get_data()
     state_before_delete = user_data.get('state_before_delete')
     reply_markup_before_delete = user_data.get('reply_markup_before_delete')
@@ -128,12 +118,10 @@ async def delete_cancel(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == 'delete_acepted', TrainingStates.edit_delete)
 async def delete_exercises_sets(callback: CallbackQuery, state: FSMContext):
-    """
-    Инлайн кнопка "Удалить упражнения/подходы/подход"
-    """
+    """Удаляет выбранную сущность из FSM draft после подтверждения."""
     await state.set_state(TrainingStates.edit_menu)
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
     edit_exercise_id = user_data.get('edit_exercise_id')
     edit_set_id = user_data.get('edit_set_id')
 

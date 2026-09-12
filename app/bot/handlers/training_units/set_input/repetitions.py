@@ -5,8 +5,6 @@ from aiogram.types import (
 )
 from aiogram.fsm.context import FSMContext
 
-from typing import List, Dict, Union
-
 from app.bot.fsm.training import (
     TrainingMode,
     TrainingStates,
@@ -33,13 +31,9 @@ r_repetitions = rf"^\s*{r_int}\s*$"
 
 @router.inline_query(TrainingStates.select_repetitions)
 async def inline_repetitions(inline_query: InlineQuery, state: FSMContext):
-    """
-    Инлайн выбор кол-ва повторений: возвращает список значений
-    """
-    def generate_numbers(substring: str) -> List[float]:
-        """
-        Генерирует список чисел, которые содержат substring
-        """
+    """Возвращает inline-подсказки для выбора количества повторений."""
+    def generate_numbers(substring: str) -> list[int]:
+        """Генерирует значения повторений, которые содержат введенную подстроку."""
         numbers = []
         for number in range(0, 1001):
             if str(number).find(substring) != -1:
@@ -78,16 +72,14 @@ async def inline_repetitions(inline_query: InlineQuery, state: FSMContext):
 @router.message(F.via_bot, TrainingStates.select_repetitions)
 @router.message(F.text.regexp(r_repetitions), TrainingStates.select_repetitions)
 async def selected_repetitions(message: Message, state: FSMContext):
-    """
-    Инлайн выбор кол-ва повторений: обработка выбранного значения
-    """
+    """Сохраняет выбранное количество повторений."""
     await state.set_state(TrainingStates.acept_addition)
 
     repetitions = int(message.text)
     await state.update_data(repetitions=repetitions)
     await message.delete()
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
 
     await message.bot.edit_message_text(
         chat_id=message.chat.id,
@@ -102,12 +94,10 @@ async def selected_repetitions(message: Message, state: FSMContext):
 @router.callback_query(F.data == "to_repetitions", TrainingStates.select_sets_count)
 @router.callback_query(F.data == "to_repetitions", TrainingStates.acept_addition)
 async def to_repetitions(callback: CallbackQuery, state: FSMContext):
-    """
-    Инлайн кнопка "Переход к Повторениям" переход к повторениям
-    """
+    """Переводит сценарий к выбору количества повторений."""
     await state.set_state(TrainingStates.select_repetitions)
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
     accept_button = accept_button_by_mode.get(user_data.get('mode'))
 
     await callback.message.edit_text(

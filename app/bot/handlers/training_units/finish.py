@@ -27,9 +27,7 @@ router = Router()
     TrainingStates.menu
 )
 async def finish_training(callback: CallbackQuery, state: FSMContext):
-    """
-    Инлайн кнопка "Завершить тренировку"
-    """
+    """Открывает шаг добавления комментария перед сохранением тренировки."""
     await state.set_state(TrainingStates.add_comment)
 
     user_data: dict[str, Any] = await state.get_data()
@@ -44,10 +42,8 @@ async def finish_training(callback: CallbackQuery, state: FSMContext):
 
 
 @router.inline_query(TrainingStates.add_comment)
-async def inline_exercise(inline_query: InlineQuery):
-    """
-    Инлайн выбор упражнения: возвращает список значений
-    """
+async def inline_comment(inline_query: InlineQuery):
+    """Возвращает inline-вариант комментария из введенного текста."""
     await inline_query.answer(
         [
             InlineQueryResultArticle(
@@ -67,9 +63,7 @@ async def inline_exercise(inline_query: InlineQuery):
 @router.message(F.text, TrainingStates.add_comment)
 @router.message(F.via_bot, TrainingStates.add_comment)
 async def add_comment(message: Message, state: FSMContext):
-    """
-    Ввод комментария
-    """
+    """Сохраняет комментарий в FSM draft и обновляет сообщение тренировки."""
     await message.delete()
 
     new_comment = message.text[:500]
@@ -103,9 +97,7 @@ async def add_comment(message: Message, state: FSMContext):
     TrainingStates.add_comment,
 )
 async def finish(callback: CallbackQuery, state: FSMContext):
-    """
-    Инлайн кнопка "Завершить"
-    """
+    """Сохраняет тренировку, отправляет редирект в группы и запускает пересчет рейтинга."""
     user_data: dict[str, Any] = await state.get_data()
     exercise_data = user_data.get('exercise_data')
 

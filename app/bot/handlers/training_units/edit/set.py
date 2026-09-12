@@ -2,8 +2,6 @@ from aiogram import Router, F
 from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 
-from typing import Dict, Union
-
 from app.bot.fsm.training import (
     TrainingMode,
     TrainingStates,
@@ -35,11 +33,9 @@ async def selected_set_pagination(
     callback_data: EditTrainingSetPagination,
     state: FSMContext
 ):
-    """
-    Пагинация выбора упражнения
-    """
+    """Переключает страницу списка подходов выбранного упражнения."""
     page = int(callback_data.page)
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
     edit_exercise_id = user_data['edit_exercise_id']
     exercise_sets = user_data['exercise_data']['exercises'][edit_exercise_id]['sets']
 
@@ -63,17 +59,15 @@ async def selected_set(
     callback_data: EditTrainingSetPagination,
     state: FSMContext
 ):
-    """
-    Выбран подход упражнения из меню редактирования
-    """
+    """Открывает выбранный подход для редактирования веса и повторений."""
     await state.set_state(TrainingStates.select_weight)
 
     set_id = callback_data.set_id
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
     edit_exercise_id = user_data['edit_exercise_id']
     sets = user_data['exercise_data']['exercises'][edit_exercise_id]['sets']
-    set_data: Dict[str, Union[int, float]] = sets.get(set_id, {})
+    set_data: dict[str, int | float] = sets.get(set_id, {})
 
     await state.update_data(edit_set_id=set_id)
     await state.update_data(edit_set_number=set_data.get('set_number'))
@@ -110,10 +104,8 @@ async def selected_set(
     F.data == "to_edit_menu_set",
     TrainingStates.select_weight,
 )
-async def back_to_edit_exercise(callback: CallbackQuery, state: FSMContext):
-    """
-    Инлайн кнопка "Назад"
-    """
+async def back_to_edit_set(callback: CallbackQuery, state: FSMContext):
+    """Возвращает пользователя к выбору подхода для редактирования."""
     await state.set_state(TrainingStates.edit_select_set)
 
     await state.update_data(edit_set_id=None)
@@ -121,7 +113,7 @@ async def back_to_edit_exercise(callback: CallbackQuery, state: FSMContext):
     await state.update_data(weight=None)
     await state.update_data(repetitions=None)
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
     edit_exercise_id = user_data['edit_exercise_id']
     exercise_sets = user_data['exercise_data']['exercises'][edit_exercise_id]['sets']
 

@@ -2,8 +2,6 @@ from aiogram import Router, F
 from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 
-from typing import Dict, Union
-
 from app.bot.fsm.training import TrainingStates
 from app.bot.formatters.training import get_formatted_state_date
 from app.bot.keyboards.keyboards_types import PaginationAction
@@ -24,12 +22,10 @@ router = Router()
     TrainingStates.edit_menu
 )
 async def open_edit_exercise(callback: CallbackQuery, state: FSMContext):
-    """
-    Инлайн кнопка "Редактировать упражнения"
-    """
+    """Открывает выбор упражнения для редактирования."""
     await state.set_state(TrainingStates.edit_select_exercise)
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
 
     exercises = user_data.get('exercise_data').get('exercises')
 
@@ -51,11 +47,9 @@ async def selected_exercise_pagination(
     callback_data: EditTrainingExercisePagination,
     state: FSMContext
 ):
-    """
-    Пагинация выбора упражнения
-    """
+    """Переключает страницу списка упражнений в режиме редактирования."""
     page = int(callback_data.page)
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
     exercises = user_data.get('exercise_data').get('exercises')
 
     if callback_data.action == PaginationAction.PREV:
@@ -73,19 +67,17 @@ async def selected_exercise_pagination(
     EditTrainingExercisePagination.filter(F.action == PaginationAction.SET),
     TrainingStates.edit_select_exercise
 )
-async def selected_exercise(
+async def selected_edit_exercise(
     callback: CallbackQuery,
     callback_data: EditTrainingExercisePagination,
     state: FSMContext
 ):
-    """
-    Выбрано упражнение из меню редактирования
-    """
+    """Сохраняет выбранное упражнение и открывает список его подходов."""
     await state.set_state(TrainingStates.edit_select_set)
 
     await state.update_data(edit_exercise_id=callback_data.exercise_id)
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
     edit_exercise_name = user_data['exercise_data']['exercises'][callback_data.exercise_id]['exercise_name']
 
     await state.update_data(edit_exercise_name=edit_exercise_name)
@@ -104,15 +96,13 @@ async def selected_exercise(
     TrainingStates.edit_select_set
 )
 async def back_to_edit_exercise(callback: CallbackQuery, state: FSMContext):
-    """
-    Инлайн кнопка "Назад"
-    """
+    """Возвращает пользователя к выбору упражнения для редактирования."""
     await state.set_state(TrainingStates.edit_select_exercise)
 
     await state.update_data(edit_exercise_id=None)
     await state.update_data(edit_exercise_name=None)
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
     exercises = user_data.get('exercise_data').get('exercises')
 
     await callback.message.edit_text(

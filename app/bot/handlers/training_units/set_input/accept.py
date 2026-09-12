@@ -2,10 +2,7 @@ from aiogram import Router, F
 from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 
-from typing import Dict, Union
-from datetime import datetime
-
-from app.bot.fsm.training import TrainingStates, add_exercise, add_set, update_set
+from app.bot.fsm.training import TrainingStates, add_exercise, add_set
 from app.bot.formatters.training import get_formatted_state_date
 from app.bot.keyboards.training_kb import get_ikb_training_menu
 
@@ -21,12 +18,10 @@ router = Router()
 @router.callback_query(F.data == 'acept_addition', TrainingStates.select_sets_count)
 @router.callback_query(F.data == 'acept_addition', TrainingStates.acept_addition)
 async def accept_addition(callback: CallbackQuery, state: FSMContext):
-    """
-    Инлайн кнопка "Подтвердить" добавляет упражнение/подход
-    """
+    """Подтверждает добавление упражнения или подхода в черновик тренировки."""
     await state.set_state(TrainingStates.menu)
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
 
     exercise_data = user_data.get('exercise_data')
     exercise_id = user_data.get('cur_exercise_id')

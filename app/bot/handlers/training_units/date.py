@@ -26,8 +26,10 @@ async def init_training_by_date(
     callback: CallbackQuery,
     state: FSMContext,
 ) -> None:
-    """
-    Инициализирует тренировку по дате
+    """Загружает тренировку по дате и обновляет FSM draft.
+
+    Если на выбранную дату уже есть тренировка, а в текущем сценарии есть другой
+    черновик, переводит пользователя в состояние подтверждения смены даты.
     """
     if isinstance(training_date, datetime):
         training_date = training_date.date()
@@ -67,9 +69,7 @@ async def init_training_by_date(
     TrainingStates.select_date
 )
 async def selected_date_today(callback: CallbackQuery, state: FSMContext) -> None:
-    """
-    Инлайн кнопка "Сегодня"
-    """
+    """Выбирает текущую дату для тренировки."""
     await state.set_state(TrainingStates.menu)
     await state.update_data(mode=None)
 
@@ -100,9 +100,7 @@ async def selected_date_today(callback: CallbackQuery, state: FSMContext) -> Non
     TrainingStates.select_date
 )
 async def selected_date_other(callback: CallbackQuery, state: FSMContext) -> None:
-    """
-    Инлайн кнопка "Другая дата"
-    """
+    """Открывает inline-календарь для выбора другой даты."""
     user_data = await state.get_data()
     if user_data.get('training_date') is None:
         async with BotApiClient() as api_client:
@@ -125,9 +123,7 @@ async def process_dialog_calendar(
     callback_data: CallbackData,
     state: FSMContext,
 ) -> None:
-    """
-    Обработка выбора даты в инлайн календаре
-    """
+    """Обрабатывает выбор даты в inline-календаре."""
     user_data = await state.get_data()
 
     selected, date = await DialogCalendar(
@@ -161,9 +157,7 @@ async def process_dialog_calendar(
 @router.callback_query(F.data == 'to_date_menu', TrainingStates.select_date)
 @router.callback_query(F.data == 'to_date_menu', TrainingStates.change_date_acept)
 async def back_to_date_menu(callback: CallbackQuery, state: FSMContext) -> None:
-    """
-    Инлайн кнопка "Меню даты" возврат в меню
-    """
+    """Возвращает пользователя в меню выбора даты."""
     await state.set_state(TrainingStates.select_date)
 
     user_data: dict[str, int | dict] = await state.get_data()
@@ -181,9 +175,7 @@ async def back_to_date_menu(callback: CallbackQuery, state: FSMContext) -> None:
     TrainingStates.edit_menu
 )
 async def open_edit_date(callback: CallbackQuery, state: FSMContext):
-    """
-    Инлайн кнопка "Редактировать дату"
-    """
+    """Открывает выбор даты в режиме редактирования тренировки."""
     await state.set_state(TrainingStates.select_date)
 
     await state.update_data(mode=TrainingMode.EDIT_DATE)
@@ -199,10 +191,11 @@ async def open_edit_date(callback: CallbackQuery, state: FSMContext):
     F.data == 'save_and_go',
     TrainingStates.change_date_acept
 )
-async def save_and_go(callback: CallbackQuery, state: FSMContext):
-    """
-    Сохраняет текущую тренировку и переходит к выбранной
-    """
+async def save_current_training_and_open_selected_date(
+    callback: CallbackQuery,
+    state: FSMContext,
+):
+    """Сохраняет текущий черновик и открывает тренировку на выбранную дату."""
     user_data: dict[str, int | dict] = await state.get_data()
     exercise_data = user_data.get('exercise_data')
     async with BotApiClient() as api_client:
@@ -237,9 +230,7 @@ async def save_and_go(callback: CallbackQuery, state: FSMContext):
     TrainingStates.change_date_acept
 )
 async def changed_to_current_date(callback: CallbackQuery, state: FSMContext):
-    """
-    Инлайн кнопка заменить тренировку на текущую
-    """
+    """Удаляет тренировку на выбранную дату и переносит туда текущий черновик."""
     await state.set_state(TrainingStates.menu)
 
     user_data: dict[str, int | dict] = await state.get_data()

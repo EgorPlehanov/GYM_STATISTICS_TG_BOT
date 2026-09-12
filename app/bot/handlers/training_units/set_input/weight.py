@@ -5,7 +5,6 @@ from aiogram.types import (
 )
 from aiogram.fsm.context import FSMContext
 
-from typing import List, Dict, Union
 import re
 
 from app.bot.fsm.training import (
@@ -43,14 +42,12 @@ r_weight_repetitions_sets = rf"^\s*{r_float}{r_separator}{r_int}({r_separator}{r
     TrainingStates.menu
 )
 async def add_set_handler(callback: CallbackQuery, state: FSMContext):
-    """
-    Инлайн кнопка "Добавить повторение"
-    """
+    """Открывает ввод нового подхода для текущего упражнения."""
     await state.set_state(TrainingStates.select_weight)
 
     await state.update_data(mode=TrainingMode.ADD_SET)
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
 
     await state.update_data(cur_exercise_id=user_data.get('exercise_id'))
     await state.update_data(cur_exercise_name=user_data.get('exercise_name'))
@@ -74,14 +71,10 @@ async def add_set_handler(callback: CallbackQuery, state: FSMContext):
 
 
 @router.inline_query(TrainingStates.select_weight)
-async def inline_additional_weight(inline_query: InlineQuery, state: FSMContext):
-    """
-    Инлайн выбор доп. веса: возвращает список значений
-    """
-    def generate_numbers(substring: str) -> List[float]:
-        """
-        Генерирует список чисел, которые содержат substring
-        """
+async def inline_weight(inline_query: InlineQuery, state: FSMContext):
+    """Возвращает inline-подсказки для выбора веса."""
+    def generate_numbers(substring: str) -> list[float]:
+        """Генерирует значения веса, которые содержат введенную подстроку."""
         numbers = []
         for i in range(0, 50100, 25):
             number = i / 100
@@ -121,10 +114,8 @@ async def inline_additional_weight(inline_query: InlineQuery, state: FSMContext)
 
 @router.message(F.via_bot, TrainingStates.select_weight)
 @router.message(F.text.regexp(r_weight), TrainingStates.select_weight)
-async def selected_additional_weight(message: Message, state: FSMContext):
-    """
-    Инлайн выбор доп. веса: обработка выбранного значения
-    """
+async def selected_weight(message: Message, state: FSMContext):
+    """Сохраняет выбранный вес и переводит сценарий к вводу повторений."""
     weight = float(message.text.replace(',', '.'))
 
     await state.set_state(TrainingStates.select_repetitions)
@@ -132,7 +123,7 @@ async def selected_additional_weight(message: Message, state: FSMContext):
     await state.update_data(weight=weight)
     await message.delete()
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
 
     accept_button = accept_button_by_mode.get(user_data.get('mode'))
 
@@ -184,9 +175,7 @@ async def selected_additional_weight(message: Message, state: FSMContext):
     TrainingStates.acept_addition
 )
 async def read_weight_and_repetitions(message: Message, state: FSMContext):
-    """
-    Обработка ввода веса и повторений
-    """
+    """Обрабатывает ручной ввод веса, повторений и опционально количества подходов."""
     await message.delete()
 
     values = re.split(r_separator, message.text, flags=re.IGNORECASE)
@@ -201,7 +190,7 @@ async def read_weight_and_repetitions(message: Message, state: FSMContext):
     repetitions = int(repetitions)
     sets_count = int(sets_count) if sets_count is not None and int(sets_count) > 0 else None
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
 
     mode = user_data.get('mode')
 
@@ -243,12 +232,10 @@ async def read_weight_and_repetitions(message: Message, state: FSMContext):
 @router.callback_query(F.data == "to_weight", TrainingStates.select_repetitions)
 @router.callback_query(F.data == "to_weight", TrainingStates.acept_addition)
 async def to_weight(callback: CallbackQuery, state: FSMContext):
-    """
-    Инлайн кнопка "Вперед Вес" переход к весу
-    """
+    """Переводит сценарий к выбору веса."""
     await state.set_state(TrainingStates.select_weight)
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
 
     back_button: Button = weight_back_button_by_mode.get(user_data.get('mode'))
     accept_button = accept_button_by_mode.get(user_data.get('mode'))
@@ -276,14 +263,12 @@ async def to_weight(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "repeat_set", TrainingStates.menu)
 async def repeat_set(callback: CallbackQuery, state: FSMContext):
-    """
-    Инлайн кнопка "Повторить сет"
-    """
+    """Предлагает повторить последний сохраненный подход текущего упражнения."""
     await state.set_state(TrainingStates.acept_addition)
 
     await state.update_data(mode=TrainingMode.ADD_SET)
 
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
 
     await state.update_data(cur_exercise_id=user_data.get('exercise_id'))
     await state.update_data(cur_exercise_name=user_data.get('exercise_name'))
