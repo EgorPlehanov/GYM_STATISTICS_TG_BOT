@@ -7,7 +7,7 @@ from typing import Any
 from aiogram import Bot, Router, html
 from aiogram.types import BufferedInputFile, ErrorEvent
 
-from app.bot.utils.split_message import split_message_with_tags
+from app.bot.formatters.messages import split_message_with_tags
 from app.core.config import config
 
 router = Router()

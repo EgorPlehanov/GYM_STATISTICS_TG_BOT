@@ -167,6 +167,7 @@ app/bot/
   formatters/
     training.py
     statistics.py
+    messages.py
     errors.py
     export.py
 
@@ -179,8 +180,8 @@ app/bot/
     error_context.py
 
   utils/
-    split_message.py
-    number_to_emojis.py
+    user_access.py
+    migration_cache.py
 ```
 
 ## Сценарий тренировки
