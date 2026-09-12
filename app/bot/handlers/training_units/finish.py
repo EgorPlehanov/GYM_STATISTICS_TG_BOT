@@ -12,10 +12,10 @@ from aiogram.types import (
 )
 
 from app.bot.client import BotApiClient
-from app.bot.keyboards.training_kb import get_ikb_finish_add_comment
 from app.bot.formatters.training import get_formatted_state_date
-
 from app.bot.fsm.training import TrainingStates
+from app.bot.keyboards.training_kb import get_ikb_finish_add_comment
+
 from .redirect_result import send_training_result_to_redirect_groups
 
 router = Router()

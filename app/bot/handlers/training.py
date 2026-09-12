@@ -5,6 +5,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from app.bot.client import BotApiClient
+from app.bot.formatters.training import get_formatted_state_date
+from app.bot.fsm.training import get_training_draft, set_training_draft
 from app.bot.keyboards.training_kb import (
     get_ikb_select_date,
     get_ikb_training_menu,
@@ -12,7 +14,6 @@ from app.bot.keyboards.training_kb import (
 from app.bot.middlewares import (
     ChatActionMiddleware,
 )
-from app.bot.formatters.training import get_formatted_state_date
 from app.bot.utils.user_access import ensure_bot_user
 
 from .training_units import (
@@ -90,25 +91,27 @@ async def back_to_menu(callback: CallbackQuery, state: FSMContext):
     """
     await state.set_state(TrainingStates.menu)
 
-    await state.update_data(mode=None)
-    await state.update_data(cur_exercise_id=None)
-    await state.update_data(cur_exercise_name=None)
-    await state.update_data(weight=None)
-    await state.update_data(repetitions=None)
-    await state.update_data(sets_count=None)
+    draft = await get_training_draft(state)
+    draft.selection.mode = None
+    draft.selection.exercise_id = None
+    draft.selection.exercise_name = None
+    draft.selection.weight = None
+    draft.selection.repetitions = None
+    draft.selection.sets_count = None
+    await set_training_draft(state, draft)
 
     user_data: dict[str, int | dict] = await state.get_data()
-    exercises = user_data.get('exercise_data')['exercises']
+    exercises = user_data.get("exercise_data")["exercises"]
 
-    last_weight = str(user_data.get('last_weight', '')).rstrip('0').rstrip(".")
-    last_repetitions = user_data.get('last_repetitions', '')
+    last_weight = str(user_data.get("last_weight", "")).rstrip("0").rstrip(".")
+    last_repetitions = user_data.get("last_repetitions", "")
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
-        reply_markup = get_ikb_training_menu(
-            is_add_edit_button = len(exercises) != 0,
-            is_add_add_set_button = user_data.get("exercise_id") is not None,
-            repeat_set_button_text = f"{last_weight}×{last_repetitions}"
+        reply_markup=get_ikb_training_menu(
+            is_add_edit_button=len(exercises) != 0,
+            is_add_add_set_button=user_data.get("exercise_id") is not None,
+            repeat_set_button_text=f"{last_weight}×{last_repetitions}",
         ),
     )
 
