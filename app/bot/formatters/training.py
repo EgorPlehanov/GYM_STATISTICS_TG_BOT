@@ -4,7 +4,7 @@ from aiogram import html
 from typing import Dict, Union
 from datetime import datetime
 
-from .format_set_data_text import format_set_data_to_text
+from .training_sets import format_set_data_to_text
 from app.bot.fsm.training import TrainingStates, TrainingMode
 
 

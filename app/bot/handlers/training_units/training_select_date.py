@@ -13,7 +13,7 @@ from app.bot.keyboards.training_kb import (
     get_ikb_select_date,
     get_ikb_training_menu,
 )
-from app.bot.utils.format_training_data import get_formatted_state_date
+from app.bot.formatters.training import get_formatted_state_date
 
 from app.bot.fsm.training import TrainingMode, TrainingStates
 

@@ -12,7 +12,7 @@ from app.bot.keyboards.training_kb import (
 from app.bot.middlewares import (
     ChatActionMiddleware,
 )
-from app.bot.utils.format_training_data import get_formatted_state_date
+from app.bot.formatters.training import get_formatted_state_date
 from app.bot.utils.user_access import ensure_bot_user
 
 from .training_units import (

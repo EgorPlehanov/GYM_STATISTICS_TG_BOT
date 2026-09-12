@@ -168,7 +168,7 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Выделить `TrainingStates`, `TrainingMode` и связанные кнопочные настройки из `app/bot/training_types.py` в feature-пакет тренировки.
 - [ ] Разделить `app/bot/handlers/training_units` по устойчивым зонам сценария: выбор даты, выбор упражнения, ввод подхода, редактирование, завершение тренировки.
 - [ ] Вынести операции изменения FSM-структуры тренировки из `app/bot/utils/edit_exercise_data.py` в модуль draft/use-case helpers внутри feature-пакета тренировки.
-- [ ] Перенести форматирование тренировок и рейтингов из `app/bot/utils` в `app/bot/formatters`.
+- [x] Перенести форматирование тренировок и рейтингов из `app/bot/utils` в `app/bot/formatters`.
 - [ ] Отделить export-утилиты бота от общего `utils`: оставить как отдельный bot export adapter или перенести в feature-пакет export.
 - [ ] Пересмотреть inline payload выбора упражнения: убрать runtime-only `Fernet.generate_key()` и заменить на устойчивый signed/Redis-backed payload.
 - [x] Описать правила структуры `app/bot`: где живут handlers, keyboards, formatters, filters, middlewares, FSM draft и API client.

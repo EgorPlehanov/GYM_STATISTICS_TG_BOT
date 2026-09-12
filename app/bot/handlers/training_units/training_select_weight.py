@@ -17,7 +17,7 @@ from app.bot.fsm.training import (
 )
 from app.bot.filters import StateAttributeNotNoneFilter
 from app.bot.utils.check_accept_addition import check_accept_addition
-from app.bot.utils.format_training_data import get_formatted_state_date
+from app.bot.formatters.training import get_formatted_state_date
 from app.bot.utils.weight_repetitions_modes import get_weight_repetitions_modes_values
 from app.bot.keyboards.training_kb import (
     get_ikb_open_inline_search,

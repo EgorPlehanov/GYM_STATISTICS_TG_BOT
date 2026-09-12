@@ -9,7 +9,7 @@ from app.bot.fsm.training import (
     TrainingMode,
     accept_button_by_mode,
 )
-from app.bot.utils.format_training_data import get_formatted_state_date
+from app.bot.formatters.training import get_formatted_state_date
 from app.bot.utils.weight_repetitions_modes import get_weight_repetitions_modes_values
 from app.bot.keyboards.keyboards_types import PaginationAction
 from app.bot.keyboards.training_kb import (

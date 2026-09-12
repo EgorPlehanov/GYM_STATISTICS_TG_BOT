@@ -3,7 +3,7 @@ from aiogram.filters import Command, StateFilter
 from aiogram.types import Message
 
 from app.bot.client import BotApiClient
-from app.bot.utils.format_user_exercise_rating import format_user_exercise_rating
+from app.bot.formatters.statistics import format_user_exercise_rating
 from app.bot.utils.user_access import ensure_bot_user
 
 router = Router()

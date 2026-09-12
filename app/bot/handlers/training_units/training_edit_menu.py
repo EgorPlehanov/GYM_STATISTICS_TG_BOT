@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 from typing import Dict, Union
 
 from app.bot.fsm.training import TrainingStates
-from app.bot.utils.format_training_data import get_formatted_state_date
+from app.bot.formatters.training import get_formatted_state_date
 from app.bot.utils.edit_exercise_data import (
     update_set,
     delete_all_exercises,

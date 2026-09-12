@@ -6,7 +6,7 @@ from typing import  Dict
 import math
 
 from ..keyboards_types import PaginationAction
-from app.bot.utils.format_set_data_text import format_set_data_to_text
+from app.bot.formatters.training_sets import format_set_data_to_text
 
 
 

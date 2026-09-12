@@ -7,7 +7,7 @@ from datetime import datetime
 
 from app.bot.fsm.training import TrainingStates
 from app.bot.utils.edit_exercise_data import add_exercise, add_set, update_set
-from app.bot.utils.format_training_data import get_formatted_state_date
+from app.bot.formatters.training import get_formatted_state_date
 from app.bot.keyboards.training_kb import get_ikb_training_menu
 
 
