@@ -21,7 +21,7 @@ router = Router()
 @router.callback_query(F.data == 'acept_addition', TrainingStates.select_repetitions)
 @router.callback_query(F.data == 'acept_addition', TrainingStates.select_sets_count)
 @router.callback_query(F.data == 'acept_addition', TrainingStates.acept_addition)
-async def acept_addition(callback: CallbackQuery, state: FSMContext):
+async def accept_addition(callback: CallbackQuery, state: FSMContext):
     """
     Инлайн кнопка "Подтвердить" добавляет упражнение/подход
     """

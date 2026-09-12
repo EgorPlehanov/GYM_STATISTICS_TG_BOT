@@ -7,7 +7,7 @@ from typing import Dict, Union
 from app.bot.training_types import (
     TrainingStates,
     TrainingMode,
-    acept_button_by_mode,
+    accept_button_by_mode,
 )
 from app.bot.utils.format_training_data import get_formatted_state_date
 from app.bot.utils.weight_repetitions_modes import get_weight_repetitions_modes_values
@@ -17,7 +17,7 @@ from app.bot.keyboards.training_kb import (
     get_ikb_edit_select_set_fab,
     get_ikb_open_inline_search,
 )
-from app.bot.utils.check_acept_addition import check_acept_addition
+from app.bot.utils.check_accept_addition import check_accept_addition
 
 
 
@@ -83,7 +83,7 @@ async def selected_set(
 
     await state.update_data(mode=TrainingMode.EDIT_SET)
 
-    acept_button = acept_button_by_mode.get(TrainingMode.EDIT_SET)
+    accept_button = accept_button_by_mode.get(TrainingMode.EDIT_SET)
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
@@ -94,9 +94,9 @@ async def selected_set(
             has_next_button = True,
             next_button_text = "Повторения",
             next_button_callback_data = "to_repetitions",
-            has_acept_button = await check_acept_addition(state),
-            acept_button_text = acept_button.text,
-            acept_button_callback_data = acept_button.callback_data,
+            has_accept_button = await check_accept_addition(state),
+            accept_button_text = accept_button.text,
+            accept_button_callback_data = accept_button.callback_data,
             has_delete_set_button = True,
             switch_inline_query = get_weight_repetitions_modes_values(
                 user_data = await state.get_data(),

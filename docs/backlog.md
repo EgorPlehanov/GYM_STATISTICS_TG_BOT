@@ -163,7 +163,8 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Убрать debug-выводы `print()` из обработчиков бота и заменить их логированием после появления централизованного logging.
 - [x] Почистить `app/bot/handlers/error.py`: удалить старые закомментированные заготовки, убрать дубли импортов, вынести форматирование admin-уведомления в отдельную функцию.
 - [x] Заменить wildcard imports в `app/bot/keyboards/*/__init__.py` и `app/bot/handlers/redirect_units/__init__.py` на явные импорты и `__all__`.
-- [ ] Исправить старые опечатки в именах файлов, функций, callback/state names и переменных: `acept` -> `accept`, `atribute` -> `attribute`, `formate` -> `format`.
+- [x] Исправить старые опечатки в Python-именах файлов, функций и переменных: `acept` -> `accept`, `atribute` -> `attribute`, `formate` -> `format`.
+- [ ] Исправить legacy callback/state/FSM data values `acept_*` после перевода сценария тренировки на строгий FSM draft.
 - [ ] Выделить `TrainingStates`, `TrainingMode` и связанные кнопочные настройки из `app/bot/training_types.py` в feature-пакет тренировки.
 - [ ] Разделить `app/bot/handlers/training_units` по устойчивым зонам сценария: выбор даты, выбор упражнения, ввод подхода, редактирование, завершение тренировки.
 - [ ] Вынести операции изменения FSM-структуры тренировки из `app/bot/utils/edit_exercise_data.py` в модуль draft/use-case helpers внутри feature-пакета тренировки.

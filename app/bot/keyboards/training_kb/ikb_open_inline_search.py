@@ -10,18 +10,18 @@ def get_ikb_open_inline_search(
     has_next_button: bool = False,
     next_button_text: str = "Вперед",
     next_button_callback_data: str = "",
-    has_acept_button: bool = False,
-    acept_button_text: str = "Добавить",
-    acept_button_callback_data: str = "acept_addition",
+    has_accept_button: bool = False,
+    accept_button_text: str = "Добавить",
+    accept_button_callback_data: str = "acept_addition",
     has_delete_set_button: bool = False,
     switch_inline_query: str = "",
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     
-    if has_acept_button:
+    if has_accept_button:
         builder.row(InlineKeyboardButton(
-            text = f"✅ {acept_button_text.capitalize()} ✅",
-            callback_data = acept_button_callback_data
+            text = f"✅ {accept_button_text.capitalize()} ✅",
+            callback_data = accept_button_callback_data
         ))
 
     builder.row(InlineKeyboardButton(

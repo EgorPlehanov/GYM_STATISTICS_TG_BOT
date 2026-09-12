@@ -48,7 +48,7 @@ weight_back_button_by_mode = {
 }
 
 
-acept_button_by_mode = {
+accept_button_by_mode = {
     TrainingMode.ADD_EXERCISE: Button("Добавить", "acept_addition"),
     TrainingMode.ADD_SET: Button("Добавить", "acept_addition"),
     TrainingMode.EDIT_SET: Button("Подтвердить изменения", "acept_edit"),

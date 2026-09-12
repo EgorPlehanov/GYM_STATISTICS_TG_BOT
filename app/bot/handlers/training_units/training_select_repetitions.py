@@ -7,13 +7,13 @@ from aiogram.fsm.context import FSMContext
 
 from typing import List, Dict, Union
 
-from app.bot.training_types import TrainingStates, TrainingMode, acept_button_by_mode
+from app.bot.training_types import TrainingStates, TrainingMode, accept_button_by_mode
 from app.bot.utils.format_training_data import get_formatted_state_date
-from app.bot.utils.check_acept_addition import check_acept_addition
+from app.bot.utils.check_accept_addition import check_accept_addition
 from app.bot.utils.weight_repetitions_modes import get_weight_repetitions_modes_values
 from app.bot.keyboards.training_kb import (
     get_ikb_open_inline_search,
-    get_ikb_acept_addition,
+    get_ikb_accept_addition,
 )
 
 
@@ -89,7 +89,7 @@ async def selected_repetitions(message: Message, state: FSMContext):
         chat_id=message.chat.id,
         message_id=user_data.get('message_id'),
         text=await get_formatted_state_date(state),
-        reply_markup=get_ikb_acept_addition(user_data.get('mode'))
+        reply_markup=get_ikb_accept_addition(user_data.get('mode'))
     )
 
 
@@ -104,7 +104,7 @@ async def to_repetitions(callback: CallbackQuery, state: FSMContext):
     await state.set_state(TrainingStates.select_repetitions)
 
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
-    acept_button = acept_button_by_mode.get(user_data.get('mode'))
+    accept_button = accept_button_by_mode.get(user_data.get('mode'))
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
@@ -118,9 +118,9 @@ async def to_repetitions(callback: CallbackQuery, state: FSMContext):
             ),
             next_button_text = "Кол-во подходов",
             next_button_callback_data = "to_sets_count",
-            has_acept_button = await check_acept_addition(state),
-            acept_button_text = acept_button.text,
-            acept_button_callback_data = acept_button.callback_data,
+            has_accept_button = await check_accept_addition(state),
+            accept_button_text = accept_button.text,
+            accept_button_callback_data = accept_button.callback_data,
             has_delete_set_button = user_data.get("mode") == TrainingMode.EDIT_SET,
             switch_inline_query = get_weight_repetitions_modes_values(
                 user_data, is_repetitions=True

@@ -14,7 +14,7 @@ from app.bot.utils.edit_exercise_data import (
 )
 from app.bot.keyboards.training_kb import (
     get_ikb_edit_menu,
-    ikb_edit_acept_delete,
+    ikb_edit_accept_delete,
 )
 
 
@@ -46,7 +46,7 @@ async def open_edit_menu(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data == 'acept_edit', TrainingStates.select_weight)
 @router.callback_query(F.data == 'acept_edit', TrainingStates.select_repetitions)
 @router.callback_query(F.data == 'acept_edit', TrainingStates.acept_addition)
-async def acept_edit(callback: CallbackQuery, state: FSMContext):
+async def accept_edit(callback: CallbackQuery, state: FSMContext):
     """
     Инлайн кнопка "Подтвердить изменения"
     """
@@ -83,7 +83,7 @@ async def acept_edit(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data == 'delete_all_sets', TrainingStates.edit_select_set)
 @router.callback_query(F.data == 'delete_set', TrainingStates.select_weight)
 @router.callback_query(F.data == 'delete_set', TrainingStates.select_repetitions)
-async def delete_acept(callback: CallbackQuery, state: FSMContext):
+async def delete_accept(callback: CallbackQuery, state: FSMContext):
     """
     Подтвержнение удаления
     """
@@ -98,7 +98,7 @@ async def delete_acept(callback: CallbackQuery, state: FSMContext):
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
-        reply_markup=ikb_edit_acept_delete,
+        reply_markup=ikb_edit_accept_delete,
     )
 
 

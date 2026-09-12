@@ -3,9 +3,8 @@ from aiogram import html
 
 from typing import Dict, Union
 from datetime import datetime
-import json
 
-from .formate_set_data_text import format_set_data_to_text
+from .format_set_data_text import format_set_data_to_text
 from app.bot.training_types import TrainingStates, TrainingMode
 
 
@@ -14,28 +13,28 @@ def format_exercises_data(
     exercise_data: Dict[str, Union[int, Dict]],
     edit_exercise_id: str = None,
     edit_set_id: int = None,
-    delete_acept_flag: bool = False,
+    delete_accept_flag: bool = False,
 ) -> str:
     """
     Форматирует данные о тренировке
     (упражнения, подходы, вес, количество повторений и время выполнения)
     """
-    delete_all_acept_flag = (
-        delete_acept_flag
+    delete_all_accept_flag = (
+        delete_accept_flag
         and edit_exercise_id is None
         and edit_set_id is None
     )
 
     text_parts = []
     for exercise_id, exercise in exercise_data['exercises'].items():
-        exercise_edit_flag = '✏️ ' if edit_exercise_id == exercise_id or delete_all_acept_flag else ''
+        exercise_edit_flag = '✏️ ' if edit_exercise_id == exercise_id or delete_all_accept_flag else ''
 
         exercise_name = html.bold(exercise['exercise_name'])
         if ((
-                delete_acept_flag
+                delete_accept_flag
                 and edit_exercise_id == exercise_id
                 and (edit_set_id is None or len(exercise['sets']) == 1)
-            ) or delete_all_acept_flag
+            ) or delete_all_accept_flag
         ):
             exercise_name = html.strikethrough(exercise_name)
         exercise_text_parts = [f"{exercise_edit_flag}◼️ {exercise_name}:"]
@@ -46,12 +45,12 @@ def format_exercises_data(
             if (
                 edit_exercise_id == exercise_id
                 and (edit_set_id is None or edit_set_id == set_number)
-                or delete_all_acept_flag
+                or delete_all_accept_flag
             ):
                 set_edit_flag = '✏️ '
             set_text = f"{set_number}) {format_set_data_to_text(set_data, set_id=set_number, is_add_set_number=False)}"
 
-            if delete_acept_flag and set_edit_flag or delete_all_acept_flag:
+            if delete_accept_flag and set_edit_flag or delete_all_accept_flag:
                 set_text = html.strikethrough(set_text)
 
             exercise_text_parts.append(f"{set_edit_flag}\t▫️ {set_text}")
@@ -147,7 +146,7 @@ def get_training_values(
                     exercise_data = exercise_data,
                     edit_exercise_id = edit_exercise_id,
                     edit_set_id = edit_set_id,
-                    delete_acept_flag = user_data.get('delete_acept_flag'),
+                    delete_accept_flag = user_data.get('delete_acept_flag'),
                 )
 
                 # training_values.append(f"{html.bold('Тренировка:')}\n{html.blockquote(format_exercise_text)}")

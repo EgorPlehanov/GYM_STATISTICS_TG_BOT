@@ -33,7 +33,7 @@ def get_ikb_select_exercise_fab(
     page: int = 0,
     page_size: int = 5,
     has_next_button: bool = False,
-    has_acept_addition_button: bool = False,
+    has_accept_addition_button: bool = False,
     selected_exercise_id: int | None = None
 ) -> InlineKeyboardMarkup:
     """
@@ -41,7 +41,7 @@ def get_ikb_select_exercise_fab(
     """
     builder = InlineKeyboardBuilder()
     
-    if has_acept_addition_button:
+    if has_accept_addition_button:
         builder.row(InlineKeyboardButton(text="✅ Добавить ✅", callback_data="acept_addition"))
     
     builder.row(InlineKeyboardButton(

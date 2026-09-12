@@ -6,7 +6,7 @@ from app.bot.training_types import TrainingMode
 
 
 
-async def check_acept_addition(state: FSMContext) -> bool:
+async def check_accept_addition(state: FSMContext) -> bool:
     """
     Проверяет состояние можно ли добавлять подход
     """

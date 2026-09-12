@@ -13,15 +13,15 @@ from app.bot.training_types import (
     TrainingMode,
     Button,
     weight_back_button_by_mode,
-    acept_button_by_mode
+    accept_button_by_mode
 )
-from app.bot.filters import StateAtributeNotNoneFilter
-from app.bot.utils.check_acept_addition import check_acept_addition
+from app.bot.filters import StateAttributeNotNoneFilter
+from app.bot.utils.check_accept_addition import check_accept_addition
 from app.bot.utils.format_training_data import get_formatted_state_date
 from app.bot.utils.weight_repetitions_modes import get_weight_repetitions_modes_values
 from app.bot.keyboards.training_kb import (
     get_ikb_open_inline_search,
-    get_ikb_acept_addition,
+    get_ikb_accept_addition,
 )
 
 
@@ -134,7 +134,7 @@ async def selected_additional_weight(message: Message, state: FSMContext):
 
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
 
-    acept_button = acept_button_by_mode.get(user_data.get('mode'))
+    accept_button = accept_button_by_mode.get(user_data.get('mode'))
 
     await message.bot.edit_message_text(
         chat_id=message.chat.id,
@@ -150,9 +150,9 @@ async def selected_additional_weight(message: Message, state: FSMContext):
             ),
             next_button_text = "Кол-во подходов",
             next_button_callback_data = "to_sets_count",
-            has_acept_button = await check_acept_addition(state),
-            acept_button_text = acept_button.text,
-            acept_button_callback_data = acept_button.callback_data,
+            has_accept_button = await check_accept_addition(state),
+            accept_button_text = accept_button.text,
+            accept_button_callback_data = accept_button.callback_data,
             has_delete_set_button = user_data.get("mode") == TrainingMode.EDIT_SET,
             switch_inline_query = get_weight_repetitions_modes_values(
                 user_data, is_repetitions=True
@@ -163,7 +163,7 @@ async def selected_additional_weight(message: Message, state: FSMContext):
 
 
 @router.message(
-    StateAtributeNotNoneFilter("exercise_id"),
+    StateAttributeNotNoneFilter("exercise_id"),
     F.text.regexp(r_weight_repetitions_sets, flags=re.IGNORECASE),
     TrainingStates.menu
 )
@@ -234,7 +234,7 @@ async def read_weight_and_repetitions(message: Message, state: FSMContext):
         chat_id=message.chat.id,
         message_id=user_data.get('message_id'),
         text=await get_formatted_state_date(state),
-        reply_markup=get_ikb_acept_addition(mode)
+        reply_markup=get_ikb_accept_addition(mode)
     )
         
 
@@ -251,7 +251,7 @@ async def to_weight(callback: CallbackQuery, state: FSMContext):
     user_data: Dict[str, Union[int, Dict]] = await state.get_data()
 
     back_button: Button = weight_back_button_by_mode.get(user_data.get('mode'))
-    acept_button = acept_button_by_mode.get(user_data.get('mode'))
+    accept_button = accept_button_by_mode.get(user_data.get('mode'))
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
@@ -262,9 +262,9 @@ async def to_weight(callback: CallbackQuery, state: FSMContext):
             has_next_button = user_data.get("weight") is not None,
             next_button_text = "Повторения",
             next_button_callback_data = "to_repetitions",
-            has_acept_button = await check_acept_addition(state),
-            acept_button_text = acept_button.text,
-            acept_button_callback_data = acept_button.callback_data,
+            has_accept_button = await check_accept_addition(state),
+            accept_button_text = accept_button.text,
+            accept_button_callback_data = accept_button.callback_data,
             has_delete_set_button = user_data.get("mode") == TrainingMode.EDIT_SET,
             switch_inline_query = get_weight_repetitions_modes_values(
                 user_data, is_weight=True
@@ -293,6 +293,6 @@ async def repeat_set(callback: CallbackQuery, state: FSMContext):
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
-        reply_markup = get_ikb_acept_addition(TrainingMode.ADD_SET)
+        reply_markup = get_ikb_accept_addition(TrainingMode.ADD_SET)
     )
 

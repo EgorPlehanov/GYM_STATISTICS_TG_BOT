@@ -17,7 +17,7 @@ from app.bot.utils.user_access import ensure_bot_user
 
 from .training_units import (
     TrainingStates,
-    acept_router,
+    accept_router,
     edit_menu_router,
     edit_select_exercise_router,
     edit_select_set_router,
@@ -38,7 +38,7 @@ router.include_routers(
     select_weight_router,
     select_repetitions_router,
     select_sets_count_router,
-    acept_router,
+    accept_router,
     edit_menu_router,
     edit_select_exercise_router,
     edit_select_set_router,
