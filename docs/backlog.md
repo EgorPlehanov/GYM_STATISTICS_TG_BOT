@@ -148,6 +148,7 @@ Backlog фиксирует крупные задачи перехода на н�
 - [ ] Добавить сценарий генерации одноразового кода для web login.
 - [x] Описать JSON-friendly формат FSM training draft для Telegram-бота.
 - [ ] Заменить временный `training_data: dict[str, Any]` в internal training API на строгие DTO.
+- [x] Добавить adapter `legacy exercise_data -> FSM draft -> legacy exercise_data` для переходного сценария тренировки.
 - [ ] Добавить adapter `API DTO -> FSM draft -> API DTO` для сценариев тренировки.
 - [x] Добавить типизированные структуры и JSON helpers для FSM training draft.
 - [ ] Ввести строгий FSM training draft и helpers доступа к нему.

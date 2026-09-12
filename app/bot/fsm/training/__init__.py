@@ -1,5 +1,6 @@
 """FSM-сценарий добавления и редактирования тренировки."""
 
+from .adapters import draft_to_legacy_exercise_data, legacy_exercise_data_to_draft
 from .draft import (
     TrainingDraft,
     TrainingDraftData,
@@ -61,12 +62,14 @@ __all__ = [
     "delete_all_exercises",
     "delete_exercise",
     "delete_set",
+    "draft_to_legacy_exercise_data",
     "draft_from_json",
     "draft_to_json",
     "exercise_button_by_mode",
     "get_current_exercise_id",
     "get_current_set_id",
     "get_weight_repetitions_modes_values",
+    "legacy_exercise_data_to_draft",
     "update_indexes_exercise_data",
     "update_set",
     "weight_back_button_by_mode",
