@@ -168,6 +168,7 @@ Backlog фиксирует крупные задачи перехода на н�
 - [ ] Исправить legacy callback/state/FSM data values `acept_*` после перевода сценария тренировки на строгий FSM draft.
 - [x] Выделить `TrainingStates`, `TrainingMode` и связанные кнопочные настройки из `app/bot/training_types.py` в feature-пакет тренировки.
 - [x] Разделить `app/bot/handlers/training_units` по устойчивым зонам сценария: выбор даты, выбор упражнения, ввод подхода, редактирование, завершение тренировки.
+- [x] Разделить `app/bot/keyboards/training_kb` по устойчивым зонам сценария: меню, дата, упражнение, ввод подхода, редактирование, завершение.
 - [x] Вынести операции изменения FSM-структуры тренировки из `app/bot/utils/edit_exercise_data.py` в модуль draft/use-case helpers внутри feature-пакета тренировки.
 - [x] Вынести training-specific helpers `check_accept_addition` и `weight_repetitions_modes` из `app/bot/utils` в FSM-пакет тренировки.
 - [x] Перенести форматирование тренировок и рейтингов из `app/bot/utils` в `app/bot/formatters`.

@@ -6,7 +6,7 @@ from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from ..keyboards_types import PaginationAction
+from ...keyboards_types import PaginationAction
 
 
 class ExerciseButtonData(Protocol):

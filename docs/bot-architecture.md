@@ -160,6 +160,12 @@ app/bot/
   keyboards/
     common/
     training/
+      ikb_training_menu.py
+      date/
+      exercise/
+      set_input/
+      edit/
+      ikb_finish_add_comment.py
     redirect/
     admin/
 
@@ -202,7 +208,12 @@ app/bot/
 - `handlers/training_units/edit/` - меню редактирования, выбор упражнения и подхода;
 - `handlers/training_units/finish.py` - комментарий, сохранение и завершение тренировки;
 - `fsm/training` - состояния, draft и адаптеры сериализации;
-- `keyboards/training` - клавиатуры сценария;
+- `keyboards/training_kb/ikb_training_menu.py` - главное меню тренировки;
+- `keyboards/training_kb/date/` - выбор даты и календарь;
+- `keyboards/training_kb/exercise/` - выбор упражнения;
+- `keyboards/training_kb/set_input/` - ввод веса, повторений, количества подходов и подтверждение добавления;
+- `keyboards/training_kb/edit/` - клавиатуры редактирования и подтверждения удаления;
+- `keyboards/training_kb/ikb_finish_add_comment.py` - клавиатура комментария и завершения;
 - `formatters/training.py` - текстовое представление тренировки;
 - `api_client/trainings.py` - вызовы internal training API.
 

@@ -8,31 +8,27 @@ from .date import (
     SimpleCalendarAction,
     SimpleCalendarCallback,
     WEEKDAYS,
+    get_ikb_changed_date,
     get_ikb_select_date,
 )
-
-from .ikb_select_exercise import (
-    get_ikb_select_exercise_fab,
-    TrainingExercisePagination,
-)
-from .ikb_open_inline_search import get_ikb_open_inline_search
-
-from .ikb_training_menu import get_ikb_training_menu
-
-from .ikb_accept_addition import get_ikb_accept_addition
-from .ikb_finish_add_comment import get_ikb_finish_add_comment
-
-from .ikb_edit_menu import get_ikb_edit_menu
-from .ikb_edit_select_exercise import (
-    get_ikb_edit_select_exercise_fab,
+from .edit import (
     EditTrainingExercisePagination,
-)
-from .ikb_edit_select_set import (
-    get_ikb_edit_select_set_fab,
     EditTrainingSetPagination,
+    get_ikb_edit_menu,
+    get_ikb_edit_select_exercise_fab,
+    get_ikb_edit_select_set_fab,
+    ikb_edit_accept_delete,
 )
-from .ikb_edit_accept_delete import ikb_edit_accept_delete
-from .ikb_changed_date import get_ikb_changed_date
+from .exercise import (
+    TrainingExercisePagination,
+    get_ikb_select_exercise_fab,
+)
+from .ikb_finish_add_comment import get_ikb_finish_add_comment
+from .ikb_training_menu import get_ikb_training_menu
+from .set_input import (
+    get_ikb_accept_addition,
+    get_ikb_open_inline_search,
+)
 
 __all__ = [
     "DialogCalendar",
