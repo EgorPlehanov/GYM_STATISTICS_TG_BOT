@@ -85,6 +85,92 @@ security helpers, общих исключений и будущего logging.
 Временное нарушение этих правил допустимо только как переходный шаг и должно быть
 зафиксировано в backlog.
 
+## Lifecycle запроса
+
+Все пользовательские интерфейсы должны сходиться в backend domain layer.
+Интерфейсы могут отличаться способом авторизации, DTO и UX-сценарием, но не должны
+иметь отдельную бизнес-реализацию работы с тренировками, статистикой и правами.
+
+### Telegram Bot
+
+Telegram-бот получает update от Telegram и обрабатывает его через aiogram handler.
+Если сценарию нужны данные или сохранение результата, бот вызывает backend через
+`BotApiClient` и `/internal/*`.
+
+```text
+Telegram Update
+  -> app/bot/handlers
+  -> app/bot/fsm, formatters, keyboards
+  -> app/bot/api_client
+  -> /internal/*
+  -> app/api/routers/internal
+  -> app/domain
+  -> app/db/repositories
+  -> PostgreSQL
+```
+
+Bot layer не открывает DB session и не вызывает domain напрямую. Это позволяет
+запускать Telegram-бот отдельным контейнером и менять backend без дублирования
+Telegram-логики.
+
+### Web SPA
+
+Web SPA работает как браузерный клиент публичного API. Пользовательская сессия
+хранится в `httpOnly` cookie, а frontend получает данные только через `/api/*`.
+
+```text
+React/Vite Web
+  -> public /api/*
+  -> app/api/routers
+  -> app/api/deps
+  -> app/domain
+  -> app/db/repositories
+  -> PostgreSQL
+```
+
+Frontend не обращается к базе, repositories или `/internal/*` напрямую.
+
+### Telegram Mini App
+
+Telegram Mini App использует тот же web frontend, но стартует внутри Telegram.
+На входе frontend передает Telegram `initData` в backend, backend валидирует подпись
+Telegram и создает пользовательскую web-сессию.
+
+```text
+Telegram Mini App
+  -> initData
+  -> public /api/auth/telegram-mini-app
+  -> Telegram validation
+  -> web session cookie
+  -> public /api/*
+  -> app/domain
+  -> app/db/repositories
+  -> PostgreSQL
+```
+
+После авторизации Mini App работает через тот же public API, что и обычная web SPA.
+
+### Worker
+
+Worker нужен для фоновых задач: пересчет рейтингов, тяжелая статистика, export и
+будущие периодические операции.
+
+Целевой поток:
+
+```text
+API или internal event
+  -> постановка задачи
+  -> worker
+  -> app/domain
+  -> app/db/repositories
+  -> PostgreSQL
+```
+
+Если задача запускается по HTTP из другого сервиса, она должна использовать
+служебный internal API и service-to-service авторизацию. Если worker выполняется
+как backend-процесс внутри доверенной инфраструктуры, он может вызывать domain
+services напрямую, но не должен содержать UI-логику bot/web.
+
 ## Целевая структура каталогов
 
 ```text
