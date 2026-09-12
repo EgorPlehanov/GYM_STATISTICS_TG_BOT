@@ -40,6 +40,51 @@ web -> FastAPI API -> domain -> repositories -> db
 
 Такой подход дает единый контракт и избавляет от будущей переделки, когда функциональности станет больше.
 
+## Правила импортов между слоями
+
+Зависимости в коде должны идти от внешних интерфейсов к внутренней реализации,
+а не наоборот.
+
+Разрешенное направление для backend-запросов:
+
+```text
+app/api -> app/domain -> app/db/repositories -> app/db/models
+```
+
+Разрешенное направление для Telegram-бота:
+
+```text
+app/bot -> app/bot/api_client -> FastAPI internal API -> app/domain -> app/db/repositories
+```
+
+Разрешенное направление для web frontend и Telegram Mini App:
+
+```text
+web -> public FastAPI API -> app/domain -> app/db/repositories
+```
+
+`app/core` может использоваться всеми backend-слоями для конфигурации,
+security helpers, общих исключений и будущего logging.
+
+Основные запреты:
+
+- `app/bot` не импортирует `app/db`, `app/domain`, SQLAlchemy session и repositories;
+- `app/domain` не импортирует `app/api`, `app/bot`, FastAPI, aiogram и HTTP DTO;
+- `app/db/repositories` не импортируют Pydantic-схемы из `app/api/schemas`;
+- `app/db/models` не импортируют domain services, repositories, API или bot layer;
+- `web` не обращается к базе напрямую и не использует internal API;
+- public API и internal API не должны дублировать бизнес-логику, они вызывают общий domain service.
+
+Если слою нужно вернуть сложный результат, он использует контракт своего уровня:
+
+- API возвращает Pydantic request/response DTO;
+- bot API client использует DTO из `app/bot/api_client/schemas`;
+- domain использует domain-схемы из своей бизнес-области;
+- repositories могут использовать ORM-модели, dataclass, TypedDict или domain result objects, но не API-схемы.
+
+Временное нарушение этих правил допустимо только как переходный шаг и должно быть
+зафиксировано в backlog.
+
 ## Целевая структура каталогов
 
 ```text
