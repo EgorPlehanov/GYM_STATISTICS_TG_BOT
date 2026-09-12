@@ -5,20 +5,19 @@ from aiogram.fsm.context import FSMContext
 from typing import Dict, Union
 
 from app.bot.fsm.training import (
-    TrainingStates,
     TrainingMode,
+    TrainingStates,
     accept_button_by_mode,
+    check_accept_addition,
+    get_weight_repetitions_modes_values,
 )
 from app.bot.formatters.training import get_formatted_state_date
-from app.bot.utils.weight_repetitions_modes import get_weight_repetitions_modes_values
 from app.bot.keyboards.keyboards_types import PaginationAction
 from app.bot.keyboards.training_kb import (
     EditTrainingSetPagination,
     get_ikb_edit_select_set_fab,
     get_ikb_open_inline_search,
 )
-from app.bot.utils.check_accept_addition import check_accept_addition
-
 
 
 router = Router()

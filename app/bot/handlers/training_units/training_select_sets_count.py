@@ -9,7 +9,7 @@ from typing import List, Dict, Union
 
 from app.bot.fsm.training import TrainingStates, TrainingMode, accept_button_by_mode
 from app.bot.formatters.training import get_formatted_state_date
-from app.bot.utils.check_accept_addition import check_accept_addition
+from app.bot.fsm.training import check_accept_addition
 from app.bot.keyboards.training_kb import (
     get_ikb_open_inline_search,
     get_ikb_accept_addition,

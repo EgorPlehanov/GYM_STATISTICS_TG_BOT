@@ -17,10 +17,15 @@ from app.bot.keyboards.training_kb import (
     get_ikb_open_inline_search,
     get_ikb_select_exercise_fab,
 )
-from app.bot.fsm.training import Button, TrainingMode, TrainingStates, exercise_button_by_mode
-from app.bot.utils.check_accept_addition import check_accept_addition
+from app.bot.fsm.training import (
+    Button,
+    TrainingMode,
+    TrainingStates,
+    check_accept_addition,
+    exercise_button_by_mode,
+    get_weight_repetitions_modes_values,
+)
 from app.bot.formatters.training import get_formatted_state_date
-from app.bot.utils.weight_repetitions_modes import get_weight_repetitions_modes_values
 
 router = Router()
 

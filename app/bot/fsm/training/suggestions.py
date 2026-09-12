@@ -5,9 +5,7 @@ from typing import Dict, Union
 def get_current_exercise_id(
     user_data: Dict[str, Union[int, Dict]]
 ) -> int:
-    """
-    Возвращает текущее упражнение
-    """
+    """Возвращает id текущего упражнения из FSM data."""
     exercise_id = None
     if user_data.get('edit_exercise_id') is not None:   # если мы редактируем упражнение
         exercise_id = user_data['edit_exercise_id']
@@ -23,9 +21,7 @@ def get_current_set_id(
     user_data: Dict[str, Union[int, Dict]],
     current_exercise_id: int = None
 ) -> int:
-    """
-    Возвращает текущий подход
-    """
+    """Возвращает id текущего подхода из FSM data."""
     set_id = None
     if user_data.get('edit_set_id') is not None:        # если мы редактируем подход
         set_id = user_data['edit_set_id']
@@ -45,9 +41,7 @@ def get_weight_repetitions_modes_values(
     is_weight: bool = False,
     is_repetitions: bool = False,
 ):
-    """
-    Возвращает значения для кнопок веса и повторений
-    """
+    """Возвращает подсказки веса и повторений для inline search."""
     weight_repetitions_modes = user_data.get('weight_repetitions_modes')
 
     exercise_id = get_current_exercise_id(user_data)

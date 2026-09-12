@@ -9,16 +9,16 @@ from typing import List, Dict, Union
 import re
 
 from app.bot.fsm.training import (
-    TrainingStates,
-    TrainingMode,
     Button,
+    TrainingMode,
+    TrainingStates,
+    accept_button_by_mode,
+    check_accept_addition,
+    get_weight_repetitions_modes_values,
     weight_back_button_by_mode,
-    accept_button_by_mode
 )
 from app.bot.filters import StateAttributeNotNoneFilter
-from app.bot.utils.check_accept_addition import check_accept_addition
 from app.bot.formatters.training import get_formatted_state_date
-from app.bot.utils.weight_repetitions_modes import get_weight_repetitions_modes_values
 from app.bot.keyboards.training_kb import (
     get_ikb_open_inline_search,
     get_ikb_accept_addition,
