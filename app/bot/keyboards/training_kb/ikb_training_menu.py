@@ -22,9 +22,9 @@ def get_ikb_training_menu(
             ),
         )
     if is_add_edit_button:
-        builder.row(InlineKeyboardButton(text="📝 Внести исправления 📝", callback_data="to_edit_menu"))
-        builder.row(InlineKeyboardButton(text="🏁 Завершить тренировку 🏁", callback_data="finish_training"))
+        builder.row(InlineKeyboardButton(text="📝 Исправить 📝", callback_data="to_edit_menu"))
+        builder.row(InlineKeyboardButton(text="🏁 Завершить 🏁", callback_data="finish_training"))
     else:
-        builder.row(InlineKeyboardButton(text="❌ Отменить тренировку ❌", callback_data="cancel"))
+        builder.row(InlineKeyboardButton(text="❌ Отменить ❌", callback_data="cancel"))
     return builder.as_markup()
 
