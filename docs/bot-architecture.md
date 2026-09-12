@@ -241,6 +241,63 @@ Handlers сценария должны работать с draft через help
 Legacy state names внутри `TrainingStates` сохраняются до отдельного шага перевода на
 строгий FSM draft.
 
+## Training Lifecycle
+
+Сценарий `/training` проходит через bot layer как пользовательский Telegram flow,
+а все данные backend получает и сохраняет через internal API.
+
+Текущий поток:
+
+```text
+/training
+  -> ensure_bot_user
+  -> BotApiClient.get_training_start_context
+  -> FSM draft
+  -> handlers/training_units/*
+  -> formatters/training.py
+  -> keyboards/training_kb/*
+  -> BotApiClient.save_training
+  -> redirect_result.send_training_result_to_redirect_groups
+  -> BotApiClient.recalculate_user_rating
+```
+
+На старте сценария бот вызывает `ensure_bot_user`, чтобы пользователь был создан
+или обновлен через backend. В будущем эта точка должна стать единым guard-ом для
+проверки согласия на обработку данных, блокировок и других правил доступа.
+
+После этого бот получает стартовый контекст тренировки через
+`get_training_start_context`: частые упражнения и подсказки по весу/повторениям.
+Эти данные кладутся в FSM и используются только для Telegram-сценария.
+
+Во время сценария `handlers/training_units/*` управляют переходами aiogram FSM,
+а черновик тренировки изменяется через helpers из `app/bot/fsm/training`.
+Текст сообщения собирается в `formatters`, кнопки собираются в `keyboards`.
+
+При завершении сценария бот отправляет черновик в backend через `save_training`.
+После успешного сохранения бот:
+
+- обновляет сообщение в Telegram;
+- отправляет результат в группы с включенным редиректом;
+- запускает пересчет рейтинга через internal API.
+
+Handlers сценария не должны:
+
+- обращаться к БД напрямую;
+- импортировать repositories;
+- импортировать domain services;
+- собирать SQL-запросы;
+- выполнять бизнес-логику сохранения тренировки;
+- создавать backend DTO напрямую до появления отдельного adapter layer.
+
+После появления строгого FSM draft нужно добавить adapter:
+
+```text
+internal API DTO -> FSM draft -> internal API DTO
+```
+
+Это позволит держать Telegram-специфичный формат состояния отдельно от контрактов
+backend API.
+
 ## Inline payload
 
 Inline payload не должен зависеть от runtime-only ключа, созданного при старте процесса.
