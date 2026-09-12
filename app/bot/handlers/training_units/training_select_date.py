@@ -15,7 +15,7 @@ from app.bot.keyboards.training_kb import (
 )
 from app.bot.utils.format_training_data import get_formatted_state_date
 
-from app.bot.training_types import TrainingMode, TrainingStates
+from app.bot.fsm.training import TrainingMode, TrainingStates
 
 router = Router()
 

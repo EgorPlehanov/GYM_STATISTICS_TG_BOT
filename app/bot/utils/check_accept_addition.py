@@ -2,7 +2,7 @@ from aiogram.fsm.context import FSMContext
 
 from typing import Dict, Union
 
-from app.bot.training_types import TrainingMode
+from app.bot.fsm.training import TrainingMode
 
 
 

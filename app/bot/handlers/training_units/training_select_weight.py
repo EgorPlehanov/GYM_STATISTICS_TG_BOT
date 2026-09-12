@@ -8,7 +8,7 @@ from aiogram.fsm.context import FSMContext
 from typing import List, Dict, Union
 import re
 
-from app.bot.training_types import (
+from app.bot.fsm.training import (
     TrainingStates,
     TrainingMode,
     Button,

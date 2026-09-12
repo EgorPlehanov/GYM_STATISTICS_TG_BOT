@@ -196,6 +196,10 @@ app/bot/
 
 Handlers сценария должны работать с draft через helper-функции, а не напрямую менять вложенные словари через строковые ключи.
 
+Текущие состояния и режимы сценария хранятся в `app/bot/fsm/training/states.py`.
+Legacy state names внутри `TrainingStates` сохраняются до отдельного шага перевода на
+строгий FSM draft.
+
 ## Inline payload
 
 Inline payload не должен зависеть от runtime-only ключа, созданного при старте процесса.

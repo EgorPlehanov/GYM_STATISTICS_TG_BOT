@@ -16,7 +16,7 @@ from app.bot.keyboards.training_kb import get_ikb_finish_add_comment
 from app.bot.utils.format_training_data import get_formatted_state_date
 from app.bot.utils.redirect_result_to_user_group import redirect_result_to_user_group
 
-from app.bot.training_types import TrainingStates
+from app.bot.fsm.training import TrainingStates
 
 router = Router()
 

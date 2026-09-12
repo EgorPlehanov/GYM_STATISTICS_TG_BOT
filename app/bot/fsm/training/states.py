@@ -1,3 +1,5 @@
+"""Состояния и режимы FSM-сценария тренировки."""
+
 from collections import namedtuple
 from datetime import date, datetime
 from enum import Enum
