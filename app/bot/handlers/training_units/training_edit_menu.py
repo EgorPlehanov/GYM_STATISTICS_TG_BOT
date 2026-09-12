@@ -4,14 +4,14 @@ from aiogram.fsm.context import FSMContext
 
 from typing import Dict, Union
 
-from app.bot.fsm.training import TrainingStates
-from app.bot.formatters.training import get_formatted_state_date
-from app.bot.utils.edit_exercise_data import (
-    update_set,
-    delete_all_exercises,
+from app.bot.fsm.training import (
+    TrainingStates,
     delete_all_exercise_sets,
+    delete_all_exercises,
     delete_set,
+    update_set,
 )
+from app.bot.formatters.training import get_formatted_state_date
 from app.bot.keyboards.training_kb import (
     get_ikb_edit_menu,
     ikb_edit_accept_delete,

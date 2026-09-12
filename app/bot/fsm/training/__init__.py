@@ -1,5 +1,15 @@
 """FSM-сценарий добавления и редактирования тренировки."""
 
+from .draft import (
+    add_exercise,
+    add_set,
+    delete_all_exercise_sets,
+    delete_all_exercises,
+    delete_exercise,
+    delete_set,
+    update_indexes_exercise_data,
+    update_set,
+)
 from .states import (
     Button,
     ExerciseData,
@@ -20,6 +30,14 @@ __all__ = [
     "TrainingMode",
     "TrainingStates",
     "accept_button_by_mode",
+    "add_exercise",
+    "add_set",
+    "delete_all_exercise_sets",
+    "delete_all_exercises",
+    "delete_exercise",
+    "delete_set",
     "exercise_button_by_mode",
+    "update_indexes_exercise_data",
+    "update_set",
     "weight_back_button_by_mode",
 ]

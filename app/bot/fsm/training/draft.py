@@ -1,3 +1,5 @@
+"""Операции над текущим FSM-черновиком тренировки."""
+
 from datetime import datetime
 from typing import Any
 
@@ -5,9 +7,7 @@ from typing import Any
 def add_exercise(
     exercise_data: dict[str, Any], exercise_id: str, exercise_name: str
 ) -> None:
-    """
-    Добавляет упражнение к тренировке
-    """
+    """Добавляет упражнение к черновику тренировки."""
     if exercise_id in exercise_data["exercises"]:
         return
     exercise_data["exercises"][exercise_id] = {
@@ -25,9 +25,7 @@ def add_set(
     repetitions: int = None,
     time: str = None,
 ) -> None:
-    """
-    Добавляет подход к упражнению
-    """
+    """Добавляет подход к упражнению в черновике тренировки."""
     exercise_data["exercises"][exercise_id]["local_set_counter"] += 1
     exercise_data["global_set_counter"] += 1
 
@@ -51,9 +49,7 @@ def update_set(
     new_repetitions: int = None,
     new_time: datetime = None,
 ) -> bool:
-    """
-    Обновляет вес, количество повторений, и время выполнения упражнения
-    """
+    """Обновляет вес, количество повторений или время выполнения подхода."""
     if new_weight is None and new_repetitions is None and new_time is None:
         return False
     
@@ -87,9 +83,7 @@ def delete_set(
     exercise_id: str,
     set_number: str
 ) -> None:
-    """
-    Удаляет подход
-    """
+    """Удаляет подход из черновика тренировки."""
     del exercise_data["exercises"][exercise_id]["sets"][set_number]
     # Удаляет упражнение, если нет ни одного подхода
     if not exercise_data['exercises'][exercise_id]['sets']:
@@ -103,9 +97,7 @@ def delete_all_exercise_sets(
     exercise_id: str,
     is_sets_only: bool = False,
 ) -> None:
-    """
-    Удаляет все подходы упражнения
-    """
+    """Удаляет все подходы упражнения из черновика тренировки."""
     if is_sets_only:
         del exercise_data["exercises"][exercise_id]["sets"]
     else:
@@ -117,18 +109,14 @@ def delete_all_exercise_sets(
 def delete_exercise(
     exercise_data: dict[str, Any], exercise_id: str
 ) -> None:
-    """
-    Удаляет упражнение со всеми подходами
-    """
+    """Удаляет упражнение со всеми подходами из черновика тренировки."""
     del exercise_data["exercises"][exercise_id]
     update_indexes_exercise_data(exercise_data)
 
 
 
 def delete_all_exercises(exercise_data: dict[str, Any]) -> None:
-    """
-    Удаляет все упражнения
-    """
+    """Удаляет все упражнения из черновика тренировки."""
     exercise_data["exercises"] = {}
     update_indexes_exercise_data(exercise_data)
 
@@ -137,9 +125,7 @@ def delete_all_exercises(exercise_data: dict[str, Any]) -> None:
 def update_indexes_exercise_data(
     exercise_data: dict[str, Any],
 ) -> None:
-    """
-    Обновляет индексы подходов
-    """
+    """Обновляет локальные и глобальные индексы подходов в черновике."""
     all_sets = []
     for exercise in exercise_data["exercises"].values():
         all_sets.extend(list(exercise["sets"].values()))
