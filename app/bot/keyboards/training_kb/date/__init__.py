@@ -1,3 +1,5 @@
+"""Клавиатуры выбора даты тренировки."""
+
 from .ikb_calendar.calendar_types import (
     WEEKDAYS,
     DialogCalendarAction,
@@ -10,3 +12,13 @@ from .ikb_calendar.dialog_calendar import DialogCalendar
 
 from .ikb_select_date import get_ikb_select_date
 
+__all__ = [
+    "WEEKDAYS",
+    "DialogCalendarAction",
+    "SimpleCalendarAction",
+    "DialogCalendarCallback",
+    "SimpleCalendarCallback",
+    "SimpleCalendar",
+    "DialogCalendar",
+    "get_ikb_select_date",
+]
