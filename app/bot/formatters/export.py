@@ -29,13 +29,10 @@ class ExportDataRow(Protocol):
 
 
 def get_export_data_file(export_data: list[ExportDataRow]) -> bytes:
-    """
-    Создает эксель файл для экспорта данных
-    """
+    """Создает XLSX-файл для отправки пользователю через Telegram."""
     workbook = Workbook()
     sheet = workbook.active
 
-    # Write headers
     headers = [
         'Дата',
         'Комментарий',
@@ -59,7 +56,6 @@ def get_export_data_file(export_data: list[ExportDataRow]) -> bytes:
     ]
     sheet.append(headers)
 
-    # Write data
     for item in export_data:
         row = [
             item.date,
@@ -84,7 +80,6 @@ def get_export_data_file(export_data: list[ExportDataRow]) -> bytes:
         ]
         sheet.append(row)
 
-    # Save the workbook to a buffer
     buffer = BytesIO()
     workbook.save(buffer)
     return buffer.getvalue()

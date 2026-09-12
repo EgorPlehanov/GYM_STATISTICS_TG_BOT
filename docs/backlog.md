@@ -170,7 +170,7 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Вынести операции изменения FSM-структуры тренировки из `app/bot/utils/edit_exercise_data.py` в модуль draft/use-case helpers внутри feature-пакета тренировки.
 - [x] Вынести training-specific helpers `check_accept_addition` и `weight_repetitions_modes` из `app/bot/utils` в FSM-пакет тренировки.
 - [x] Перенести форматирование тренировок и рейтингов из `app/bot/utils` в `app/bot/formatters`.
-- [ ] Отделить export-утилиты бота от общего `utils`: оставить как отдельный bot export adapter или перенести в feature-пакет export.
+- [x] Перенести простой bot export presentation helper из `app/bot/utils` в `app/bot/formatters/export.py`.
 - [ ] Пересмотреть inline payload выбора упражнения: убрать runtime-only `Fernet.generate_key()` и заменить на устойчивый signed/Redis-backed payload.
 - [x] Описать правила структуры `app/bot`: где живут handlers, keyboards, formatters, filters, middlewares, FSM draft и API client.
 - [ ] Перевести aiogram FSM storage с `MemoryStorage` на Redis после выбора Redis как инфраструктурного сервиса.
@@ -218,6 +218,8 @@ Backlog фиксирует крупные задачи перехода на н�
 - [ ] Отдельно спроектировать web export.
 - [ ] Решить форматы: CSV, XLSX, JSON.
 - [ ] Добавить отдельную документацию по export после проектирования.
+- [ ] Спроектировать общий модуль `app/export/excel` для сложной генерации Excel-файлов, если export понадобится bot и web frontend.
+- [ ] Для тяжелой генерации export-файлов использовать worker-задачу вместо выполнения внутри API request или Telegram handler.
 
 ## 14. Docker и деплой
 

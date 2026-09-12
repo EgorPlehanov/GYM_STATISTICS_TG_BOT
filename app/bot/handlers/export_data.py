@@ -6,7 +6,7 @@ from app.bot.client import BotApiClient
 from app.bot.middlewares import (
     ChatActionMiddleware,
 )
-from app.bot.utils.data_export import get_export_data_file
+from app.bot.formatters.export import get_export_data_file
 from app.bot.utils.user_access import ensure_bot_user
 
 router = Router()
