@@ -1,24 +1,27 @@
-from aiogram import Router, F
-from aiogram.types import (
-    Message, CallbackQuery, InlineQuery, 
-    InlineQueryResultArticle, InputTextMessageContent
-)
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
+from aiogram.types import (
+    CallbackQuery,
+    InlineQuery,
+    InlineQueryResultArticle,
+    InputTextMessageContent,
+    Message,
+)
 
+from app.bot.formatters.training import get_formatted_state_date
 from app.bot.fsm.training import (
     TrainingMode,
     TrainingStates,
     accept_button_by_mode,
     check_accept_addition,
+    get_training_draft,
     get_weight_repetitions_modes_values,
+    set_training_draft,
 )
-from app.bot.formatters.training import get_formatted_state_date
 from app.bot.keyboards.training_kb import (
-    get_ikb_open_inline_search,
     get_ikb_accept_addition,
+    get_ikb_open_inline_search,
 )
-
-
 
 router = Router()
 
@@ -76,7 +79,9 @@ async def selected_repetitions(message: Message, state: FSMContext):
     await state.set_state(TrainingStates.acept_addition)
 
     repetitions = int(message.text)
-    await state.update_data(repetitions=repetitions)
+    draft = await get_training_draft(state)
+    draft.selection.repetitions = repetitions
+    await set_training_draft(state, draft)
     await message.delete()
 
     user_data: dict[str, int | dict] = await state.get_data()
@@ -97,8 +102,10 @@ async def to_repetitions(callback: CallbackQuery, state: FSMContext):
     """Переводит сценарий к выбору количества повторений."""
     await state.set_state(TrainingStates.select_repetitions)
 
+    draft = await get_training_draft(state)
+    mode = TrainingMode(draft.selection.mode)
     user_data: dict[str, int | dict] = await state.get_data()
-    accept_button = accept_button_by_mode.get(user_data.get('mode'))
+    accept_button = accept_button_by_mode.get(mode)
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
@@ -107,15 +114,15 @@ async def to_repetitions(callback: CallbackQuery, state: FSMContext):
             back_button_text = "Вес",
             back_button_callback_data = "to_weight",
             has_next_button = (
-                user_data.get("repetitions") is not None
-                and user_data.get("mode") != TrainingMode.EDIT_SET
+                draft.selection.repetitions is not None
+                and mode != TrainingMode.EDIT_SET
             ),
             next_button_text = "Кол-во подходов",
             next_button_callback_data = "to_sets_count",
             has_accept_button = await check_accept_addition(state),
             accept_button_text = accept_button.text,
             accept_button_callback_data = accept_button.callback_data,
-            has_delete_set_button = user_data.get("mode") == TrainingMode.EDIT_SET,
+            has_delete_set_button = mode == TrainingMode.EDIT_SET,
             switch_inline_query = get_weight_repetitions_modes_values(
                 user_data, is_repetitions=True
             )

@@ -1,14 +1,12 @@
-from aiogram.fsm.context import FSMContext
 
-from typing import Dict, Union
+from aiogram.fsm.context import FSMContext
 
 from .states import TrainingMode
 
 
-
 async def check_accept_addition(state: FSMContext) -> bool:
     """Проверяет, можно ли подтвердить добавление или изменение подхода."""
-    user_data: Dict[str, Union[int, Dict]] = await state.get_data()
+    user_data: dict[str, int | dict] = await state.get_data()
 
     is_exercise = user_data.get("cur_exercise_id") is not None
     is_weight = user_data.get("weight") is not None
@@ -23,7 +21,11 @@ async def check_accept_addition(state: FSMContext) -> bool:
             edit_exercise_id = user_data.get("edit_exercise_id")
             edit_set_id = user_data.get("edit_set_id")
 
-            exercise = user_data.get("exercise_data", {}).get("exercises", {}).get(edit_exercise_id, {})
+            exercise = (
+                user_data.get("exercise_data", {})
+                .get("exercises", {})
+                .get(edit_exercise_id, {})
+            )
             set_data = exercise.get("sets", {}).get(edit_set_id, {})
 
             cur_weight = set_data.get("weight")

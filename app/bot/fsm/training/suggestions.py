@@ -1,9 +1,7 @@
-from typing import Dict, Union
-
 
 
 def get_current_exercise_id(
-    user_data: Dict[str, Union[int, Dict]]
+    user_data: dict[str, int | dict]
 ) -> int:
     """Возвращает id текущего упражнения из FSM data."""
     exercise_id = None
@@ -18,7 +16,7 @@ def get_current_exercise_id(
 
 
 def get_current_set_id(
-    user_data: Dict[str, Union[int, Dict]],
+    user_data: dict[str, int | dict],
     current_exercise_id: int = None
 ) -> int:
     """Возвращает id текущего подхода из FSM data."""
@@ -37,7 +35,7 @@ def get_current_set_id(
 
 
 def get_weight_repetitions_modes_values(
-    user_data: Dict[str, Union[int, Dict]],
+    user_data: dict[str, int | dict],
     is_weight: bool = False,
     is_repetitions: bool = False,
 ):

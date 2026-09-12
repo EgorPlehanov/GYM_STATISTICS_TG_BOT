@@ -1,23 +1,26 @@
-from aiogram import Router, F
-from aiogram.types import (
-    Message, CallbackQuery, InlineQuery,
-    InlineQueryResultArticle, InputTextMessageContent, 
-)
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
+from aiogram.types import (
+    CallbackQuery,
+    InlineQuery,
+    InlineQueryResultArticle,
+    InputTextMessageContent,
+    Message,
+)
 
+from app.bot.formatters.training import get_formatted_state_date
 from app.bot.fsm.training import (
     TrainingMode,
     TrainingStates,
     accept_button_by_mode,
     check_accept_addition,
+    get_training_draft,
+    set_training_draft,
 )
-from app.bot.formatters.training import get_formatted_state_date
 from app.bot.keyboards.training_kb import (
-    get_ikb_open_inline_search,
     get_ikb_accept_addition,
+    get_ikb_open_inline_search,
 )
-
-
 
 router = Router()
 
@@ -70,7 +73,9 @@ async def selected_sets_count(message: Message, state: FSMContext):
     await state.set_state(TrainingStates.acept_addition)
 
     sets_count = int(message.text)
-    await state.update_data(sets_count=sets_count)
+    draft = await get_training_draft(state)
+    draft.selection.sets_count = sets_count
+    await set_training_draft(state, draft)
     await message.delete()
 
     user_data: dict[str, int | dict] = await state.get_data()
@@ -90,8 +95,9 @@ async def to_sets_count(callback: CallbackQuery, state: FSMContext):
     """Переводит сценарий к выбору количества подходов."""
     await state.set_state(TrainingStates.select_sets_count)
 
-    user_data: dict[str, int | dict] = await state.get_data()
-    accept_button = accept_button_by_mode.get(user_data.get('mode'))
+    draft = await get_training_draft(state)
+    mode = TrainingMode(draft.selection.mode)
+    accept_button = accept_button_by_mode.get(mode)
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
@@ -102,7 +108,7 @@ async def to_sets_count(callback: CallbackQuery, state: FSMContext):
             has_accept_button = await check_accept_addition(state),
             accept_button_text = accept_button.text,
             accept_button_callback_data = accept_button.callback_data,
-            has_delete_set_button = user_data.get("mode") == TrainingMode.EDIT_SET
+            has_delete_set_button = mode == TrainingMode.EDIT_SET
         ),
     )
 

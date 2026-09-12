@@ -1,29 +1,32 @@
-from aiogram import Router, F
-from aiogram.types import (
-    Message, CallbackQuery, InlineQuery,
-    InlineQueryResultArticle, InputTextMessageContent
-)
-from aiogram.fsm.context import FSMContext
-
 import re
 
+from aiogram import F, Router
+from aiogram.fsm.context import FSMContext
+from aiogram.types import (
+    CallbackQuery,
+    InlineQuery,
+    InlineQueryResultArticle,
+    InputTextMessageContent,
+    Message,
+)
+
+from app.bot.filters import StateAttributeNotNoneFilter
+from app.bot.formatters.training import get_formatted_state_date
 from app.bot.fsm.training import (
     Button,
     TrainingMode,
     TrainingStates,
     accept_button_by_mode,
     check_accept_addition,
+    get_training_draft,
     get_weight_repetitions_modes_values,
+    set_training_draft,
     weight_back_button_by_mode,
 )
-from app.bot.filters import StateAttributeNotNoneFilter
-from app.bot.formatters.training import get_formatted_state_date
 from app.bot.keyboards.training_kb import (
-    get_ikb_open_inline_search,
     get_ikb_accept_addition,
+    get_ikb_open_inline_search,
 )
-
-
 
 router = Router()
 
@@ -45,13 +48,13 @@ async def add_set_handler(callback: CallbackQuery, state: FSMContext):
     """Открывает ввод нового подхода для текущего упражнения."""
     await state.set_state(TrainingStates.select_weight)
 
-    await state.update_data(mode=TrainingMode.ADD_SET)
-
     user_data: dict[str, int | dict] = await state.get_data()
-
-    await state.update_data(cur_exercise_id=user_data.get('exercise_id'))
-    await state.update_data(cur_exercise_name=user_data.get('exercise_name'))
-    await state.update_data(sets_count=1)
+    draft = await get_training_draft(state)
+    draft.selection.mode = TrainingMode.ADD_SET.value
+    draft.selection.exercise_id = user_data.get("exercise_id")
+    draft.selection.exercise_name = user_data.get("exercise_name")
+    draft.selection.sets_count = 1
+    await set_training_draft(state, draft)
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
@@ -119,8 +122,10 @@ async def selected_weight(message: Message, state: FSMContext):
     weight = float(message.text.replace(',', '.'))
 
     await state.set_state(TrainingStates.select_repetitions)
-    
-    await state.update_data(weight=weight)
+
+    draft = await get_training_draft(state)
+    draft.selection.weight = weight
+    await set_training_draft(state, draft)
     await message.delete()
 
     user_data: dict[str, int | dict] = await state.get_data()
@@ -191,22 +196,22 @@ async def read_weight_and_repetitions(message: Message, state: FSMContext):
     sets_count = int(sets_count) if sets_count is not None and int(sets_count) > 0 else None
 
     user_data: dict[str, int | dict] = await state.get_data()
-
-    mode = user_data.get('mode')
+    draft = await get_training_draft(state)
+    mode = TrainingMode(draft.selection.mode) if draft.selection.mode else None
 
     # Если значение введено в меню тренировки
     if mode is None:
         mode = TrainingMode.ADD_SET
-        await state.update_data(mode=TrainingMode.ADD_SET)
-        await state.update_data(cur_exercise_id=user_data.get('exercise_id'))
-        await state.update_data(cur_exercise_name=user_data.get('exercise_name'))
-        await state.update_data(sets_count=1)
+        draft.selection.mode = TrainingMode.ADD_SET.value
+        draft.selection.exercise_id = user_data.get("exercise_id")
+        draft.selection.exercise_name = user_data.get("exercise_name")
+        draft.selection.sets_count = 1
 
     if (
-        weight == user_data.get('weight')
-        and repetitions == user_data.get('repetitions')
+        weight == draft.selection.weight
+        and repetitions == draft.selection.repetitions
         and (
-            sets_count is not None and sets_count == user_data.get('sets_count')
+            sets_count is not None and sets_count == draft.selection.sets_count
             or sets_count is None
         )
         and await state.get_state() == TrainingStates.acept_addition
@@ -215,9 +220,11 @@ async def read_weight_and_repetitions(message: Message, state: FSMContext):
     
     await state.set_state(TrainingStates.acept_addition)
 
-    await state.update_data(weight=weight, repetitions=repetitions)
+    draft.selection.weight = weight
+    draft.selection.repetitions = repetitions
     if sets_count is not None:
-        await state.update_data(sets_count=sets_count)
+        draft.selection.sets_count = sets_count
+    await set_training_draft(state, draft)
 
     await message.bot.edit_message_text(
         chat_id=message.chat.id,
@@ -235,10 +242,12 @@ async def to_weight(callback: CallbackQuery, state: FSMContext):
     """Переводит сценарий к выбору веса."""
     await state.set_state(TrainingStates.select_weight)
 
+    draft = await get_training_draft(state)
+    mode = TrainingMode(draft.selection.mode)
     user_data: dict[str, int | dict] = await state.get_data()
 
-    back_button: Button = weight_back_button_by_mode.get(user_data.get('mode'))
-    accept_button = accept_button_by_mode.get(user_data.get('mode'))
+    back_button: Button = weight_back_button_by_mode.get(mode)
+    accept_button = accept_button_by_mode.get(mode)
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
@@ -252,7 +261,7 @@ async def to_weight(callback: CallbackQuery, state: FSMContext):
             has_accept_button = await check_accept_addition(state),
             accept_button_text = accept_button.text,
             accept_button_callback_data = accept_button.callback_data,
-            has_delete_set_button = user_data.get("mode") == TrainingMode.EDIT_SET,
+            has_delete_set_button = mode == TrainingMode.EDIT_SET,
             switch_inline_query = get_weight_repetitions_modes_values(
                 user_data, is_weight=True
             )
@@ -266,15 +275,15 @@ async def repeat_set(callback: CallbackQuery, state: FSMContext):
     """Предлагает повторить последний сохраненный подход текущего упражнения."""
     await state.set_state(TrainingStates.acept_addition)
 
-    await state.update_data(mode=TrainingMode.ADD_SET)
-
     user_data: dict[str, int | dict] = await state.get_data()
-
-    await state.update_data(cur_exercise_id=user_data.get('exercise_id'))
-    await state.update_data(cur_exercise_name=user_data.get('exercise_name'))
-    await state.update_data(sets_count=1)
-    await state.update_data(weight=user_data.get('last_weight'))
-    await state.update_data(repetitions=user_data.get('last_repetitions'))
+    draft = await get_training_draft(state)
+    draft.selection.mode = TrainingMode.ADD_SET.value
+    draft.selection.exercise_id = user_data.get("exercise_id")
+    draft.selection.exercise_name = user_data.get("exercise_name")
+    draft.selection.sets_count = 1
+    draft.selection.weight = user_data.get("last_weight")
+    draft.selection.repetitions = user_data.get("last_repetitions")
+    await set_training_draft(state, draft)
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),

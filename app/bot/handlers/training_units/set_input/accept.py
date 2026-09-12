@@ -1,12 +1,16 @@
-from aiogram import Router, F
-from aiogram.types import CallbackQuery
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery
 
-from app.bot.fsm.training import TrainingStates, add_exercise, add_set
 from app.bot.formatters.training import get_formatted_state_date
+from app.bot.fsm.training import (
+    TrainingStates,
+    add_exercise,
+    add_set,
+    get_training_draft,
+    set_training_draft,
+)
 from app.bot.keyboards.training_kb import get_ikb_training_menu
-
-
 
 router = Router()
 
@@ -22,30 +26,35 @@ async def accept_addition(callback: CallbackQuery, state: FSMContext):
     await state.set_state(TrainingStates.menu)
 
     user_data: dict[str, int | dict] = await state.get_data()
+    draft = await get_training_draft(state)
 
     exercise_data = user_data.get('exercise_data')
-    exercise_id = user_data.get('cur_exercise_id')
-    exercise_name = user_data.get('cur_exercise_name')
-    weight = user_data.get('weight')
-    repetitions = user_data.get('repetitions')
-    sets_count = user_data.get('sets_count')
+    exercise_id = draft.selection.exercise_id
+    exercise_name = draft.selection.exercise_name
+    weight = draft.selection.weight
+    repetitions = draft.selection.repetitions
+    sets_count = draft.selection.sets_count
     time = callback.message.date
     
     add_exercise(exercise_data, exercise_id, exercise_name)
     for _ in range(sets_count):
         add_set(exercise_data, exercise_id, weight, repetitions, time)
 
-    await state.update_data(exercise_id=exercise_id)
-    await state.update_data(exercise_name=exercise_name)
-
-    await state.update_data(mode=None)
-    await state.update_data(cur_exercise_id=None)
-    await state.update_data(cur_exercise_name=None)
-    await state.update_data(weight=None)
-    await state.update_data(repetitions=None)
-    await state.update_data(sets_count=None)
-    await state.update_data(last_weight=weight)
-    await state.update_data(last_repetitions=repetitions)
+    await state.update_data(exercise_data=exercise_data)
+    draft = await get_training_draft(state)
+    draft.selection.mode = None
+    draft.selection.exercise_id = None
+    draft.selection.exercise_name = None
+    draft.selection.weight = None
+    draft.selection.repetitions = None
+    draft.selection.sets_count = None
+    await set_training_draft(state, draft)
+    await state.update_data(
+        exercise_id=exercise_id,
+        exercise_name=exercise_name,
+        last_weight=weight,
+        last_repetitions=repetitions,
+    )
     
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
