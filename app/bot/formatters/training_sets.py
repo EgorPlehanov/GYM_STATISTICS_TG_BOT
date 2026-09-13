@@ -1,11 +1,7 @@
-from typing import Dict
-
-
-
 def format_set_data_to_text(
-    set_data: Dict[str, int],
+    set_data: dict[str, int],
     set_id: int = None,
-    is_add_set_number: bool = True
+    is_add_set_number: bool = True,
 ) -> str:
     """
     Форматирует строку текста подхода
