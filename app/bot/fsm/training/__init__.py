@@ -1,6 +1,11 @@
 """FSM-сценарий добавления и редактирования тренировки."""
 
-from .adapters import draft_to_legacy_exercise_data, legacy_exercise_data_to_draft
+from .adapters import (
+    draft_to_legacy_exercise_data,
+    draft_to_legacy_exercise_sets_data,
+    draft_to_legacy_exercises_data,
+    legacy_exercise_data_to_draft,
+)
 from .draft import (
     TrainingDraft,
     TrainingDraftData,
@@ -25,6 +30,9 @@ from .operations import (
     delete_all_exercises_from_draft,
     delete_exercise_from_draft,
     delete_set_from_draft,
+    get_draft_exercise,
+    get_draft_set_by_local_id,
+    has_draft_exercises,
     recalculate_draft_set_numbers,
     update_set_in_draft,
 )
@@ -74,6 +82,8 @@ __all__ = [
     "delete_exercise_from_draft",
     "delete_set_from_draft",
     "draft_to_legacy_exercise_data",
+    "draft_to_legacy_exercise_sets_data",
+    "draft_to_legacy_exercises_data",
     "draft_from_json",
     "draft_to_json",
     "exercise_button_by_mode",
@@ -81,11 +91,14 @@ __all__ = [
     "get_current_exercise_id_from_draft",
     "get_current_set_id",
     "get_current_set_id_from_draft",
+    "get_draft_exercise",
+    "get_draft_set_by_local_id",
     "get_legacy_exercise_data",
     "get_legacy_exercise_data_from_mapping",
     "get_training_draft",
     "get_weight_repetitions_modes_values",
     "get_weight_repetitions_modes_values_from_draft",
+    "has_draft_exercises",
     "legacy_exercise_data_to_draft",
     "recalculate_draft_set_numbers",
     "set_legacy_exercise_data",

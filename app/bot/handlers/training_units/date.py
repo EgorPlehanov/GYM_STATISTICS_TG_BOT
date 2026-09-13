@@ -11,6 +11,7 @@ from app.bot.fsm.training import (
     TrainingMode,
     TrainingStates,
     get_training_draft,
+    has_draft_exercises,
     set_legacy_exercise_data,
     set_training_draft,
 )
@@ -36,7 +37,7 @@ async def _render_training_menu(callback: CallbackQuery, state: FSMContext) -> N
         None. Telegram-сообщение обновляется через Bot API.
     """
     user_data: dict[str, int | dict] = await state.get_data()
-    exercises = user_data.get("exercise_data")["exercises"]
+    draft = await get_training_draft(state)
 
     last_weight = str(user_data.get("last_weight", "")).rstrip("0").rstrip(".")
     last_repetitions = user_data.get("last_repetitions", "")
@@ -44,8 +45,8 @@ async def _render_training_menu(callback: CallbackQuery, state: FSMContext) -> N
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
         reply_markup=get_ikb_training_menu(
-            is_add_edit_button=len(exercises) != 0,
-            is_add_add_set_button=user_data.get("exercise_id") is not None,
+            is_add_edit_button=has_draft_exercises(draft),
+            is_add_add_set_button=draft.selection.exercise_id is not None,
             repeat_set_button_text=f"{last_weight}×{last_repetitions}",
         ),
     )
@@ -251,7 +252,7 @@ async def save_current_training_and_open_selected_date(
     )
 
     await state.set_state(TrainingStates.menu)
-    exercises = changed_exercise_data.get("exercises", {})
+    draft = await get_training_draft(state)
 
     last_weight = str(user_data.get("last_weight", "")).rstrip("0").rstrip(".")
     last_repetitions = user_data.get("last_repetitions", "")
@@ -259,7 +260,7 @@ async def save_current_training_and_open_selected_date(
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
         reply_markup=get_ikb_training_menu(
-            is_add_edit_button=len(exercises) != 0,
+            is_add_edit_button=has_draft_exercises(draft),
             is_add_add_set_button=False,
             repeat_set_button_text=f"{last_weight}×{last_repetitions}",
         ),

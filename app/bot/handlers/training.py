@@ -6,7 +6,11 @@ from aiogram.types import Message
 
 from app.bot.client import BotApiClient
 from app.bot.formatters.training import get_formatted_state_date
-from app.bot.fsm.training import get_training_draft, set_training_draft
+from app.bot.fsm.training import (
+    get_training_draft,
+    has_draft_exercises,
+    set_training_draft,
+)
 from app.bot.keyboards.training_kb import (
     get_ikb_select_date,
     get_ikb_training_menu,
@@ -101,7 +105,6 @@ async def back_to_menu(callback: CallbackQuery, state: FSMContext):
     await set_training_draft(state, draft)
 
     user_data: dict[str, int | dict] = await state.get_data()
-    exercises = user_data.get("exercise_data")["exercises"]
 
     last_weight = str(user_data.get("last_weight", "")).rstrip("0").rstrip(".")
     last_repetitions = user_data.get("last_repetitions", "")
@@ -109,8 +112,8 @@ async def back_to_menu(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
         reply_markup=get_ikb_training_menu(
-            is_add_edit_button=len(exercises) != 0,
-            is_add_add_set_button=user_data.get("exercise_id") is not None,
+            is_add_edit_button=has_draft_exercises(draft),
+            is_add_add_set_button=draft.selection.exercise_id is not None,
             repeat_set_button_text=f"{last_weight}×{last_repetitions}",
         ),
     )

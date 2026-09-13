@@ -99,6 +99,39 @@ def draft_to_legacy_exercise_data(
     }
 
 
+def draft_to_legacy_exercises_data(draft: TrainingDraft) -> dict[int, dict[str, Any]]:
+    """Возвращает legacy-словарь упражнений из draft.
+
+    Args:
+        draft: типизированный черновик тренировки.
+
+    Returns:
+        Словарь `exercises` из старого FSM-формата. Нужен как переходный адаптер
+        для клавиатур, которые пока ожидают dict с числовыми ключами.
+    """
+    return draft_to_legacy_exercise_data(draft)["exercises"]
+
+
+def draft_to_legacy_exercise_sets_data(
+    draft: TrainingDraft,
+    exercise_id: int,
+) -> dict[int, dict[str, Any]]:
+    """Возвращает legacy-словарь подходов упражнения из draft.
+
+    Args:
+        draft: типизированный черновик тренировки.
+        exercise_id: внутренний id упражнения.
+
+    Returns:
+        Словарь `sets` из старого FSM-формата. Нужен как переходный адаптер
+        для клавиатур выбора подхода.
+
+    Raises:
+        KeyError: если упражнение отсутствует в draft.
+    """
+    return draft_to_legacy_exercises_data(draft)[exercise_id]["sets"]
+
+
 def _iter_legacy_exercises(
     exercises: dict[str | int, dict[str, Any]],
 ) -> list[tuple[str | int, dict[str, Any]]]:

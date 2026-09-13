@@ -9,6 +9,7 @@ from app.bot.fsm.training import (
     delete_all_exercises_from_draft,
     delete_set_from_draft,
     get_training_draft,
+    has_draft_exercises,
     set_training_draft,
     update_set_in_draft,
 )
@@ -28,12 +29,12 @@ async def open_edit_menu(callback: CallbackQuery, state: FSMContext):
     """Открывает меню редактирования текущей тренировки."""
     await state.set_state(TrainingStates.edit_menu)
 
-    user_data: dict[str, int | dict] = await state.get_data()
+    draft = await get_training_draft(state)
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
         reply_markup=get_ikb_edit_menu(
-            has_edit_exercise_button=len(user_data["exercise_data"]["exercises"]) > 0
+            has_edit_exercise_button=has_draft_exercises(draft)
         ),
     )
 
@@ -73,7 +74,7 @@ async def accept_edit(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
         reply_markup=get_ikb_edit_menu(
-            has_edit_exercise_button=len(draft.training.exercises) > 0
+            has_edit_exercise_button=has_draft_exercises(draft)
         ),
     )
 
@@ -166,7 +167,7 @@ async def delete_exercises_sets(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
         reply_markup=get_ikb_edit_menu(
-            has_edit_exercise_button=len(draft.training.exercises) > 0
+            has_edit_exercise_button=has_draft_exercises(draft)
         ),
     )
     

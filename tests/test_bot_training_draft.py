@@ -17,9 +17,14 @@ from app.bot.fsm.training import (
     draft_from_json,
     draft_to_json,
     draft_to_legacy_exercise_data,
+    draft_to_legacy_exercise_sets_data,
+    draft_to_legacy_exercises_data,
+    get_draft_exercise,
+    get_draft_set_by_local_id,
     get_legacy_exercise_data,
     get_training_draft,
     get_weight_repetitions_modes_values_from_draft,
+    has_draft_exercises,
     legacy_exercise_data_to_draft,
     recalculate_draft_set_numbers,
     set_legacy_exercise_data,
@@ -285,6 +290,29 @@ def test_training_draft_converts_to_legacy_exercise_data() -> None:
             }
         },
     }
+
+
+def test_draft_legacy_adapter_helpers_return_keyboard_contract_parts() -> None:
+    """Проверяет получение legacy-частей draft для текущих клавиатур."""
+    draft = TrainingDraft(
+        training=TrainingDraftData(
+            training_id=10,
+            training_date="2026-09-12",
+            exercises=[
+                TrainingDraftExercise(
+                    exercise_id=1,
+                    exercise_name="Жим лежа",
+                    sets=[TrainingDraftSet(None, 1, 80.0, 8)],
+                )
+            ],
+        )
+    )
+
+    exercises = draft_to_legacy_exercises_data(draft)
+    sets = draft_to_legacy_exercise_sets_data(draft, exercise_id=1)
+
+    assert exercises[1]["exercise_name"] == "Жим лежа"
+    assert sets[1]["weight"] == 80.0
 
 
 def test_legacy_exercise_data_round_trip_preserves_save_contract() -> None:
@@ -588,6 +616,30 @@ def test_recalculate_draft_set_numbers_preserves_exercise_order() -> None:
         for set_data in exercise.sets
     ]
     assert set_numbers == [1, 2]
+
+
+def test_draft_read_helpers_find_exercise_and_set() -> None:
+    """Проверяет read-only helpers для доступа к данным draft."""
+    draft = TrainingDraft(
+        training=TrainingDraftData(
+            training_id=10,
+            training_date="2026-09-12",
+            exercises=[
+                TrainingDraftExercise(
+                    exercise_id=1,
+                    exercise_name="Жим лежа",
+                    sets=[TrainingDraftSet(None, 1, 80.0, 8)],
+                )
+            ],
+        )
+    )
+
+    exercise = get_draft_exercise(draft, exercise_id=1)
+    set_data = get_draft_set_by_local_id(draft, exercise_id=1, set_id=1)
+
+    assert has_draft_exercises(draft)
+    assert exercise.exercise_name == "Жим лежа"
+    assert set_data.weight == 80.0
 
 
 async def test_get_training_draft_reads_legacy_fsm_context() -> None:

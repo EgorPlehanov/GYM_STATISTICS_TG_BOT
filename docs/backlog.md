@@ -162,7 +162,7 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Вынести legacy-операции `exercise_data` отдельно и перевести handlers на операции над `TrainingDraft`.
 - [x] Перевести форматирование тренировки на `TrainingDraft`.
 - [ ] Ввести строгий FSM training draft и helpers доступа к нему.
-- [ ] Перевести handlers тренировки с прямого доступа к вложенным dict-ключам на FSM draft helpers.
+- [x] Перевести handlers тренировки с прямого доступа к вложенным dict-ключам на FSM draft helpers.
 - [x] Вынести проверку открытого HTTP-клиента в `BotApiClient` в приватный helper вместо повторения проверки в каждом методе.
 - [x] Вынести базовый HTTP-контекст и методы `users/admin` из `app/bot/client.py` в пакет `app/bot/api_client/`.
 - [x] Перенести DTO `app/bot/api_client` в отдельный пакет `app/bot/api_client/schemas/`.

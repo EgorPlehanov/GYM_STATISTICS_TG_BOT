@@ -8,6 +8,8 @@ from app.bot.fsm.training import (
     TrainingStates,
     accept_button_by_mode,
     check_accept_addition,
+    draft_to_legacy_exercise_sets_data,
+    get_draft_set_by_local_id,
     get_training_draft,
     get_weight_repetitions_modes_values,
     set_training_draft,
@@ -36,10 +38,9 @@ async def selected_set_pagination(
 ):
     """Переключает страницу списка подходов выбранного упражнения."""
     page = int(callback_data.page)
-    user_data: dict[str, int | dict] = await state.get_data()
     draft = await get_training_draft(state)
     edit_exercise_id = draft.edit.exercise_id
-    exercise_sets = user_data["exercise_data"]["exercises"][edit_exercise_id]["sets"]
+    exercise_sets = draft_to_legacy_exercise_sets_data(draft, edit_exercise_id)
 
     if callback_data.action == PaginationAction.PREV:
         page = page - 1 if page > 0 else 0
@@ -66,17 +67,15 @@ async def selected_set(
 
     set_id = callback_data.set_id
 
-    user_data: dict[str, int | dict] = await state.get_data()
     draft = await get_training_draft(state)
     edit_exercise_id = draft.edit.exercise_id
-    sets = user_data["exercise_data"]["exercises"][edit_exercise_id]["sets"]
-    set_data: dict[str, int | float] = sets.get(set_id, {})
+    set_data = get_draft_set_by_local_id(draft, edit_exercise_id, set_id)
 
     draft.edit.set_id = set_id
-    draft.edit.set_number = set_data.get("set_number")
+    draft.edit.set_number = set_data.set_number
     draft.selection.mode = TrainingMode.EDIT_SET.value
-    draft.selection.weight = set_data.get("weight")
-    draft.selection.repetitions = set_data.get("repetitions")
+    draft.selection.weight = set_data.weight
+    draft.selection.repetitions = set_data.repetitions
     await set_training_draft(state, draft)
 
     accept_button = accept_button_by_mode.get(TrainingMode.EDIT_SET)
@@ -118,9 +117,8 @@ async def back_to_edit_set(callback: CallbackQuery, state: FSMContext):
     draft.selection.repetitions = None
     await set_training_draft(state, draft)
 
-    user_data: dict[str, int | dict] = await state.get_data()
     edit_exercise_id = draft.edit.exercise_id
-    exercise_sets = user_data["exercise_data"]["exercises"][edit_exercise_id]["sets"]
+    exercise_sets = draft_to_legacy_exercise_sets_data(draft, edit_exercise_id)
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),

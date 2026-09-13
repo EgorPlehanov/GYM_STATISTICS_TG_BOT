@@ -5,6 +5,9 @@ from aiogram.types import CallbackQuery
 from app.bot.formatters.training import get_formatted_state_date
 from app.bot.fsm.training import (
     TrainingStates,
+    draft_to_legacy_exercise_sets_data,
+    draft_to_legacy_exercises_data,
+    get_draft_exercise,
     get_training_draft,
     set_training_draft,
 )
@@ -27,9 +30,8 @@ async def open_edit_exercise(callback: CallbackQuery, state: FSMContext):
     """Открывает выбор упражнения для редактирования."""
     await state.set_state(TrainingStates.edit_select_exercise)
 
-    user_data: dict[str, int | dict] = await state.get_data()
-
-    exercises = user_data.get("exercise_data").get("exercises")
+    draft = await get_training_draft(state)
+    exercises = draft_to_legacy_exercises_data(draft)
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
@@ -51,8 +53,8 @@ async def selected_exercise_pagination(
 ):
     """Переключает страницу списка упражнений в режиме редактирования."""
     page = int(callback_data.page)
-    user_data: dict[str, int | dict] = await state.get_data()
-    exercises = user_data.get("exercise_data").get("exercises")
+    draft = await get_training_draft(state)
+    exercises = draft_to_legacy_exercises_data(draft)
 
     if callback_data.action == PaginationAction.PREV:
         page = page - 1 if page > 0 else 0
@@ -77,16 +79,18 @@ async def selected_edit_exercise(
     """Сохраняет выбранное упражнение и открывает список его подходов."""
     await state.set_state(TrainingStates.edit_select_set)
 
-    user_data: dict[str, int | dict] = await state.get_data()
-    exercise = user_data["exercise_data"]["exercises"][callback_data.exercise_id]
-    edit_exercise_name = exercise["exercise_name"]
-
     draft = await get_training_draft(state)
+    exercise = get_draft_exercise(draft, callback_data.exercise_id)
+    edit_exercise_name = exercise.exercise_name
+
     draft.edit.exercise_id = callback_data.exercise_id
     draft.edit.exercise_name = edit_exercise_name
     await set_training_draft(state, draft)
 
-    exercise_sets = exercise["sets"]
+    exercise_sets = draft_to_legacy_exercise_sets_data(
+        draft,
+        callback_data.exercise_id,
+    )
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
@@ -108,8 +112,7 @@ async def back_to_edit_exercise(callback: CallbackQuery, state: FSMContext):
     draft.edit.exercise_name = None
     await set_training_draft(state, draft)
 
-    user_data: dict[str, int | dict] = await state.get_data()
-    exercises = user_data.get("exercise_data").get("exercises")
+    exercises = draft_to_legacy_exercises_data(draft)
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),

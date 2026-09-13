@@ -210,6 +210,61 @@ def recalculate_draft_set_numbers(draft: TrainingDraft) -> None:
             set_data.set_number = counter
 
 
+def has_draft_exercises(draft: TrainingDraft) -> bool:
+    """Проверяет, есть ли упражнения в draft.
+
+    Args:
+        draft: текущий FSM draft тренировки.
+
+    Returns:
+        True, если в тренировке есть хотя бы одно упражнение.
+    """
+    return bool(draft.training.exercises)
+
+
+def get_draft_exercise(
+    draft: TrainingDraft,
+    exercise_id: int,
+) -> TrainingDraftExercise:
+    """Возвращает упражнение из draft по id.
+
+    Args:
+        draft: текущий FSM draft тренировки.
+        exercise_id: внутренний id упражнения.
+
+    Returns:
+        Найденное упражнение.
+
+    Raises:
+        KeyError: если упражнение отсутствует в draft.
+    """
+    return _get_exercise(draft, exercise_id)
+
+
+def get_draft_set_by_local_id(
+    draft: TrainingDraft,
+    exercise_id: int,
+    set_id: int,
+) -> TrainingDraftSet:
+    """Возвращает подход по локальному номеру внутри упражнения.
+
+    Args:
+        draft: текущий FSM draft тренировки.
+        exercise_id: внутренний id упражнения.
+        set_id: локальный номер подхода внутри упражнения.
+
+    Returns:
+        Найденный подход.
+
+    Raises:
+        KeyError: если упражнение или подход отсутствуют в draft.
+    """
+    set_data = _get_set_by_local_id(draft, exercise_id, set_id)
+    if set_data is None:
+        raise KeyError(f"Подход {set_id} не найден")
+    return set_data
+
+
 def _find_exercise(
     draft: TrainingDraft,
     exercise_id: int,
