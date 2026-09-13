@@ -16,11 +16,11 @@ router = Router()
 
 
 
-@router.callback_query(F.data == 'acept_addition', TrainingStates.select_exercise)
-@router.callback_query(F.data == 'acept_addition', TrainingStates.select_weight)
-@router.callback_query(F.data == 'acept_addition', TrainingStates.select_repetitions)
-@router.callback_query(F.data == 'acept_addition', TrainingStates.select_sets_count)
-@router.callback_query(F.data == 'acept_addition', TrainingStates.acept_addition)
+@router.callback_query(F.data == 'accept_addition', TrainingStates.select_exercise)
+@router.callback_query(F.data == 'accept_addition', TrainingStates.select_weight)
+@router.callback_query(F.data == 'accept_addition', TrainingStates.select_repetitions)
+@router.callback_query(F.data == 'accept_addition', TrainingStates.select_sets_count)
+@router.callback_query(F.data == 'accept_addition', TrainingStates.accept_addition)
 async def accept_addition(callback: CallbackQuery, state: FSMContext):
     """Подтверждает добавление упражнения или подхода в черновик тренировки."""
     await state.set_state(TrainingStates.menu)

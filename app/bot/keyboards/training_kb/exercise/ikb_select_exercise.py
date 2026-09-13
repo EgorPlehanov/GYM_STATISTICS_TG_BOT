@@ -45,7 +45,7 @@ def get_ikb_select_exercise_fab(
     builder = InlineKeyboardBuilder()
     
     if has_accept_addition_button:
-        builder.row(InlineKeyboardButton(text="✅ Добавить ✅", callback_data="acept_addition"))
+        builder.row(InlineKeyboardButton(text="✅ Добавить ✅", callback_data="accept_addition"))
     
     builder.row(InlineKeyboardButton(
         text = "🔎 Найти в поиске 🔎",

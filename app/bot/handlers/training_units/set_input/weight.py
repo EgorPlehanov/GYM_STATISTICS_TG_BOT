@@ -174,7 +174,7 @@ async def selected_weight(message: Message, state: FSMContext):
 )
 @router.message(
     F.text.regexp(r_weight_repetitions_sets, flags=re.IGNORECASE),
-    TrainingStates.acept_addition
+    TrainingStates.accept_addition
 )
 async def read_weight_and_repetitions(message: Message, state: FSMContext):
     """Обрабатывает ручной ввод веса, повторений и опционально количества подходов."""
@@ -210,11 +210,11 @@ async def read_weight_and_repetitions(message: Message, state: FSMContext):
             sets_count is not None and sets_count == draft.selection.sets_count
             or sets_count is None
         )
-        and await state.get_state() == TrainingStates.acept_addition
+        and await state.get_state() == TrainingStates.accept_addition
     ):
         return
     
-    await state.set_state(TrainingStates.acept_addition)
+    await state.set_state(TrainingStates.accept_addition)
 
     draft.selection.weight = weight
     draft.selection.repetitions = repetitions
@@ -233,7 +233,7 @@ async def read_weight_and_repetitions(message: Message, state: FSMContext):
 
 @router.callback_query(F.data == "to_weight", TrainingStates.select_exercise)
 @router.callback_query(F.data == "to_weight", TrainingStates.select_repetitions)
-@router.callback_query(F.data == "to_weight", TrainingStates.acept_addition)
+@router.callback_query(F.data == "to_weight", TrainingStates.accept_addition)
 async def to_weight(callback: CallbackQuery, state: FSMContext):
     """Переводит сценарий к выбору веса."""
     await state.set_state(TrainingStates.select_weight)
@@ -269,7 +269,7 @@ async def to_weight(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data == "repeat_set", TrainingStates.menu)
 async def repeat_set(callback: CallbackQuery, state: FSMContext):
     """Предлагает повторить последний сохраненный подход текущего упражнения."""
-    await state.set_state(TrainingStates.acept_addition)
+    await state.set_state(TrainingStates.accept_addition)
 
     draft = await get_training_draft(state)
     draft.selection.mode = TrainingMode.ADD_SET.value

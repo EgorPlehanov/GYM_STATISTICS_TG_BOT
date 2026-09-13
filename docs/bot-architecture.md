@@ -424,21 +424,21 @@ Fernet.generate_key() при старте bot process
 
 Окончательный выбор нужно сделать вместе с внедрением Redis и переводом FSM storage.
 
-## Legacy FSM и callback values
+## FSM И Callback Values
 
-Старые ключи FSM data для тренировки больше не используются. При этом часть
-Telegram callback data и aiogram state names пока остается в старом написании,
-потому что это внешний протокол уже существующих callback handlers.
+Старые ключи FSM data для тренировки больше не используются. Telegram callback
+data и aiogram state names сценария тренировки приведены к актуальному написанию.
 
-Примеры старых значений:
+Примеры текущих значений подтверждения:
 
-- `acept_addition`;
-- `acept_edit`;
-- `delete_acepted`;
-- `change_date_acept`.
+- `accept_addition`;
+- `accept_edit`;
+- `delete_accepted`;
+- `change_date_accept`.
 
-Эти значения являются частью текущего протокола Telegram-сценария. Их нужно менять
-отдельным шагом, чтобы не сломать текущие callback handlers.
+Эти значения являются частью текущего протокола Telegram-сценария. При следующем
+изменении callback/state values нужно обновлять handlers, keyboards и тесты
+одним шагом.
 
 ## Правила импортов
 

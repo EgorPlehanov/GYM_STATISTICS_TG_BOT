@@ -112,7 +112,7 @@ async def init_training_by_date(
         if draft.training.training_date == training_date.isoformat():
             return
         if is_exists:
-            await state.set_state(TrainingStates.change_date_acept)
+            await state.set_state(TrainingStates.change_date_accept)
             await state.update_data(
                 changed_training_draft=draft_to_json(changed_draft),
             )
@@ -203,7 +203,7 @@ async def process_dialog_calendar(
 
 
 @router.callback_query(F.data == 'to_date_menu', TrainingStates.select_date)
-@router.callback_query(F.data == 'to_date_menu', TrainingStates.change_date_acept)
+@router.callback_query(F.data == 'to_date_menu', TrainingStates.change_date_accept)
 async def back_to_date_menu(callback: CallbackQuery, state: FSMContext) -> None:
     """Возвращает пользователя в меню выбора даты."""
     await state.set_state(TrainingStates.select_date)
@@ -239,7 +239,7 @@ async def open_edit_date(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(
     F.data == 'save_and_go',
-    TrainingStates.change_date_acept
+    TrainingStates.change_date_accept
 )
 async def save_current_training_and_open_selected_date(
     callback: CallbackQuery,
@@ -283,7 +283,7 @@ async def save_current_training_and_open_selected_date(
 
 @router.callback_query(
     F.data == 'changed_to_current_date',
-    TrainingStates.change_date_acept
+    TrainingStates.change_date_accept
 )
 async def changed_to_current_date(callback: CallbackQuery, state: FSMContext):
     """Удаляет тренировку на выбранную дату и переносит туда текущий черновик."""

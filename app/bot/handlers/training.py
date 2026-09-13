@@ -96,7 +96,7 @@ async def cmd_training(message: Message, state: FSMContext) -> None:
 @router.callback_query(F.data == 'to_menu', TrainingStates.select_date)
 @router.callback_query(F.data == 'to_menu', TrainingStates.select_exercise)
 @router.callback_query(F.data == 'to_menu', TrainingStates.select_weight)
-@router.callback_query(F.data == 'to_menu', TrainingStates.acept_addition)
+@router.callback_query(F.data == 'to_menu', TrainingStates.accept_addition)
 @router.callback_query(F.data == 'to_menu', TrainingStates.edit_menu)
 @router.callback_query(F.data == 'to_menu', TrainingStates.add_comment)
 async def back_to_menu(callback: CallbackQuery, state: FSMContext):

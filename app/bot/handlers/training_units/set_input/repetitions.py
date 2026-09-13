@@ -76,7 +76,7 @@ async def inline_repetitions(inline_query: InlineQuery, state: FSMContext):
 @router.message(F.text.regexp(r_repetitions), TrainingStates.select_repetitions)
 async def selected_repetitions(message: Message, state: FSMContext):
     """Сохраняет выбранное количество повторений."""
-    await state.set_state(TrainingStates.acept_addition)
+    await state.set_state(TrainingStates.accept_addition)
 
     repetitions = int(message.text)
     draft = await get_training_draft(state)
@@ -97,7 +97,7 @@ async def selected_repetitions(message: Message, state: FSMContext):
 
 @router.callback_query(F.data == "to_repetitions", TrainingStates.select_weight)
 @router.callback_query(F.data == "to_repetitions", TrainingStates.select_sets_count)
-@router.callback_query(F.data == "to_repetitions", TrainingStates.acept_addition)
+@router.callback_query(F.data == "to_repetitions", TrainingStates.accept_addition)
 async def to_repetitions(callback: CallbackQuery, state: FSMContext):
     """Переводит сценарий к выбору количества повторений."""
     await state.set_state(TrainingStates.select_repetitions)

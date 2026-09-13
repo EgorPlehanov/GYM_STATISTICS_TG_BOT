@@ -40,9 +40,9 @@ async def open_edit_menu(callback: CallbackQuery, state: FSMContext):
 
 
 
-@router.callback_query(F.data == "acept_edit", TrainingStates.select_weight)
-@router.callback_query(F.data == "acept_edit", TrainingStates.select_repetitions)
-@router.callback_query(F.data == "acept_edit", TrainingStates.acept_addition)
+@router.callback_query(F.data == "accept_edit", TrainingStates.select_weight)
+@router.callback_query(F.data == "accept_edit", TrainingStates.select_repetitions)
+@router.callback_query(F.data == "accept_edit", TrainingStates.accept_addition)
 async def accept_edit(callback: CallbackQuery, state: FSMContext):
     """Применяет изменения выбранного подхода в FSM draft."""
     await state.set_state(TrainingStates.edit_menu)
@@ -122,7 +122,7 @@ async def delete_cancel(callback: CallbackQuery, state: FSMContext):
 
 
 
-@router.callback_query(F.data == "delete_acepted", TrainingStates.edit_delete)
+@router.callback_query(F.data == "delete_accepted", TrainingStates.edit_delete)
 async def delete_exercises_sets(callback: CallbackQuery, state: FSMContext):
     """Удаляет выбранную сущность из FSM draft после подтверждения."""
     await state.set_state(TrainingStates.edit_menu)

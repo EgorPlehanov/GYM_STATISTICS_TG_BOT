@@ -20,11 +20,11 @@ class TrainingMode(Enum):
 
 class TrainingStates(StatesGroup):
     select_date = State()  # выбор даты
-    change_date_acept = State()  # изменение даты
+    change_date_accept = State()  # изменение даты
     select_exercise = State()  # выбор упражнения
     select_weight = State()  # выбор веса
     select_repetitions = State()  # выбор повторений
-    acept_addition = State()  # подтверждение добавления упражнения/подхода
+    accept_addition = State()  # подтверждение добавления упражнения/подхода
     select_sets_count = State()  # выбор количества подходов
     menu = State()  # главное меню
     add_comment = State()  # добавление комментария
@@ -51,7 +51,7 @@ weight_back_button_by_mode = {
 
 
 accept_button_by_mode = {
-    TrainingMode.ADD_EXERCISE: Button("Добавить", "acept_addition"),
-    TrainingMode.ADD_SET: Button("Добавить", "acept_addition"),
-    TrainingMode.EDIT_SET: Button("Подтвердить изменения", "acept_edit"),
+    TrainingMode.ADD_EXERCISE: Button("Добавить", "accept_addition"),
+    TrainingMode.ADD_SET: Button("Добавить", "accept_addition"),
+    TrainingMode.EDIT_SET: Button("Подтвердить изменения", "accept_edit"),
 }

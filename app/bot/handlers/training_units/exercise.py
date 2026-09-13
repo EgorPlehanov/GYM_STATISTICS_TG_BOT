@@ -134,7 +134,7 @@ async def selected_exercise(
 
 
 @router.callback_query(F.data == "to_exercise", TrainingStates.select_weight)
-@router.callback_query(F.data == "to_exercise", TrainingStates.acept_addition)
+@router.callback_query(F.data == "to_exercise", TrainingStates.accept_addition)
 async def back_to_exercise(callback: CallbackQuery, state: FSMContext):
     """Возвращает пользователя к выбору упражнения."""
     await state.set_state(TrainingStates.select_exercise)

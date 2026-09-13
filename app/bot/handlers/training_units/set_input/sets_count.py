@@ -70,7 +70,7 @@ async def inline_sets_count(inline_query: InlineQuery, state: FSMContext):
 @router.message(F.text.regexp(r'^\d+$'), TrainingStates.select_sets_count)
 async def selected_sets_count(message: Message, state: FSMContext):
     """Сохраняет выбранное количество подходов."""
-    await state.set_state(TrainingStates.acept_addition)
+    await state.set_state(TrainingStates.accept_addition)
 
     sets_count = int(message.text)
     draft = await get_training_draft(state)
@@ -90,7 +90,7 @@ async def selected_sets_count(message: Message, state: FSMContext):
 
 
 @router.callback_query(F.data == "to_sets_count", TrainingStates.select_repetitions)
-@router.callback_query(F.data == "to_sets_count", TrainingStates.acept_addition)
+@router.callback_query(F.data == "to_sets_count", TrainingStates.accept_addition)
 async def to_sets_count(callback: CallbackQuery, state: FSMContext):
     """Переводит сценарий к выбору количества подходов."""
     await state.set_state(TrainingStates.select_sets_count)

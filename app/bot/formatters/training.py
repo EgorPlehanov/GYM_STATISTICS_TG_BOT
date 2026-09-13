@@ -277,11 +277,11 @@ async def get_state_text(state: FSMContext) -> str:
     """Возвращает текст текущего FSM-состояния."""
     state_to_text = {
         TrainingStates.select_date: "Выберите дату",
-        TrainingStates.change_date_acept: "Что делать с этой тренировкой",
+        TrainingStates.change_date_accept: "Что делать с этой тренировкой",
         TrainingStates.select_exercise: "Выберите упражнение",
         TrainingStates.select_weight: "Выберите доп. вес",
         TrainingStates.select_repetitions: "Выберите кол-во повторений",
-        TrainingStates.acept_addition: "Подтвердите добавление",
+        TrainingStates.accept_addition: "Подтвердите добавление",
         TrainingStates.select_sets_count: "Выберите кол-во добавляемых подходов",
         TrainingStates.menu: "Что дальше",
         TrainingStates.add_comment: "Отправить комментарий или просто заверши",
@@ -295,7 +295,7 @@ async def get_state_text(state: FSMContext) -> str:
     adition_text = ""
     if cur_state == TrainingStates.edit_delete:
         adition_text = await get_delete_object_text(state)
-    elif cur_state == TrainingStates.change_date_acept:
+    elif cur_state == TrainingStates.change_date_accept:
         adition_text = await get_formatted_other_date(state)
 
     if adition_text:
