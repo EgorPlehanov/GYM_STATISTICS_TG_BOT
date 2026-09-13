@@ -8,11 +8,13 @@ from app.bot.fsm.training import (
     TrainingDraftData,
     TrainingDraftExercise,
     TrainingDraftSet,
+    check_accept_addition_for_draft,
     draft_from_json,
     draft_to_json,
     draft_to_legacy_exercise_data,
     get_legacy_exercise_data,
     get_training_draft,
+    get_weight_repetitions_modes_values_from_draft,
     legacy_exercise_data_to_draft,
     set_legacy_exercise_data,
     set_training_draft,
@@ -307,6 +309,113 @@ def test_legacy_exercise_data_round_trip_preserves_save_contract() -> None:
     restored = draft_to_legacy_exercise_data(draft, user_id=legacy_data["user_id"])
 
     assert restored == legacy_data
+
+
+def test_check_accept_addition_for_draft_allows_complete_add_exercise() -> None:
+    """Проверяет подтверждение добавления упражнения по draft."""
+    draft = TrainingDraft(
+        training=TrainingDraftData(
+            training_id=None,
+            training_date="2026-09-12",
+        )
+    )
+    draft.selection.mode = TrainingMode.ADD_EXERCISE.value
+    draft.selection.exercise_id = 1
+    draft.selection.weight = 80.0
+    draft.selection.repetitions = 8
+
+    assert check_accept_addition_for_draft(draft)
+
+
+def test_check_accept_addition_for_draft_rejects_incomplete_add_set() -> None:
+    """Проверяет запрет подтверждения подхода без повторений."""
+    draft = TrainingDraft(
+        training=TrainingDraftData(
+            training_id=None,
+            training_date="2026-09-12",
+        )
+    )
+    draft.selection.mode = TrainingMode.ADD_SET.value
+    draft.selection.weight = 80.0
+
+    assert not check_accept_addition_for_draft(draft)
+
+
+def test_check_accept_addition_for_draft_compares_edited_set() -> None:
+    """Проверяет подтверждение редактирования только при изменении подхода."""
+    draft = TrainingDraft(
+        training=TrainingDraftData(
+            training_id=10,
+            training_date="2026-09-12",
+            exercises=[
+                TrainingDraftExercise(
+                    exercise_id=1,
+                    exercise_name="Жим лежа",
+                    sets=[
+                        TrainingDraftSet(
+                            set_id=21,
+                            set_number=1,
+                            weight=80.0,
+                            repetitions=8,
+                        )
+                    ],
+                )
+            ],
+        )
+    )
+    draft.selection.mode = TrainingMode.EDIT_SET.value
+    draft.selection.weight = 80.0
+    draft.selection.repetitions = 8
+    draft.edit.exercise_id = 1
+    draft.edit.set_id = 1
+
+    assert not check_accept_addition_for_draft(draft)
+
+    draft.selection.repetitions = 9
+
+    assert check_accept_addition_for_draft(draft)
+
+
+def test_weight_repetitions_modes_values_from_draft_uses_string_keys() -> None:
+    """Проверяет получение подсказок из JSON-friendly dict со строковыми ключами."""
+    draft = TrainingDraft(
+        training=TrainingDraftData(
+            training_id=10,
+            training_date="2026-09-12",
+            exercises=[
+                TrainingDraftExercise(
+                    exercise_id=1,
+                    exercise_name="Жим лежа",
+                    sets=[
+                        TrainingDraftSet(
+                            set_id=21,
+                            set_number=1,
+                            weight=80.0,
+                            repetitions=8,
+                        )
+                    ],
+                )
+            ],
+        )
+    )
+    draft.selection.exercise_id = 1
+    draft.suggestions.weight_repetitions_modes = {
+        "1": {
+            "max_exercise_order": 1,
+            "sets_modes": {
+                "1": {
+                    "weight_mode": 82.5,
+                    "repetitions_mode": 6,
+                }
+            },
+        }
+    }
+
+    assert get_weight_repetitions_modes_values_from_draft(
+        draft,
+        is_weight=True,
+        is_repetitions=True,
+    ) == ("82.5", "6")
 
 
 async def test_get_training_draft_reads_legacy_fsm_context() -> None:

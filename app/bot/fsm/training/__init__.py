@@ -39,10 +39,13 @@ from .states import (
 )
 from .suggestions import (
     get_current_exercise_id,
+    get_current_exercise_id_from_draft,
     get_current_set_id,
+    get_current_set_id_from_draft,
     get_weight_repetitions_modes_values,
+    get_weight_repetitions_modes_values_from_draft,
 )
-from .validation import check_accept_addition
+from .validation import check_accept_addition, check_accept_addition_for_draft
 
 __all__ = [
     "Button",
@@ -63,6 +66,7 @@ __all__ = [
     "add_exercise",
     "add_set",
     "check_accept_addition",
+    "check_accept_addition_for_draft",
     "delete_all_exercise_sets",
     "delete_all_exercises",
     "delete_exercise",
@@ -72,11 +76,14 @@ __all__ = [
     "draft_to_json",
     "exercise_button_by_mode",
     "get_current_exercise_id",
+    "get_current_exercise_id_from_draft",
     "get_current_set_id",
+    "get_current_set_id_from_draft",
     "get_legacy_exercise_data",
     "get_legacy_exercise_data_from_mapping",
     "get_training_draft",
     "get_weight_repetitions_modes_values",
+    "get_weight_repetitions_modes_values_from_draft",
     "legacy_exercise_data_to_draft",
     "set_legacy_exercise_data",
     "set_training_draft",

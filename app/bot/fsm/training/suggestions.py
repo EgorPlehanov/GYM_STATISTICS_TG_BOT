@@ -1,37 +1,80 @@
+"""Подсказки для FSM-сценария тренировки."""
+
+from typing import Any
+
+from .draft import TrainingDraft, TrainingDraftExercise, TrainingDraftSet
 
 
-def get_current_exercise_id(
-    user_data: dict[str, int | dict]
-) -> int:
+def get_current_exercise_id(user_data: dict[str, int | dict]) -> int:
     """Возвращает id текущего упражнения из FSM data."""
     exercise_id = None
-    if user_data.get('edit_exercise_id') is not None:   # если мы редактируем упражнение
-        exercise_id = user_data['edit_exercise_id']
-    elif user_data.get('cur_exercise_id') is not None:  # если мы добавляем упражнение
-        exercise_id = user_data['cur_exercise_id']
-    elif user_data.get('exercise_id') is not None:      # текущее упражнение
-        exercise_id = user_data['exercise_id']
+    if user_data.get("edit_exercise_id") is not None:  # если мы редактируем упражнение
+        exercise_id = user_data["edit_exercise_id"]
+    elif user_data.get("cur_exercise_id") is not None:  # если мы добавляем упражнение
+        exercise_id = user_data["cur_exercise_id"]
+    elif user_data.get("exercise_id") is not None:  # текущее упражнение
+        exercise_id = user_data["exercise_id"]
     return exercise_id
 
+
+def get_current_exercise_id_from_draft(
+    draft: TrainingDraft,
+    fallback_exercise_id: int | None = None,
+) -> int | None:
+    """Возвращает id текущего упражнения из типизированного FSM draft.
+
+    Args:
+        draft: текущий draft сценария тренировки.
+        fallback_exercise_id: id последнего выбранного упражнения из legacy FSM.
+
+    Returns:
+        Id упражнения для редактирования, добавления или повтора подхода.
+    """
+    if draft.edit.exercise_id is not None:
+        return draft.edit.exercise_id
+    if draft.selection.exercise_id is not None:
+        return draft.selection.exercise_id
+    return fallback_exercise_id
 
 
 def get_current_set_id(
     user_data: dict[str, int | dict],
-    current_exercise_id: int = None
+    current_exercise_id: int | None = None,
 ) -> int:
     """Возвращает id текущего подхода из FSM data."""
     set_id = None
-    if user_data.get('edit_set_id') is not None:        # если мы редактируем подход
-        set_id = user_data['edit_set_id']
-    else:                                               # текущий подход
-        exercise_data = user_data['exercise_data']      
-        exercise_sets = exercise_data['exercises'].get(current_exercise_id)
-        if exercise_sets is None:   # если это первый подход (упражнение еще не создано)
+    if user_data.get("edit_set_id") is not None:  # если мы редактируем подход
+        set_id = user_data["edit_set_id"]
+    else:  # текущий подход
+        exercise_data = user_data["exercise_data"]
+        exercise_sets = exercise_data["exercises"].get(current_exercise_id)
+        if exercise_sets is None:  # если это первый подход (упражнение еще не создано)
             set_id = 1
-        else:                       # текущий подход (больше на единицу чем последний записанный)
-            set_id = exercise_sets['local_set_counter'] + 1
+        else:  # текущий подход (больше на единицу чем последний записанный)
+            set_id = exercise_sets["local_set_counter"] + 1
     return set_id
 
+
+def get_current_set_id_from_draft(
+    draft: TrainingDraft,
+    current_exercise_id: int | None = None,
+) -> int | None:
+    """Возвращает локальный номер текущего подхода из типизированного FSM draft.
+
+    Args:
+        draft: текущий draft сценария тренировки.
+        current_exercise_id: id упражнения, для которого нужно определить подход.
+
+    Returns:
+        Локальный номер редактируемого или следующего добавляемого подхода.
+    """
+    if draft.edit.set_id is not None:
+        return draft.edit.set_id
+
+    exercise = _find_draft_exercise(draft, current_exercise_id)
+    if exercise is None:
+        return 1
+    return len(exercise.sets) + 1
 
 
 def get_weight_repetitions_modes_values(
@@ -40,34 +83,134 @@ def get_weight_repetitions_modes_values(
     is_repetitions: bool = False,
 ):
     """Возвращает подсказки веса и повторений для inline search."""
-    weight_repetitions_modes = user_data.get('weight_repetitions_modes')
+    weight_repetitions_modes = user_data.get("weight_repetitions_modes")
 
     exercise_id = get_current_exercise_id(user_data)
 
-    exercise_mode = weight_repetitions_modes.get(exercise_id)
-    if exercise_mode is None:   # если для этого упражнения не расчитана мода
-        if is_weight and is_repetitions:
-            return '', ''
-        else:
-            return ''
-        
-    max_exercise_order = exercise_mode.get('max_exercise_order')
-    sets_modes = exercise_mode.get('sets_modes')
+    exercise_mode = _get_by_int_or_string_key(weight_repetitions_modes, exercise_id)
+    if exercise_mode is None:  # если для этого упражнения не рассчитана мода
+        return _empty_suggestion(is_weight=is_weight, is_repetitions=is_repetitions)
+
+    max_exercise_order = exercise_mode.get("max_exercise_order")
+    sets_modes = exercise_mode.get("sets_modes")
 
     set_id = get_current_set_id(user_data, exercise_id)
-    
-    if set_id > max_exercise_order: # если для этого подхода не расчитана мода
-        set_modes = sets_modes[max_exercise_order]
+
+    if set_id > max_exercise_order:  # если для этого подхода не рассчитана мода
+        set_modes = _get_by_int_or_string_key(sets_modes, max_exercise_order)
     else:
-        set_modes = sets_modes[set_id]
+        set_modes = _get_by_int_or_string_key(sets_modes, set_id)
 
-    weight = set_modes.get('weight_mode', '')
-    repetitions = set_modes.get('repetitions_mode', '')
+    return _format_weight_repetitions_modes(
+        set_modes,
+        is_weight=is_weight,
+        is_repetitions=is_repetitions,
+    )
 
+
+def get_weight_repetitions_modes_values_from_draft(
+    draft: TrainingDraft,
+    *,
+    fallback_exercise_id: int | None = None,
+    is_weight: bool = False,
+    is_repetitions: bool = False,
+) -> str | tuple[str, str] | None:
+    """Возвращает подсказки веса и повторений из типизированного FSM draft.
+
+    Args:
+        draft: текущий draft сценария тренировки.
+        fallback_exercise_id: id последнего выбранного упражнения из legacy FSM.
+        is_weight: вернуть подсказку веса.
+        is_repetitions: вернуть подсказку количества повторений.
+
+    Returns:
+        Строка с подсказкой веса/повторений, кортеж из двух строк или пустое
+        значение, если для текущего упражнения нет рассчитанной моды.
+    """
+    exercise_id = get_current_exercise_id_from_draft(draft, fallback_exercise_id)
+    exercise_mode = _get_by_int_or_string_key(
+        draft.suggestions.weight_repetitions_modes,
+        exercise_id,
+    )
+    if exercise_mode is None:
+        return _empty_suggestion(is_weight=is_weight, is_repetitions=is_repetitions)
+
+    max_exercise_order = exercise_mode.get("max_exercise_order")
+    sets_modes = exercise_mode.get("sets_modes")
+    set_id = get_current_set_id_from_draft(draft, exercise_id)
+
+    if set_id is None or max_exercise_order is None or not sets_modes:
+        return _empty_suggestion(is_weight=is_weight, is_repetitions=is_repetitions)
+
+    if set_id > max_exercise_order:
+        set_modes = _get_by_int_or_string_key(sets_modes, max_exercise_order)
+    else:
+        set_modes = _get_by_int_or_string_key(sets_modes, set_id)
+
+    return _format_weight_repetitions_modes(
+        set_modes,
+        is_weight=is_weight,
+        is_repetitions=is_repetitions,
+    )
+
+
+def _find_draft_exercise(
+    draft: TrainingDraft,
+    exercise_id: int | None,
+) -> TrainingDraftExercise | None:
+    """Возвращает упражнение из draft по id."""
+    if exercise_id is None:
+        return None
+    return next(
+        (
+            exercise
+            for exercise in draft.training.exercises
+            if exercise.exercise_id == exercise_id
+        ),
+        None,
+    )
+
+
+def _get_by_int_or_string_key(data: Any, key: int | None) -> Any:
+    """Возвращает значение из словаря по int-ключу или его строковому аналогу."""
+    if not isinstance(data, dict) or key is None:
+        return None
+    if key in data:
+        return data[key]
+    return data.get(str(key))
+
+
+def _format_weight_repetitions_modes(
+    set_modes: TrainingDraftSet | dict[str, Any] | None,
+    *,
+    is_weight: bool,
+    is_repetitions: bool,
+) -> str | tuple[str, str] | None:
+    """Форматирует рассчитанные моды в контракт inline search."""
+    if set_modes is None:
+        return _empty_suggestion(is_weight=is_weight, is_repetitions=is_repetitions)
+
+    weight = _get_mode_value(set_modes, "weight_mode")
+    repetitions = _get_mode_value(set_modes, "repetitions_mode")
     if is_weight and is_repetitions:
         return str(weight), str(repetitions)
     if is_weight:
         return str(weight)
     if is_repetitions:
         return str(repetitions)
+    return None
+
+
+def _get_mode_value(set_modes: TrainingDraftSet | dict[str, Any], key: str) -> Any:
+    """Возвращает значение моды из словаря подсказок."""
+    if isinstance(set_modes, dict):
+        return set_modes.get(key, "")
+    return getattr(set_modes, key, "")
+
+
+def _empty_suggestion(*, is_weight: bool, is_repetitions: bool) -> str | tuple[str, str]:
+    """Возвращает пустую подсказку в старом формате функции."""
+    if is_weight and is_repetitions:
+        return "", ""
+    return ""
 
