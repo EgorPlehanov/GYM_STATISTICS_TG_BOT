@@ -10,15 +10,12 @@ from app.bot.fsm.training.draft import TrainingDraftSet
 from ...keyboards_types import PaginationAction
 
 
+class EditTrainingSetPagination(CallbackData, prefix="ed_set_pag"):
+    """CallbackData для пагинации выбора подхода."""
 
-class EditTrainingSetPagination(CallbackData, prefix='ed_set_pag'):
-    """
-    CallbackData для пагинации выбора упражнения
-    """
     action: PaginationAction
     page: int
     set_id: int
-
 
 
 def get_ikb_edit_select_set_fab(
@@ -37,7 +34,7 @@ def get_ikb_edit_select_set_fab(
         Inline-клавиатура выбора подхода для редактирования.
     """
     builder = InlineKeyboardBuilder()
-    
+
     for i in range(page * page_size, (page + 1) * page_size):
         if i >= len(sets):
             break
@@ -56,27 +53,48 @@ def get_ikb_edit_select_set_fab(
                 ).pack()
             )
         )
-    builder.row(*([
-        InlineKeyboardButton(
-            text='⬅️',
-            callback_data=EditTrainingSetPagination(
-                action=PaginationAction.PREV,
-                page=page,
-                set_id=-1,
-            ).pack()
+    builder.row(
+        *(
+            [
+                InlineKeyboardButton(
+                    text="⬅️",
+                    callback_data=EditTrainingSetPagination(
+                        action=PaginationAction.PREV,
+                        page=page,
+                        set_id=-1,
+                    ).pack(),
+                )
+            ]
+            if page > 0
+            else []
         )
-    ] if page > 0 else []) + ([
-        InlineKeyboardButton(
-            text='➡️',
-            callback_data=EditTrainingSetPagination(
-                action=PaginationAction.NEXT,
-                page=page,
-                set_id=-1,
-            ).pack()
+        + (
+            [
+                InlineKeyboardButton(
+                    text="➡️",
+                    callback_data=EditTrainingSetPagination(
+                        action=PaginationAction.NEXT,
+                        page=page,
+                        set_id=-1,
+                    ).pack(),
+                )
+            ]
+            if page < math.ceil(len(sets) / page_size) - 1
+            else []
         )
-    ] if page < math.ceil(len(sets) / page_size) - 1 else []))
-    builder.row(InlineKeyboardButton(text="⬅️ Упражнение ⬅️", callback_data="to_edit_menu_exercise"))
-    builder.row(InlineKeyboardButton(text="🗑️ Удалить все подходы 🗑️", callback_data="delete_all_sets"))
+    )
+    builder.row(
+        InlineKeyboardButton(
+            text="⬅️ Упражнение ⬅️",
+            callback_data="to_edit_menu_exercise",
+        )
+    )
+    builder.row(
+        InlineKeyboardButton(
+            text="🗑️ Удалить все подходы 🗑️",
+            callback_data="delete_all_sets",
+        )
+    )
     return builder.as_markup()
 
 

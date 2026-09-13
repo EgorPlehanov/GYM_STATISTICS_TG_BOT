@@ -24,13 +24,17 @@ async def error_handler(event: ErrorEvent) -> None:
         return
 
     if chat is not None and chat.id != config.MAIN_ADMIN_ID.get_secret_value():
+        event_type = html.underline(event.update.event_type)
+        error_type = html.pre_language(html.quote(str(type(event.exception))), "python")
+        user_message = (
+            f"❗{html.bold(f' При обработке события {event_type} произошла ошибка:')}\n"
+            f"{error_type}\n"
+            f"❗{html.bold(' Пожалуйста сделайте скриншот и опишите администратору ')}"
+            f"{html.bold('контекст, в котором произошла ошибка')}"
+        )
         await bot.send_message(
             chat_id=chat.id,
-            text=(
-                f"❗{html.bold(f' При обработке события {html.underline(event.update.event_type)} произошла ошибка:')}\n"
-                f"{html.pre_language(html.quote(str(type(event.exception))), 'python')}\n"
-                f"❗{html.bold(' Пожалуйста сделайте скриншот и опишите администратору контекст, в котором произошла ошибка')}"
-            ),
+            text=user_message,
         )
 
     exception_text = _format_exception_text(event)

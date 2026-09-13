@@ -9,7 +9,6 @@ from app.bot.fsm.training.draft import TrainingDraftExercise
 from ...keyboards_types import PaginationAction
 
 
-
 class EditTrainingExercisePagination(CallbackData, prefix='ed_ex_pag'):
     """
     CallbackData для пагинации выбора упражнения

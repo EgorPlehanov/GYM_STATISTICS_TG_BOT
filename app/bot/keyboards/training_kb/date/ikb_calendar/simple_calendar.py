@@ -1,13 +1,10 @@
 # pylint: disable=duplicate-code
-from typing import Union
-
 import calendar
 from datetime import datetime, timedelta
 
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters.callback_data import CallbackData
-from aiogram.types import CallbackQuery
-from aiogram3_calendar.calendar_types import SimpleCalendarCallback, SimpleCalendarAction, WEEKDAYS
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram3_calendar.calendar_types import WEEKDAYS, SimpleCalendarAction, SimpleCalendarCallback
 
 
 class SimpleCalendar:
@@ -106,7 +103,7 @@ class SimpleCalendar:
         return inline_kb
 
     async def process_selection(self, query: CallbackQuery,
-                                data: Union[CallbackData, SimpleCalendarCallback]) -> tuple:
+                                data: CallbackData | SimpleCalendarCallback) -> tuple:
         """
         Process the callback_query. This method generates a new calendar if forward or
         backward is pressed. This method should be called inside a CallbackQueryHandler.

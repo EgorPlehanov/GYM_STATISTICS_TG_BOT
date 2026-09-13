@@ -1,6 +1,6 @@
-from aiogram.fsm.state import StatesGroup, State
-
 from dataclasses import dataclass
+
+from aiogram.fsm.state import State, StatesGroup
 
 
 class RedirectStates(StatesGroup):

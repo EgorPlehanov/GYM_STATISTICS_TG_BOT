@@ -1,13 +1,13 @@
 """Клавиатуры сценария добавления и редактирования тренировки."""
 
 from .date import (
+    WEEKDAYS,
     DialogCalendar,
     DialogCalendarAction,
     DialogCalendarCallback,
     SimpleCalendar,
     SimpleCalendarAction,
     SimpleCalendarCallback,
-    WEEKDAYS,
     get_ikb_changed_date,
     get_ikb_select_date,
 )

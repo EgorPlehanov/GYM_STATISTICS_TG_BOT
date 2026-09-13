@@ -1,9 +1,8 @@
-from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
-from aiogram.filters import StateFilter
-
 from asyncio import sleep
 
+from aiogram import F, Router
+from aiogram.filters import StateFilter
+from aiogram.types import CallbackQuery, Message
 
 router = Router()
 router.message.filter(F.chat.type == "private")

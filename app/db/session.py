@@ -6,7 +6,6 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.config import config
 
-
 sync_engine = create_engine(
     url=config.DB_URL_SYNC,
 )

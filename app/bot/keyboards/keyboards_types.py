@@ -1,7 +1,6 @@
 from enum import Enum
 
 
-
 class PaginationAction(Enum):
     """
     Состояния пагинации

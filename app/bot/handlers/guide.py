@@ -1,8 +1,6 @@
 from aiogram import Router, html
-from aiogram.types import Message
 from aiogram.filters import Command, StateFilter
-
-
+from aiogram.types import Message
 
 router = Router()
 

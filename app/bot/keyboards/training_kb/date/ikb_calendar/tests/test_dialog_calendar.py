@@ -3,8 +3,7 @@ from datetime import datetime
 from unittest.mock import AsyncMock
 
 import pytest  # pylint: disable=import-error
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram3_calendar import DialogCalendar
 from aiogram3_calendar.calendar_types import DialogCalendarAction, DialogCalendarCallback
 

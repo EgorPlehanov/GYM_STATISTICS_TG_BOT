@@ -1,2 +1,2 @@
-from .chat_action import ChatActionMiddleware
+from .chat_action import ChatActionMiddleware as ChatActionMiddleware
 
