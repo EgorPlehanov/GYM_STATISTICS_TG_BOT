@@ -6,6 +6,7 @@ from .adapters import (
     draft_to_legacy_exercises_data,
     legacy_exercise_data_to_draft,
 )
+from .api_adapters import bot_training_to_draft, draft_to_bot_training
 from .draft import (
     TrainingDraft,
     TrainingDraftData,
@@ -75,6 +76,7 @@ __all__ = [
     "accept_button_by_mode",
     "add_exercise_to_draft",
     "add_set_to_draft",
+    "bot_training_to_draft",
     "check_accept_addition",
     "check_accept_addition_for_draft",
     "delete_all_exercise_sets_from_draft",
@@ -84,6 +86,7 @@ __all__ = [
     "draft_to_legacy_exercise_data",
     "draft_to_legacy_exercise_sets_data",
     "draft_to_legacy_exercises_data",
+    "draft_to_bot_training",
     "draft_from_json",
     "draft_to_json",
     "exercise_button_by_mode",

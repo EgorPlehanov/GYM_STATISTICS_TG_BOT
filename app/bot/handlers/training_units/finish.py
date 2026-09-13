@@ -15,6 +15,7 @@ from app.bot.client import BotApiClient
 from app.bot.formatters.training import get_formatted_state_date
 from app.bot.fsm.training import (
     TrainingStates,
+    draft_to_bot_training,
     get_training_draft,
     set_training_draft,
 )
@@ -108,11 +109,11 @@ async def finish(callback: CallbackQuery, state: FSMContext):
     draft = await get_training_draft(state)
     await set_training_draft(state, draft)
 
-    user_data: dict[str, Any] = await state.get_data()
-    exercise_data = user_data.get("exercise_data")
-
     async with BotApiClient() as api_client:
-        save_result = await api_client.save_training(exercise_data)
+        save_result = await api_client.save_training(
+            telegram_id=callback.from_user.id,
+            training=draft_to_bot_training(draft),
+        )
 
     training_id = save_result.training_id
     is_update = save_result.updated

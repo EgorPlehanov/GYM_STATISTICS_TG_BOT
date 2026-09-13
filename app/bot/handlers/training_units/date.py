@@ -10,9 +10,12 @@ from app.bot.formatters.training import get_formatted_state_date
 from app.bot.fsm.training import (
     TrainingMode,
     TrainingStates,
+    bot_training_to_draft,
+    draft_from_json,
+    draft_to_bot_training,
+    draft_to_json,
     get_training_draft,
     has_draft_exercises,
-    set_legacy_exercise_data,
     set_training_draft,
 )
 from app.bot.keyboards.training_kb import (
@@ -95,23 +98,26 @@ async def init_training_by_date(
             telegram_id=callback.from_user.id,
             training_date=training_date,
         )
-    changed_exercise_data = result.training_data
+    changed_draft = bot_training_to_draft(result.training)
     is_exists = result.exists
 
     user_data: dict[str, int | dict] = await state.get_data()
     cur_exercise_data = user_data.get("exercise_data")
     if cur_exercise_data is None:
-        await set_legacy_exercise_data(state, changed_exercise_data)
-        draft = await get_training_draft(state)
-        draft.training.training_date = training_date
-        await set_training_draft(state, draft)
+        await set_training_draft(
+            state,
+            changed_draft,
+            user_id=callback.from_user.id,
+        )
     else:
         draft = await get_training_draft(state)
         if draft.training.training_date == training_date.isoformat():
             return
         if is_exists:
             await state.set_state(TrainingStates.change_date_acept)
-            await state.update_data(changed_exercise_data=changed_exercise_data)
+            await state.update_data(
+                changed_training_draft=draft_to_json(changed_draft),
+            )
             await callback.message.edit_text(
                 text=await get_formatted_state_date(state),
                 reply_markup = get_ikb_changed_date(
@@ -234,19 +240,21 @@ async def save_current_training_and_open_selected_date(
 ):
     """Сохраняет текущий черновик и открывает тренировку на выбранную дату."""
     user_data: dict[str, int | dict] = await state.get_data()
-    exercise_data = user_data.get("exercise_data")
-    async with BotApiClient() as api_client:
-        await api_client.save_training(exercise_data)
-
-    changed_exercise_data = user_data.get("changed_exercise_data")
-    await set_legacy_exercise_data(state, changed_exercise_data)
     draft = await get_training_draft(state)
+    async with BotApiClient() as api_client:
+        await api_client.save_training(
+            telegram_id=callback.from_user.id,
+            training=draft_to_bot_training(draft),
+        )
+
+    changed_training_draft = user_data.get("changed_training_draft")
+    draft = draft_from_json(changed_training_draft)
     draft.selection.mode = None
     draft.selection.exercise_id = None
     draft.selection.exercise_name = None
-    await set_training_draft(state, draft)
+    await set_training_draft(state, draft, user_id=callback.from_user.id)
     await state.update_data(
-        changed_exercise_data=None,
+        changed_training_draft=None,
         exercise_id=None,
         exercise_name=None,
     )
@@ -278,18 +286,20 @@ async def changed_to_current_date(callback: CallbackQuery, state: FSMContext):
     await state.set_state(TrainingStates.menu)
 
     user_data: dict[str, int | dict] = await state.get_data()
-    changed_exercise_data = user_data.get("changed_exercise_data")
-    training_date = changed_exercise_data.get("date")
-    training_id = changed_exercise_data.get("id")
+    changed_draft = draft_from_json(user_data.get("changed_training_draft"))
+    training_date = changed_draft.training.training_date
+    training_id = changed_draft.training.training_id
 
-    async with BotApiClient() as api_client:
-        await api_client.delete_training(training_id)
+    if training_id is not None:
+        async with BotApiClient() as api_client:
+            await api_client.delete_training(training_id)
 
     draft = await get_training_draft(state)
     draft.training.training_date = training_date
-    await set_training_draft(state, draft)
+    draft.training.training_id = None
+    await set_training_draft(state, draft, user_id=callback.from_user.id)
 
-    await state.update_data(changed_exercise_data=None)
+    await state.update_data(changed_training_draft=None)
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),

@@ -7,8 +7,11 @@ from fastapi import APIRouter
 from app.api.deps import DbSession
 from app.api.schemas.internal.trainings import (
     InternalBotTrainingByDateResponse,
+    InternalBotTrainingData,
+    InternalBotTrainingExercise,
     InternalBotTrainingSaveRequest,
     InternalBotTrainingSaveResponse,
+    InternalBotTrainingSet,
     InternalBotTrainingStartContextResponse,
 )
 from app.domain.trainings.service import (
@@ -94,24 +97,23 @@ async def get_bot_training_by_date(
         date=training_date,
     )
     if is_exists:
-        training_data = await get_training_data_by_date_and_user(
+        repository_training_data = await get_training_data_by_date_and_user(
             session=session,
             user_id=telegram_id,
             date=training_date,
         )
+        training = _repository_training_data_to_dto(repository_training_data)
     else:
-        training_data = {
-            "id": None,
-            "user_id": telegram_id,
-            "date": training_date,
-            "comment": None,
-            "global_set_counter": 0,
-            "exercises": {},
-        }
+        training = InternalBotTrainingData(
+            training_id=None,
+            training_date=training_date,
+            comment=None,
+            exercises=[],
+        )
 
     return InternalBotTrainingByDateResponse(
         exists=is_exists,
-        training_data=training_data,
+        training=training,
     )
 
 
@@ -130,7 +132,10 @@ async def save_bot_training(
     """
     training_id, updated, created = await save_training_data(
         session=session,
-        training_data=_deserialize_training_data(payload.training_data),
+        training_data=_dto_to_repository_training_data(
+            payload.training,
+            telegram_id=payload.telegram_id,
+        ),
     )
     return InternalBotTrainingSaveResponse(
         training_id=training_id,
@@ -156,35 +161,102 @@ async def delete_bot_training(
     return {"status": "ok"}
 
 
-def _deserialize_training_data(training_data: dict) -> dict:
-    """Восстанавливает старый FSM-формат тренировки после JSON-запроса.
+def _repository_training_data_to_dto(
+    training_data: dict,
+) -> InternalBotTrainingData:
+    """Преобразует repository-format тренировки в strict DTO internal API.
 
     Args:
-        training_data: JSON-словарь с ISO-датами и строковыми ключами.
+        training_data: структура, которую пока возвращает repository/domain слой.
 
     Returns:
-        структура с `date`, `datetime` в подходах и числовыми ключами `exercises`/`sets`.
+        DTO без legacy-счетчиков, словарей по id и `user_id` внутри тренировки.
     """
-    restored = dict(training_data)
-    if restored.get("date") is not None:
-        restored["date"] = date.fromisoformat(restored["date"])
+    return InternalBotTrainingData(
+        training_id=training_data.get("id"),
+        training_date=_to_date(training_data["date"]),
+        comment=training_data.get("comment"),
+        exercises=[
+            InternalBotTrainingExercise(
+                exercise_id=int(exercise_id),
+                exercise_name=exercise_data["exercise_name"],
+                sets=[
+                    InternalBotTrainingSet(
+                        set_id=set_data.get("id"),
+                        set_number=set_data["set_number"],
+                        weight=set_data["weight"],
+                        repetitions=set_data["repetitions"],
+                        execution_time=_to_datetime_or_none(set_data.get("time")),
+                    )
+                    for _, set_data in sorted(
+                        exercise_data.get("sets", {}).items(),
+                        key=lambda item: int(item[0]),
+                    )
+                ],
+            )
+            for exercise_id, exercise_data in sorted(
+                training_data.get("exercises", {}).items(),
+                key=lambda item: int(item[0]),
+            )
+        ],
+    )
 
+
+def _dto_to_repository_training_data(
+    training: InternalBotTrainingData,
+    *,
+    telegram_id: int,
+) -> dict:
+    """Преобразует strict DTO internal API в текущий repository-format.
+
+    Args:
+        training: strict DTO тренировки из Telegram-бота.
+        telegram_id: Telegram user id владельца тренировки.
+
+    Returns:
+        Структура, которую пока ожидает domain/repository слой.
+    """
     exercises = {}
-    for exercise_id, exercise_data in restored.get("exercises", {}).items():
-        exercise = dict(exercise_data)
-        exercise["sets"] = {
-            int(set_id): _deserialize_set_data(set_data)
-            for set_id, set_data in exercise.get("sets", {}).items()
+    global_set_counter = 0
+    for exercise in training.exercises:
+        legacy_sets = {}
+        for local_set_number, set_data in enumerate(exercise.sets, start=1):
+            legacy_sets[local_set_number] = {
+                "id": set_data.set_id,
+                "set_number": set_data.set_number,
+                "weight": set_data.weight,
+                "repetitions": set_data.repetitions,
+                "time": set_data.execution_time,
+            }
+            global_set_counter = max(global_set_counter, set_data.set_number)
+
+        exercises[exercise.exercise_id] = {
+            "exercise_name": exercise.exercise_name,
+            "local_set_counter": len(legacy_sets),
+            "sets": legacy_sets,
         }
-        exercises[int(exercise_id)] = exercise
 
-    restored["exercises"] = exercises
-    return restored
+    return {
+        "id": training.training_id,
+        "user_id": telegram_id,
+        "date": training.training_date,
+        "comment": training.comment,
+        "global_set_counter": global_set_counter,
+        "exercises": exercises,
+    }
 
 
-def _deserialize_set_data(set_data: dict) -> dict:
-    """Восстанавливает данные подхода после JSON-запроса."""
-    restored = dict(set_data)
-    if restored.get("time") is not None:
-        restored["time"] = datetime.fromisoformat(restored["time"])
-    return restored
+def _to_date(value: date | datetime | str) -> date:
+    """Возвращает дату из date, datetime или ISO-строки."""
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    return date.fromisoformat(value)
+
+
+def _to_datetime_or_none(value: datetime | str | None) -> datetime | None:
+    """Возвращает datetime из datetime, ISO-строки или None."""
+    if value is None or isinstance(value, datetime):
+        return value
+    return datetime.fromisoformat(value)

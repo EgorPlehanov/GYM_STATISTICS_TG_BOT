@@ -383,8 +383,8 @@ async def test_bot_api_client_get_training_start_context_restores_modes(monkeypa
 
 
 @pytest.mark.asyncio
-async def test_bot_api_client_get_training_by_date_restores_fsm_data(monkeypatch):
-    """Проверяет восстановление FSM-структуры тренировки после JSON."""
+async def test_bot_api_client_get_training_by_date_restores_training_dto(monkeypatch):
+    """Проверяет восстановление strict DTO тренировки после JSON."""
     _set_required_env(monkeypatch)
 
     from app.bot.client import BotApiClient
@@ -392,7 +392,7 @@ async def test_bot_api_client_get_training_by_date_restores_fsm_data(monkeypatch
     captured_request = {}
 
     async def handler(request: httpx.Request) -> httpx.Response:
-        """Возвращает тренировку с JSON-ключами, которые должны стать `int`."""
+        """Возвращает тренировку в strict DTO формате."""
         captured_request["method"] = request.method
         captured_request["url"] = str(request.url)
         captured_request["token"] = request.headers.get("X-Internal-Api-Key")
@@ -400,27 +400,25 @@ async def test_bot_api_client_get_training_by_date_restores_fsm_data(monkeypatch
             200,
             json={
                 "exists": True,
-                "training_data": {
-                    "id": 10,
-                    "user_id": 123456789,
-                    "date": "2026-09-09",
+                "training": {
+                    "training_id": 10,
+                    "training_date": "2026-09-09",
                     "comment": "Тест",
-                    "global_set_counter": 1,
-                    "exercises": {
-                        "1": {
+                    "exercises": [
+                        {
+                            "exercise_id": 1,
                             "exercise_name": "Жим лежа",
-                            "local_set_counter": 1,
-                            "sets": {
-                                "1": {
-                                    "id": 20,
+                            "sets": [
+                                {
+                                    "set_id": 20,
                                     "set_number": 1,
                                     "weight": 100.0,
                                     "repetitions": 5,
-                                    "time": "2026-09-09T12:35:00",
+                                    "execution_time": "2026-09-09T12:35:00",
                                 }
-                            },
+                            ],
                         }
-                    },
+                    ],
                 },
             },
         )
@@ -442,10 +440,10 @@ async def test_bot_api_client_get_training_by_date_restores_fsm_data(monkeypatch
             )
 
     assert result.exists is True
-    assert result.training_data["date"] == date(2026, 9, 9)
-    assert list(result.training_data["exercises"].keys()) == [1]
-    assert list(result.training_data["exercises"][1]["sets"].keys()) == [1]
-    assert result.training_data["exercises"][1]["sets"][1]["time"] == datetime(
+    assert result.training.training_date == date(2026, 9, 9)
+    assert result.training.exercises[0].exercise_id == 1
+    assert result.training.exercises[0].sets[0].set_id == 20
+    assert result.training.exercises[0].sets[0].execution_time == datetime(
         2026,
         9,
         9,
@@ -463,10 +461,15 @@ async def test_bot_api_client_get_training_by_date_restores_fsm_data(monkeypatch
 
 
 @pytest.mark.asyncio
-async def test_bot_api_client_save_training_serializes_fsm_data(monkeypatch):
-    """Проверяет сохранение тренировки с JSON-совместимой FSM-структурой."""
+async def test_bot_api_client_save_training_serializes_training_dto(monkeypatch):
+    """Проверяет сохранение тренировки через strict DTO."""
     _set_required_env(monkeypatch)
 
+    from app.bot.api_client.schemas.trainings import (
+        BotTraining,
+        BotTrainingExercise,
+        BotTrainingSet,
+    )
     from app.bot.client import BotApiClient
 
     captured_request = {}
@@ -498,28 +501,27 @@ async def test_bot_api_client_save_training_serializes_fsm_data(monkeypatch):
         )
         async with api_client:
             result = await api_client.save_training(
-                {
-                    "id": None,
-                    "user_id": 123456789,
-                    "date": date(2026, 9, 9),
-                    "comment": None,
-                    "global_set_counter": 1,
-                    "exercises": {
-                        1: {
-                            "exercise_name": "Жим лежа",
-                            "local_set_counter": 1,
-                            "sets": {
-                                1: {
-                                    "id": None,
-                                    "set_number": 1,
-                                    "weight": 100.0,
-                                    "repetitions": 5,
-                                    "time": datetime(2026, 9, 9, 12, 35),
-                                }
-                            },
-                        }
-                    },
-                }
+                telegram_id=123456789,
+                training=BotTraining(
+                    training_id=None,
+                    training_date=date(2026, 9, 9),
+                    comment=None,
+                    exercises=[
+                        BotTrainingExercise(
+                            exercise_id=1,
+                            exercise_name="Жим лежа",
+                            sets=[
+                                BotTrainingSet(
+                                    set_id=None,
+                                    set_number=1,
+                                    weight=100.0,
+                                    repetitions=5,
+                                    execution_time=datetime(2026, 9, 9, 12, 35),
+                                )
+                            ],
+                        )
+                    ],
+                ),
             )
 
     assert result.training_id == 10
@@ -530,27 +532,26 @@ async def test_bot_api_client_save_training_serializes_fsm_data(monkeypatch):
         "url": "http://api:8000/internal/bot/trainings",
         "token": "internal-test-token",
         "payload": {
-            "training_data": {
-                "id": None,
-                "user_id": 123456789,
-                "date": "2026-09-09",
+            "telegram_id": 123456789,
+            "training": {
+                "training_id": None,
+                "training_date": "2026-09-09",
                 "comment": None,
-                "global_set_counter": 1,
-                "exercises": {
-                    "1": {
+                "exercises": [
+                    {
+                        "exercise_id": 1,
                         "exercise_name": "Жим лежа",
-                        "local_set_counter": 1,
-                        "sets": {
-                            "1": {
-                                "id": None,
+                        "sets": [
+                            {
+                                "set_id": None,
                                 "set_number": 1,
                                 "weight": 100.0,
                                 "repetitions": 5,
-                                "time": "2026-09-09T12:35:00",
+                                "execution_time": "2026-09-09T12:35:00",
                             }
-                        },
+                        ],
                     }
-                },
+                ],
             }
         },
     }

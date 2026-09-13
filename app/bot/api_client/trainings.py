@@ -6,8 +6,11 @@ from typing import Any
 from app.bot.api_client.base import BotApiClientBase
 from app.bot.api_client.schemas.exercises import BotExercise
 from app.bot.api_client.schemas.trainings import (
+    BotTraining,
     BotTrainingByDateResult,
+    BotTrainingExercise,
     BotTrainingSaveResult,
+    BotTrainingSet,
     BotTrainingStartContext,
 )
 
@@ -102,17 +105,19 @@ class BotTrainingsApiClientMixin(BotApiClientBase):
         payload = response.json()
         return BotTrainingByDateResult(
             exists=payload["exists"],
-            training_data=_deserialize_training_data(payload["training_data"]),
+            training=_deserialize_training(payload["training"]),
         )
 
     async def save_training(
         self,
-        training_data: dict[str, Any],
+        telegram_id: int,
+        training: BotTraining,
     ) -> BotTrainingSaveResult:
         """Сохраняет тренировку через internal API.
 
         Args:
-            training_data: FSM-структура тренировки бота.
+            telegram_id: Telegram user id владельца тренировки.
+            training: strict DTO тренировки.
 
         Returns:
             результат сохранения тренировки в backend API.
@@ -123,7 +128,8 @@ class BotTrainingsApiClientMixin(BotApiClientBase):
             "/internal/bot/trainings",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             json={
-                "training_data": _serialize_training_data(training_data),
+                "telegram_id": telegram_id,
+                "training": _serialize_training(training),
             },
         )
         response.raise_for_status()
@@ -144,74 +150,85 @@ class BotTrainingsApiClientMixin(BotApiClientBase):
         response.raise_for_status()
 
 
-def _serialize_training_data(training_data: dict[str, Any]) -> dict[str, Any]:
-    """Готовит FSM-структуру тренировки к отправке через JSON.
+def _serialize_training(training: BotTraining) -> dict[str, Any]:
+    """Готовит strict DTO тренировки к отправке через JSON.
 
     Args:
-        training_data: структура с `date`, `datetime` в подходах и числовыми ключами.
+        training: strict DTO тренировки.
 
     Returns:
-        JSON-совместимый словарь с ISO-датой тренировки, ISO-временем подходов и строковыми ключами.
+        JSON-совместимый словарь для internal API.
     """
-    serialized = dict(training_data)
-    if isinstance(serialized.get("date"), datetime):
-        serialized["date"] = serialized["date"].date().isoformat()
-    elif isinstance(serialized.get("date"), date):
-        serialized["date"] = serialized["date"].isoformat()
-
-    exercises = {}
-    for exercise_id, exercise_data in serialized.get("exercises", {}).items():
-        exercise = dict(exercise_data)
-        exercise["sets"] = {
-            str(set_id): _serialize_set_data(set_data)
-            for set_id, set_data in exercise.get("sets", {}).items()
-        }
-        exercises[str(exercise_id)] = exercise
-
-    serialized["exercises"] = exercises
-    return serialized
+    return {
+        "training_id": training.training_id,
+        "training_date": training.training_date.isoformat(),
+        "comment": training.comment,
+        "exercises": [
+            {
+                "exercise_id": exercise.exercise_id,
+                "exercise_name": exercise.exercise_name,
+                "sets": [_serialize_training_set(set_data) for set_data in exercise.sets],
+            }
+            for exercise in training.exercises
+        ],
+    }
 
 
-def _serialize_set_data(set_data: dict[str, Any]) -> dict[str, Any]:
-    """Готовит данные подхода к отправке через JSON."""
-    serialized = dict(set_data)
-    if isinstance(serialized.get("time"), datetime):
-        serialized["time"] = serialized["time"].isoformat()
-    return serialized
+def _serialize_training_set(set_data: BotTrainingSet) -> dict[str, Any]:
+    """Готовит strict DTO подхода к отправке через JSON."""
+    return {
+        "set_id": set_data.set_id,
+        "set_number": set_data.set_number,
+        "weight": set_data.weight,
+        "repetitions": set_data.repetitions,
+        "execution_time": (
+            set_data.execution_time.isoformat()
+            if set_data.execution_time is not None
+            else None
+        ),
+    }
 
 
-def _deserialize_training_data(training_data: dict[str, Any]) -> dict[str, Any]:
-    """Восстанавливает FSM-структуру тренировки после передачи через JSON.
+def _deserialize_training(training_data: dict[str, Any]) -> BotTraining:
+    """Восстанавливает strict DTO тренировки из JSON.
 
     Args:
         training_data: JSON-словарь, полученный от internal API.
 
     Returns:
-        структура тренировки с `date`, `datetime` в подходах и числовыми ключами.
+        типизированная структура тренировки.
     """
-    restored = dict(training_data)
-    if restored.get("date") is not None:
-        restored["date"] = date.fromisoformat(restored["date"])
+    return BotTraining(
+        training_id=training_data["training_id"],
+        training_date=date.fromisoformat(training_data["training_date"]),
+        comment=training_data.get("comment"),
+        exercises=[
+            BotTrainingExercise(
+                exercise_id=exercise["exercise_id"],
+                exercise_name=exercise["exercise_name"],
+                sets=[
+                    BotTrainingSet(
+                        set_id=set_data.get("set_id"),
+                        set_number=set_data["set_number"],
+                        weight=set_data["weight"],
+                        repetitions=set_data["repetitions"],
+                        execution_time=_parse_datetime_or_none(
+                            set_data.get("execution_time")
+                        ),
+                    )
+                    for set_data in exercise.get("sets", [])
+                ],
+            )
+            for exercise in training_data.get("exercises", [])
+        ],
+    )
 
-    exercises = {}
-    for exercise_id, exercise_data in restored.get("exercises", {}).items():
-        exercise = dict(exercise_data)
-        exercise["sets"] = {
-            int(set_id): _deserialize_set_data(set_data)
-            for set_id, set_data in exercise.get("sets", {}).items()
-        }
-        exercises[int(exercise_id)] = exercise
 
-    restored["exercises"] = exercises
-    return restored
-
-
-def _deserialize_set_data(set_data: dict[str, Any]) -> dict[str, Any]:
-    """Восстанавливает данные подхода после передачи через JSON."""
-    restored = dict(set_data)
-    if restored.get("time") is not None:
-        restored["time"] = datetime.fromisoformat(restored["time"])
-    return restored
+def _parse_datetime_or_none(value: str | None) -> datetime | None:
+    """Возвращает datetime из ISO-строки или None."""
+    if value is None:
+        return None
+    return datetime.fromisoformat(value)
 
 
 def _restore_weight_repetitions_modes(

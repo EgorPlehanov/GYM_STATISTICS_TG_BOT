@@ -11,6 +11,7 @@ from app.bot.fsm.training import (
     TrainingDraftSet,
     TrainingMode,
     TrainingStates,
+    draft_from_json,
     get_training_draft,
     legacy_exercise_data_to_draft,
 )
@@ -369,11 +370,11 @@ async def get_delete_object_text(state: FSMContext) -> str:
 async def get_formatted_other_date(state: FSMContext) -> str:
     """Возвращает текст тренировки на другой выбранной дате."""
     user_data = await state.get_data()
-    changed_exercise_data = user_data.get("changed_exercise_data")
-    if changed_exercise_data is None:
+    changed_training_draft = user_data.get("changed_training_draft")
+    if changed_training_draft is None:
         return ""
 
-    changed_draft = legacy_exercise_data_to_draft(changed_exercise_data)
+    changed_draft = draft_from_json(changed_training_draft)
     return get_training_values_from_draft(changed_draft, is_result=True) or ""
 
 

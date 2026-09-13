@@ -287,9 +287,9 @@ Handlers сценария не должны:
 - импортировать domain services;
 - собирать SQL-запросы;
 - выполнять бизнес-логику сохранения тренировки;
-- создавать backend DTO напрямую до появления отдельного adapter layer.
+- создавать backend DTO напрямую внутри обработчика.
 
-После появления строгого FSM draft нужно добавить adapter:
+Связь между strict internal API DTO и FSM draft выполняется через adapter layer:
 
 ```text
 internal API DTO -> FSM draft -> internal API DTO
@@ -307,8 +307,8 @@ backend API.
 Текущий формат содержит данные нескольких типов:
 
 ```text
-exercise_data              текущий черновик тренировки
-changed_exercise_data      тренировка выбранной даты при смене даты
+exercise_data              текущий черновик тренировки, пока сохраняется переходным adapter layer
+changed_training_draft     JSON-friendly draft выбранной даты при смене даты
 most_frequent_exercises    подсказки частых упражнений
 weight_repetitions_modes   подсказки веса и повторений
 message_id                 Telegram message id основного сообщения сценария
@@ -379,7 +379,7 @@ suggestions:
 положить в Redis FSM storage или передать через JSON. Даты должны храниться строками
 формата `YYYY-MM-DD`, время подходов - строками ISO datetime.
 
-Переход к целевому draft должен выполняться через adapter layer:
+Связь FSM draft с backend должна выполняться через adapter layer:
 
 ```text
 internal API DTO -> FSM training draft -> internal API DTO
@@ -388,11 +388,35 @@ internal API DTO -> FSM training draft -> internal API DTO
 Правила перехода:
 
 - handlers читают и меняют draft через helpers из `app/bot/fsm/training`;
-- прямой доступ к вложенным dict-ключам постепенно убирается из handlers;
+- прямой доступ к вложенным dict-ключам не допускается в handlers тренировки;
 - callback/state values `acept_*` меняются только после появления строгого draft;
 - DTO backend API не используются напрямую как FSM-хранилище;
 - тесты draft helpers должны покрывать добавление упражнения, добавление подхода,
   редактирование подхода, удаление подхода и смену даты.
+
+Internal training API больше не принимает и не возвращает старый
+`training_data: dict[str, Any]`. Контракт строится вокруг строгих DTO:
+
+```text
+training:
+  training_id: int | null
+  training_date: YYYY-MM-DD
+  comment: str | null
+  exercises:
+    - exercise_id: int
+      exercise_name: str
+      sets:
+        - set_id: int | null
+          set_number: int
+          weight: float
+          repetitions: int
+          execution_time: ISO datetime | null
+```
+
+Пока domain/repository слой еще ожидает старый repository-format, преобразование
+между strict DTO и repository-format допускается только внутри backend adapter
+у internal training router. Bot handlers и bot API client не должны отправлять
+старую FSM-структуру в API.
 
 ## Inline payload
 

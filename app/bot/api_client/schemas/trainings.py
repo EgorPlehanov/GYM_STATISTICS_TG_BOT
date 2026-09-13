@@ -1,9 +1,61 @@
 """DTO-схемы API-клиента Telegram-бота для тренировок."""
 
 from dataclasses import dataclass
+from datetime import date, datetime
 from typing import Any
 
 from app.bot.api_client.schemas.exercises import BotExercise
+
+
+@dataclass(frozen=True)
+class BotTrainingSet:
+    """Подход тренировки из strict DTO internal API.
+
+    Attributes:
+        set_id: внутренний id подхода, если подход уже сохранен.
+        set_number: порядковый номер подхода в тренировке.
+        weight: вес в килограммах.
+        repetitions: количество повторений.
+        execution_time: время выполнения подхода.
+    """
+
+    set_id: int | None
+    set_number: int
+    weight: float
+    repetitions: int
+    execution_time: datetime | None = None
+
+
+@dataclass(frozen=True)
+class BotTrainingExercise:
+    """Упражнение тренировки из strict DTO internal API.
+
+    Attributes:
+        exercise_id: внутренний id упражнения.
+        exercise_name: название упражнения для отображения.
+        sets: подходы упражнения в порядке выполнения.
+    """
+
+    exercise_id: int
+    exercise_name: str
+    sets: list[BotTrainingSet]
+
+
+@dataclass(frozen=True)
+class BotTraining:
+    """Тренировка из strict DTO internal API.
+
+    Attributes:
+        training_id: внутренний id тренировки, если запись уже существует.
+        training_date: дата тренировки.
+        comment: комментарий к тренировке.
+        exercises: упражнения и подходы тренировки.
+    """
+
+    training_id: int | None
+    training_date: date
+    comment: str | None
+    exercises: list[BotTrainingExercise]
 
 
 @dataclass(frozen=True)
@@ -12,11 +64,11 @@ class BotTrainingByDateResult:
 
     Attributes:
         exists: признак того, что тренировка уже была в базе.
-        training_data: структура тренировки в формате FSM-сценария бота.
+        training: структура тренировки в strict DTO internal API.
     """
 
     exists: bool
-    training_data: dict[str, Any]
+    training: BotTraining
 
 
 @dataclass(frozen=True)

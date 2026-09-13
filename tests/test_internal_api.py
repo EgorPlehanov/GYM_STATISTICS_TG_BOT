@@ -651,13 +651,11 @@ def test_internal_bot_training_by_date_returns_existing_training(monkeypatch):
     assert response.status_code == 200
     assert response.json() == {
         "exists": True,
-        "training_data": {
-            "id": 10,
-            "user_id": 123456789,
-            "date": "2026-09-09",
+        "training": {
+            "training_id": 10,
+            "training_date": "2026-09-09",
             "comment": "Тест",
-            "global_set_counter": 1,
-            "exercises": {},
+            "exercises": [],
         },
     }
     assert calls == [
@@ -710,13 +708,11 @@ def test_internal_bot_training_by_date_returns_empty_training(monkeypatch):
     assert response.status_code == 200
     assert response.json() == {
         "exists": False,
-        "training_data": {
-            "id": None,
-            "user_id": 123456789,
-            "date": "2026-09-09",
+        "training": {
+            "training_id": None,
+            "training_date": "2026-09-09",
             "comment": None,
-            "global_set_counter": 0,
-            "exercises": {},
+            "exercises": [],
         },
     }
 
@@ -758,27 +754,26 @@ def test_internal_bot_training_save_calls_domain_service(monkeypatch):
         "/internal/bot/trainings",
         headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
         json={
-            "training_data": {
-                "id": None,
-                "user_id": 123456789,
-                "date": "2026-09-09",
+            "telegram_id": 123456789,
+            "training": {
+                "training_id": None,
+                "training_date": "2026-09-09",
                 "comment": None,
-                "global_set_counter": 1,
-                "exercises": {
-                    "1": {
+                "exercises": [
+                    {
+                        "exercise_id": 1,
                         "exercise_name": "Жим лежа",
-                        "local_set_counter": 1,
-                        "sets": {
-                            "1": {
-                                "id": None,
+                        "sets": [
+                            {
+                                "set_id": None,
                                 "set_number": 1,
                                 "weight": 100.0,
                                 "repetitions": 5,
-                                "time": "2026-09-09T12:35:00",
+                                "execution_time": "2026-09-09T12:35:00",
                             }
-                        },
+                        ],
                     }
-                },
+                ],
             }
         },
     )
