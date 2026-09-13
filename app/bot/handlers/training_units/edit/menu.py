@@ -5,12 +5,12 @@ from aiogram.types import CallbackQuery
 from app.bot.formatters.training import get_formatted_state_date
 from app.bot.fsm.training import (
     TrainingStates,
-    delete_all_exercise_sets,
-    delete_all_exercises,
-    delete_set,
+    delete_all_exercise_sets_from_draft,
+    delete_all_exercises_from_draft,
+    delete_set_from_draft,
     get_training_draft,
     set_training_draft,
-    update_set,
+    update_set_in_draft,
 )
 from app.bot.keyboards.training_kb import (
     get_ikb_edit_menu,
@@ -46,19 +46,21 @@ async def accept_edit(callback: CallbackQuery, state: FSMContext):
     """Применяет изменения выбранного подхода в FSM draft."""
     await state.set_state(TrainingStates.edit_menu)
 
-    user_data: dict[str, int | dict] = await state.get_data()
     draft = await get_training_draft(state)
 
-    exercise_data = user_data.get("exercise_data")
     edit_exercise_id = draft.edit.exercise_id
     edit_set_id = draft.edit.set_id
     new_weight = draft.selection.weight
     new_repetitions = draft.selection.repetitions
 
-    update_set(exercise_data, edit_exercise_id, edit_set_id, new_weight, new_repetitions)
+    update_set_in_draft(
+        draft,
+        edit_exercise_id,
+        edit_set_id,
+        new_weight=new_weight,
+        new_repetitions=new_repetitions,
+    )
 
-    await state.update_data(exercise_data=exercise_data)
-    draft = await get_training_draft(state)
     draft.selection.mode = None
     draft.selection.weight = None
     draft.selection.repetitions = None
@@ -71,7 +73,7 @@ async def accept_edit(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
         reply_markup=get_ikb_edit_menu(
-            has_edit_exercise_button=len(exercise_data["exercises"]) > 0
+            has_edit_exercise_button=len(draft.training.exercises) > 0
         ),
     )
 
@@ -131,29 +133,20 @@ async def delete_exercises_sets(callback: CallbackQuery, state: FSMContext):
     edit_set_id = draft.edit.set_id
 
     if edit_exercise_id is None:
-        delete_all_exercises(user_data["exercise_data"])
+        delete_all_exercises_from_draft(draft)
     elif edit_set_id is None:
-        delete_all_exercise_sets(user_data["exercise_data"], edit_exercise_id)
+        delete_all_exercise_sets_from_draft(draft, edit_exercise_id)
     else:
-        delete_set(user_data["exercise_data"], edit_exercise_id, edit_set_id)
+        delete_set_from_draft(draft, edit_exercise_id, edit_set_id)
 
-    exercise_data = user_data.get("exercise_data")
-    update_data = {"exercise_data": exercise_data}
     current_exercise_id = user_data.get("exercise_id")
-    if current_exercise_id not in exercise_data["exercises"]:
-        update_data.update(
-            exercise_id=None,
-            exercise_name=None,
-            last_weight=None,
-            last_repetitions=None,
-        )
-    await state.update_data(**update_data)
+    exercise_ids = {exercise.exercise_id for exercise in draft.training.exercises}
+    should_clear_current_exercise = current_exercise_id not in exercise_ids
 
     await state.update_data(delete_acept_flag=None)
     await state.update_data(state_before_delete=None)
     await state.update_data(reply_markup_before_delete=None)
 
-    draft = await get_training_draft(state)
     draft.selection.mode = None
     draft.selection.weight = None
     draft.selection.repetitions = None
@@ -162,11 +155,18 @@ async def delete_exercises_sets(callback: CallbackQuery, state: FSMContext):
     draft.edit.set_id = None
     draft.edit.set_number = None
     await set_training_draft(state, draft)
+    if should_clear_current_exercise:
+        await state.update_data(
+            exercise_id=None,
+            exercise_name=None,
+            last_weight=None,
+            last_repetitions=None,
+        )
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
         reply_markup=get_ikb_edit_menu(
-            has_edit_exercise_button=len(user_data["exercise_data"]["exercises"]) > 0
+            has_edit_exercise_button=len(draft.training.exercises) > 0
         ),
     )
     

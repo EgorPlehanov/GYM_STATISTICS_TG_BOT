@@ -8,7 +8,12 @@ from app.bot.fsm.training import (
     TrainingDraftData,
     TrainingDraftExercise,
     TrainingDraftSet,
+    add_exercise_to_draft,
+    add_set_to_draft,
     check_accept_addition_for_draft,
+    delete_all_exercise_sets_from_draft,
+    delete_all_exercises_from_draft,
+    delete_set_from_draft,
     draft_from_json,
     draft_to_json,
     draft_to_legacy_exercise_data,
@@ -16,8 +21,10 @@ from app.bot.fsm.training import (
     get_training_draft,
     get_weight_repetitions_modes_values_from_draft,
     legacy_exercise_data_to_draft,
+    recalculate_draft_set_numbers,
     set_legacy_exercise_data,
     set_training_draft,
+    update_set_in_draft,
 )
 from app.bot.fsm.training.states import TrainingMode
 
@@ -416,6 +423,171 @@ def test_weight_repetitions_modes_values_from_draft_uses_string_keys() -> None:
         is_weight=True,
         is_repetitions=True,
     ) == ("82.5", "6")
+
+
+def test_draft_operations_add_exercise_and_sets() -> None:
+    """Проверяет добавление упражнения и подходов напрямую в draft."""
+    draft = TrainingDraft(
+        training=TrainingDraftData(
+            training_id=None,
+            training_date="2026-09-12",
+        )
+    )
+
+    add_exercise_to_draft(draft, exercise_id=1, exercise_name="Жим лежа")
+    add_exercise_to_draft(draft, exercise_id=1, exercise_name="Жим лежа")
+    add_set_to_draft(
+        draft,
+        exercise_id=1,
+        weight=80.0,
+        repetitions=8,
+        execution_time=datetime(2026, 9, 12, 18, 30),
+    )
+    add_set_to_draft(
+        draft,
+        exercise_id=1,
+        weight=82.5,
+        repetitions=6,
+        execution_time=None,
+    )
+
+    assert len(draft.training.exercises) == 1
+    assert [set_data.set_number for set_data in draft.training.exercises[0].sets] == [1, 2]
+    assert draft.training.exercises[0].sets[0].execution_time == "2026-09-12T18:30:00"
+
+
+def test_draft_operations_update_set_by_local_id() -> None:
+    """Проверяет изменение подхода по локальному номеру внутри упражнения."""
+    draft = TrainingDraft(
+        training=TrainingDraftData(
+            training_id=10,
+            training_date="2026-09-12",
+            exercises=[
+                TrainingDraftExercise(
+                    exercise_id=1,
+                    exercise_name="Жим лежа",
+                    sets=[
+                        TrainingDraftSet(
+                            set_id=21,
+                            set_number=1,
+                            weight=80.0,
+                            repetitions=8,
+                        )
+                    ],
+                )
+            ],
+        )
+    )
+
+    updated = update_set_in_draft(
+        draft,
+        exercise_id=1,
+        set_id=1,
+        new_weight=82.5,
+        new_repetitions=6,
+    )
+
+    assert updated
+    assert draft.training.exercises[0].sets[0].weight == 82.5
+    assert draft.training.exercises[0].sets[0].repetitions == 6
+    assert not update_set_in_draft(draft, exercise_id=99, set_id=1, new_weight=90.0)
+
+
+def test_draft_operations_delete_set_and_recalculate_numbers() -> None:
+    """Проверяет удаление подхода и пересчет глобальных номеров."""
+    draft = TrainingDraft(
+        training=TrainingDraftData(
+            training_id=10,
+            training_date="2026-09-12",
+            exercises=[
+                TrainingDraftExercise(
+                    exercise_id=1,
+                    exercise_name="Жим лежа",
+                    sets=[
+                        TrainingDraftSet(None, 1, 80.0, 8),
+                        TrainingDraftSet(None, 2, 82.5, 6),
+                    ],
+                ),
+                TrainingDraftExercise(
+                    exercise_id=2,
+                    exercise_name="Присед",
+                    sets=[TrainingDraftSet(None, 3, 100.0, 5)],
+                ),
+            ],
+        )
+    )
+
+    delete_set_from_draft(draft, exercise_id=1, set_id=1)
+
+    set_numbers = [
+        set_data.set_number
+        for exercise in draft.training.exercises
+        for set_data in exercise.sets
+    ]
+    assert set_numbers == [1, 2]
+    assert draft.training.exercises[0].sets[0].weight == 82.5
+
+
+def test_draft_operations_delete_exercise_and_all_exercises() -> None:
+    """Проверяет удаление упражнения и очистку всего draft."""
+    draft = TrainingDraft(
+        training=TrainingDraftData(
+            training_id=10,
+            training_date="2026-09-12",
+            exercises=[
+                TrainingDraftExercise(
+                    exercise_id=1,
+                    exercise_name="Жим лежа",
+                    sets=[TrainingDraftSet(None, 1, 80.0, 8)],
+                ),
+                TrainingDraftExercise(
+                    exercise_id=2,
+                    exercise_name="Присед",
+                    sets=[TrainingDraftSet(None, 2, 100.0, 5)],
+                ),
+            ],
+        )
+    )
+
+    delete_all_exercise_sets_from_draft(draft, exercise_id=1)
+
+    assert [exercise.exercise_id for exercise in draft.training.exercises] == [2]
+    assert draft.training.exercises[0].sets[0].set_number == 1
+
+    delete_all_exercises_from_draft(draft)
+
+    assert draft.training.exercises == []
+
+
+def test_recalculate_draft_set_numbers_preserves_exercise_order() -> None:
+    """Проверяет явный пересчет номеров подходов в порядке упражнений."""
+    draft = TrainingDraft(
+        training=TrainingDraftData(
+            training_id=10,
+            training_date="2026-09-12",
+            exercises=[
+                TrainingDraftExercise(
+                    exercise_id=2,
+                    exercise_name="Присед",
+                    sets=[TrainingDraftSet(None, 9, 100.0, 5)],
+                ),
+                TrainingDraftExercise(
+                    exercise_id=1,
+                    exercise_name="Жим лежа",
+                    sets=[TrainingDraftSet(None, 3, 80.0, 8)],
+                ),
+            ],
+        )
+    )
+
+    recalculate_draft_set_numbers(draft)
+
+    set_numbers = [
+        set_data.set_number
+        for exercise in draft.training.exercises
+        for set_data in exercise.sets
+    ]
+    assert set_numbers == [1, 2]
 
 
 async def test_get_training_draft_reads_legacy_fsm_context() -> None:

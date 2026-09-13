@@ -5,8 +5,8 @@ from aiogram.types import CallbackQuery
 from app.bot.formatters.training import get_formatted_state_date
 from app.bot.fsm.training import (
     TrainingStates,
-    add_exercise,
-    add_set,
+    add_exercise_to_draft,
+    add_set_to_draft,
     get_training_draft,
     set_training_draft,
 )
@@ -25,23 +25,25 @@ async def accept_addition(callback: CallbackQuery, state: FSMContext):
     """Подтверждает добавление упражнения или подхода в черновик тренировки."""
     await state.set_state(TrainingStates.menu)
 
-    user_data: dict[str, int | dict] = await state.get_data()
     draft = await get_training_draft(state)
 
-    exercise_data = user_data.get('exercise_data')
     exercise_id = draft.selection.exercise_id
     exercise_name = draft.selection.exercise_name
     weight = draft.selection.weight
     repetitions = draft.selection.repetitions
     sets_count = draft.selection.sets_count
     time = callback.message.date
-    
-    add_exercise(exercise_data, exercise_id, exercise_name)
-    for _ in range(sets_count):
-        add_set(exercise_data, exercise_id, weight, repetitions, time)
 
-    await state.update_data(exercise_data=exercise_data)
-    draft = await get_training_draft(state)
+    add_exercise_to_draft(draft, exercise_id, exercise_name)
+    for _ in range(sets_count):
+        add_set_to_draft(
+            draft,
+            exercise_id,
+            weight=weight,
+            repetitions=repetitions,
+            execution_time=time,
+        )
+
     draft.selection.mode = None
     draft.selection.exercise_id = None
     draft.selection.exercise_name = None
