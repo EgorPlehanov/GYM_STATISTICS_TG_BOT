@@ -2,7 +2,6 @@
 
 from dataclasses import asdict, dataclass, field, is_dataclass
 from datetime import date, datetime
-from enum import Enum
 from typing import Any
 
 from aiogram.fsm.context import FSMContext
@@ -48,13 +47,13 @@ class TrainingDraftData:
 
     Attributes:
         training_id: внутренний id тренировки, если редактируется существующая запись.
-        training_date: дата тренировки. При сериализации нормализуется в YYYY-MM-DD.
+        training_date: дата тренировки. До выбора даты может быть None.
         comment: комментарий к тренировке.
         exercises: упражнения и подходы текущей тренировки.
     """
 
     training_id: int | None
-    training_date: date | datetime | str
+    training_date: date | datetime | str | None
     comment: str | None = None
     exercises: list[TrainingDraftExercise] = field(default_factory=list)
 
@@ -105,11 +104,19 @@ class TrainingUiContext:
         message_id: id основного Telegram-сообщения, которое редактирует бот.
         state_before_delete: состояние FSM до экрана подтверждения удаления.
         reply_markup_before_delete: JSON-compatible представление клавиатуры до удаления.
+        current_exercise_id: последнее выбранное упражнение для быстрого добавления подхода.
+        current_exercise_name: имя последнего выбранного упражнения.
+        last_weight: последний сохраненный вес для кнопки повтора.
+        last_repetitions: последнее сохраненное количество повторений.
     """
 
     message_id: int | None = None
     state_before_delete: str | None = None
     reply_markup_before_delete: dict[str, Any] | None = None
+    current_exercise_id: int | None = None
+    current_exercise_name: str | None = None
+    last_weight: float | None = None
+    last_repetitions: int | None = None
 
 
 @dataclass(slots=True)
@@ -171,7 +178,7 @@ def draft_from_json(data: dict[str, Any]) -> TrainingDraft:
     return TrainingDraft(
         training=TrainingDraftData(
             training_id=training_data.get("training_id"),
-            training_date=_normalize_date(training_data["training_date"]),
+            training_date=_normalize_date_or_none(training_data.get("training_date")),
             comment=training_data.get("comment"),
             exercises=[
                 TrainingDraftExercise(
@@ -207,139 +214,32 @@ async def get_training_draft(state: FSMContext) -> TrainingDraft:
         state: контекст aiogram FSM текущего пользователя.
 
     Returns:
-        Типизированный draft, собранный из legacy `exercise_data` и верхнеуровневых
-        FSM-полей текущего сценария.
+        Типизированный draft, восстановленный из JSON-friendly ключа `training_draft`.
 
     Raises:
-        KeyError: если в FSM еще нет `exercise_data`.
+        KeyError: если в FSM еще нет `training_draft`.
     """
     data = await state.get_data()
-    exercise_data = get_legacy_exercise_data_from_mapping(data)
-    draft = _legacy_exercise_data_to_draft(exercise_data)
-    draft.selection = TrainingSelection(
-        mode=_mode_to_value(data.get("mode")),
-        exercise_id=data.get("cur_exercise_id"),
-        exercise_name=data.get("cur_exercise_name"),
-        weight=data.get("weight"),
-        repetitions=data.get("repetitions"),
-        sets_count=data.get("sets_count"),
-    )
-    draft.edit = TrainingEditContext(
-        exercise_id=data.get("edit_exercise_id"),
-        exercise_name=data.get("edit_exercise_name"),
-        set_id=data.get("edit_set_id"),
-        set_number=data.get("edit_set_number"),
-    )
-    draft.ui = TrainingUiContext(
-        message_id=data.get("message_id"),
-        state_before_delete=data.get("state_before_delete"),
-        reply_markup_before_delete=_json_dict_or_none(
-            data.get("reply_markup_before_delete")
-        ),
-    )
-    draft.suggestions = TrainingSuggestions(
-        most_frequent_exercises=_json_list(data.get("most_frequent_exercises", [])),
-        weight_repetitions_modes=_json_dict(data.get("weight_repetitions_modes", {})),
-        training_dates=[
-            _normalize_date(training_date)
-            for training_date in data.get("training_date", [])
-        ],
-    )
-    return draft
+    draft_data = data.get("training_draft")
+    if draft_data is None:
+        raise KeyError("В FSM data отсутствует training_draft")
+    return draft_from_json(draft_data)
 
 
 async def set_training_draft(
     state: FSMContext,
     draft: TrainingDraft,
-    *,
-    user_id: int | None = None,
 ) -> None:
-    """Сохраняет типизированный draft в текущий legacy FSMContext.
+    """Сохраняет типизированный draft в текущий FSMContext.
 
     Args:
         state: контекст aiogram FSM текущего пользователя.
         draft: типизированный draft тренировки.
-        user_id: Telegram user id для legacy `exercise_data`. Если не передан,
-            сохраняется `user_id` из уже существующего `exercise_data`.
 
     Returns:
-        None. Данные записываются в FSM через `state.update_data`.
+        None. JSON-friendly draft записывается в ключ `training_draft`.
     """
-    data = await state.get_data()
-    current_exercise_data = data.get("exercise_data", {})
-    legacy_user_id = user_id if user_id is not None else current_exercise_data.get("user_id")
-
-    await state.update_data(
-        exercise_data=_draft_to_legacy_exercise_data(draft, user_id=legacy_user_id),
-        mode=_mode_from_value(draft.selection.mode),
-        cur_exercise_id=draft.selection.exercise_id,
-        cur_exercise_name=draft.selection.exercise_name,
-        weight=draft.selection.weight,
-        repetitions=draft.selection.repetitions,
-        sets_count=draft.selection.sets_count,
-        edit_exercise_id=draft.edit.exercise_id,
-        edit_exercise_name=draft.edit.exercise_name,
-        edit_set_id=draft.edit.set_id,
-        edit_set_number=draft.edit.set_number,
-        message_id=draft.ui.message_id,
-        state_before_delete=draft.ui.state_before_delete,
-        reply_markup_before_delete=draft.ui.reply_markup_before_delete,
-        most_frequent_exercises=draft.suggestions.most_frequent_exercises,
-        weight_repetitions_modes=draft.suggestions.weight_repetitions_modes,
-        training_date=[
-            _parse_date(training_date)
-            for training_date in draft.suggestions.training_dates
-        ],
-    )
-
-
-async def get_legacy_exercise_data(state: FSMContext) -> dict[str, Any]:
-    """Возвращает текущий legacy `exercise_data` из FSMContext.
-
-    Args:
-        state: контекст aiogram FSM текущего пользователя.
-
-    Returns:
-        Legacy-структура тренировки, которую пока используют handlers и internal API.
-
-    Raises:
-        KeyError: если в FSM еще нет `exercise_data`.
-    """
-    return get_legacy_exercise_data_from_mapping(await state.get_data())
-
-
-async def set_legacy_exercise_data(
-    state: FSMContext,
-    exercise_data: dict[str, Any],
-) -> None:
-    """Сохраняет legacy `exercise_data` в FSMContext.
-
-    Args:
-        state: контекст aiogram FSM текущего пользователя.
-        exercise_data: legacy-структура тренировки.
-
-    Returns:
-        None. Данные записываются в FSM через `state.update_data`.
-    """
-    await state.update_data(exercise_data=exercise_data)
-
-
-def get_legacy_exercise_data_from_mapping(data: dict[str, Any]) -> dict[str, Any]:
-    """Возвращает legacy `exercise_data` из словаря FSM data.
-
-    Args:
-        data: словарь данных aiogram FSM.
-
-    Returns:
-        Legacy-структура тренировки.
-
-    Raises:
-        KeyError: если ключ `exercise_data` отсутствует или содержит None.
-    """
-    exercise_data = data.get("exercise_data")
-    if exercise_data is None:
-        raise KeyError("В FSM data отсутствует exercise_data")
-    return exercise_data
+    await state.update_data(training_draft=draft_to_json(draft))
 
 
 def _normalize_json_value(value: Any) -> Any:
@@ -369,6 +269,13 @@ def _normalize_date(value: date | datetime | str) -> str:
     return value
 
 
+def _normalize_date_or_none(value: date | datetime | str | None) -> str | None:
+    """Возвращает дату в формате YYYY-MM-DD или None."""
+    if value is None:
+        return None
+    return _normalize_date(value)
+
+
 def _normalize_datetime_or_none(value: datetime | str | None) -> str | None:
     """Возвращает время в ISO-формате или None."""
     if isinstance(value, datetime):
@@ -376,72 +283,4 @@ def _normalize_datetime_or_none(value: datetime | str | None) -> str | None:
     return value
 
 
-def _parse_date(value: date | datetime | str) -> date:
-    """Возвращает `date` для legacy FSM-полей."""
-    if isinstance(value, datetime):
-        return value.date()
-    if isinstance(value, date):
-        return value
-    return date.fromisoformat(value)
-
-
-def _mode_to_value(value: Any) -> str | None:
-    """Возвращает строковое значение режима для типизированного draft."""
-    if value is None:
-        return None
-    if isinstance(value, Enum):
-        return value.value
-    return str(value)
-
-
-def _mode_from_value(value: str | None) -> Any:
-    """Возвращает legacy `TrainingMode` из строкового значения режима."""
-    if value is None:
-        return None
-
-    from .states import TrainingMode
-
-    try:
-        return TrainingMode(value)
-    except ValueError:
-        return value
-
-
-def _json_list(value: Any) -> list[Any]:
-    """Возвращает JSON-friendly список для блока suggestions."""
-    return _normalize_json_value(list(value or []))
-
-
-def _json_dict(value: Any) -> dict[str, Any]:
-    """Возвращает JSON-friendly словарь для блока suggestions."""
-    return _normalize_json_value(dict(value or {}))
-
-
-def _json_dict_or_none(value: Any) -> dict[str, Any] | None:
-    """Возвращает JSON-friendly словарь или None."""
-    if value is None:
-        return None
-    if hasattr(value, "model_dump"):
-        value = value.model_dump(mode="json")
-    if isinstance(value, dict):
-        return _normalize_json_value(value)
-    return None
-
-
-def _legacy_exercise_data_to_draft(exercise_data: dict[str, Any]) -> TrainingDraft:
-    """Локальный импорт адаптера без циклической зависимости модулей."""
-    from .adapters import legacy_exercise_data_to_draft
-
-    return legacy_exercise_data_to_draft(exercise_data)
-
-
-def _draft_to_legacy_exercise_data(
-    draft: TrainingDraft,
-    *,
-    user_id: int | None,
-) -> dict[str, Any]:
-    """Локальный импорт адаптера без циклической зависимости модулей."""
-    from .adapters import draft_to_legacy_exercise_data
-
-    return draft_to_legacy_exercise_data(draft, user_id=user_id)
 

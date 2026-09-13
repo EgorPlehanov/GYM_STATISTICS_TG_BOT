@@ -78,13 +78,13 @@ async def selected_sets_count(message: Message, state: FSMContext):
     await set_training_draft(state, draft)
     await message.delete()
 
-    user_data: dict[str, int | dict] = await state.get_data()
+    mode = TrainingMode(draft.selection.mode)
 
     await message.bot.edit_message_text(
         chat_id=message.chat.id,
-        message_id=user_data.get('message_id'),
+        message_id=draft.ui.message_id,
         text=await get_formatted_state_date(state),
-        reply_markup=get_ikb_accept_addition(user_data.get('mode'))
+        reply_markup=get_ikb_accept_addition(mode)
     )
 
 

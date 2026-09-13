@@ -161,7 +161,9 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Перевести validation и draft-ориентированные suggestions тренировки на `TrainingDraft`.
 - [x] Вынести legacy-операции `exercise_data` отдельно и перевести handlers на операции над `TrainingDraft`.
 - [x] Перевести форматирование тренировки на `TrainingDraft`.
-- [ ] Ввести строгий FSM training draft и helpers доступа к нему.
+- [x] Удалить переходный adapter `legacy exercise_data <-> FSM draft`.
+- [x] Удалить legacy-операции над `exercise_data` из bot layer.
+- [x] Ввести строгий FSM training draft и helpers доступа к нему.
 - [x] Перевести handlers тренировки с прямого доступа к вложенным dict-ключам на FSM draft helpers.
 - [x] Вынести проверку открытого HTTP-клиента в `BotApiClient` в приватный helper вместо повторения проверки в каждом методе.
 - [x] Вынести базовый HTTP-контекст и методы `users/admin` из `app/bot/client.py` в пакет `app/bot/api_client/`.
@@ -173,6 +175,7 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Вынести методы и DTO `trainings` из `app/bot/client.py` в пакет `app/bot/api_client/`.
 - [x] Разделить `app/bot/client.py` на пакет `app/bot/api_client/` по доменным зонам после завершения переноса основных сценариев на internal API.
 - [x] Убрать реэкспорт DTO из `app/bot/client.py` и перевести handlers/utils на прямые импорты из `app/bot/api_client/schemas/`.
+- [ ] Пересмотреть lifecycle `BotApiClient`: оценить переход на общий долгоживущий `httpx.AsyncClient` с единым connection pool, лимитами соединений и закрытием на shutdown бота.
 - [ ] Убрать переходную поддержку `datetime` для `Training.date` после перевода FSM/API на строгие `date`-контракты.
 - [x] Удалить устаревший `DBSessionMiddleware` из `app/bot/middlewares`, так как бот больше не должен обращаться к БД напрямую.
 - [x] Удалить или перенести неиспользуемый `app/bot/utils/get_chat_members.py` после проверки, что сценарии синхронизации участников групп больше на него не опираются.
@@ -186,6 +189,7 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Разделить `app/bot/keyboards/training_kb` по устойчивым зонам сценария: меню, дата, упражнение, ввод подхода, редактирование, завершение.
 - [x] Вынести операции изменения FSM-структуры тренировки из `app/bot/utils/edit_exercise_data.py` в модуль draft/use-case helpers внутри feature-пакета тренировки.
 - [x] Вынести training-specific helpers `check_accept_addition` и `weight_repetitions_modes` из `app/bot/utils` в FSM-пакет тренировки.
+- [ ] Пересмотреть загрузку подсказок веса/повторений в сценарии тренировки: на старте грузить подсказки только для популярных упражнений, а для упражнений вне стартового списка догружать их лениво после выбора или поиска.
 - [x] Перенести форматирование тренировок и рейтингов из `app/bot/utils` в `app/bot/formatters`.
 - [x] Перенести простой bot export presentation helper из `app/bot/utils` в `app/bot/formatters/export.py`.
 - [x] Перенести отправку результата тренировки в группы из `app/bot/utils` в training flow и исправить параметры helper-а.

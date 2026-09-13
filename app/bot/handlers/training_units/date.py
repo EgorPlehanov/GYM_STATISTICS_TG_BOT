@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import date, datetime
 
 from aiogram import F, Router
@@ -39,11 +40,10 @@ async def _render_training_menu(callback: CallbackQuery, state: FSMContext) -> N
     Returns:
         None. Telegram-сообщение обновляется через Bot API.
     """
-    user_data: dict[str, int | dict] = await state.get_data()
     draft = await get_training_draft(state)
 
-    last_weight = str(user_data.get("last_weight", "")).rstrip("0").rstrip(".")
-    last_repetitions = user_data.get("last_repetitions", "")
+    last_weight = str(draft.ui.last_weight or "").rstrip("0").rstrip(".")
+    last_repetitions = draft.ui.last_repetitions or ""
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
@@ -62,14 +62,12 @@ async def _clear_selection_mode_if_training_started(state: FSMContext) -> None:
         state: FSMContext текущего сценария тренировки.
 
     Returns:
-        None. Если тренировка еще не выбрана и `exercise_data` отсутствует,
-        состояние не меняется.
+        None. Если дата тренировки еще не выбрана, состояние не меняется.
     """
-    user_data = await state.get_data()
-    if user_data.get("exercise_data") is None:
+    draft = await get_training_draft(state)
+    if draft.training.training_date is None:
         return
 
-    draft = await get_training_draft(state)
     draft.selection.mode = None
     await set_training_draft(state, draft)
 
@@ -101,16 +99,16 @@ async def init_training_by_date(
     changed_draft = bot_training_to_draft(result.training)
     is_exists = result.exists
 
-    user_data: dict[str, int | dict] = await state.get_data()
-    cur_exercise_data = user_data.get("exercise_data")
-    if cur_exercise_data is None:
-        await set_training_draft(
-            state,
-            changed_draft,
-            user_id=callback.from_user.id,
-        )
+    draft = await get_training_draft(state)
+    changed_draft.suggestions = deepcopy(draft.suggestions)
+    changed_draft.ui = deepcopy(draft.ui)
+    changed_draft.ui.current_exercise_id = None
+    changed_draft.ui.current_exercise_name = None
+    changed_draft.ui.last_weight = None
+    changed_draft.ui.last_repetitions = None
+    if draft.training.training_date is None:
+        await set_training_draft(state, changed_draft)
     else:
-        draft = await get_training_draft(state)
         if draft.training.training_date == training_date.isoformat():
             return
         if is_exists:
@@ -126,7 +124,7 @@ async def init_training_by_date(
             )
             return False
         else:
-            draft.training.training_date = training_date
+            draft.training.training_date = training_date.isoformat()
             await set_training_draft(state, draft)
 
 
@@ -155,13 +153,19 @@ async def selected_date_today(callback: CallbackQuery, state: FSMContext) -> Non
 )
 async def selected_date_other(callback: CallbackQuery, state: FSMContext) -> None:
     """Открывает inline-календарь для выбора другой даты."""
-    user_data = await state.get_data()
-    if user_data.get("training_date") is None:
+    draft = await get_training_draft(state)
+    if not draft.suggestions.training_dates:
         async with BotApiClient() as api_client:
             training_date = await api_client.get_training_dates(callback.from_user.id)
-        await state.update_data(training_date=training_date)
+        draft.suggestions.training_dates = [
+            item.isoformat() for item in training_date
+        ]
+        await set_training_draft(state, draft)
     else:
-        training_date = user_data.get("training_date")
+        training_date = [
+            date.fromisoformat(item)
+            for item in draft.suggestions.training_dates
+        ]
 
     await callback.message.edit_reply_markup(
         reply_markup=await DialogCalendar(training_date=training_date).start_calendar()
@@ -178,17 +182,20 @@ async def process_dialog_calendar(
     state: FSMContext,
 ) -> None:
     """Обрабатывает выбор даты в inline-календаре."""
-    user_data = await state.get_data()
+    draft = await get_training_draft(state)
 
-    selected, date = await DialogCalendar(
-        training_date=user_data.get("training_date")
+    selected, selected_date = await DialogCalendar(
+        training_date=[
+            date.fromisoformat(item)
+            for item in draft.suggestions.training_dates
+        ]
     ).process_selection(callback, callback_data)
 
     if selected:
         await state.set_state(TrainingStates.menu)
 
         await _clear_selection_mode_if_training_started(state)
-        if (await init_training_by_date(date, callback, state)) is False:
+        if (await init_training_by_date(selected_date, callback, state)) is False:
             return
 
         await _render_training_menu(callback, state)
@@ -201,11 +208,11 @@ async def back_to_date_menu(callback: CallbackQuery, state: FSMContext) -> None:
     """Возвращает пользователя в меню выбора даты."""
     await state.set_state(TrainingStates.select_date)
 
-    user_data: dict[str, int | dict] = await state.get_data()
+    draft = await get_training_draft(state)
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
         reply_markup=get_ikb_select_date(
-            is_back_to_menu=user_data.get('exercise_data') is not None,
+            is_back_to_menu=draft.training.training_date is not None,
         ),
     )
     
@@ -239,7 +246,6 @@ async def save_current_training_and_open_selected_date(
     state: FSMContext,
 ):
     """Сохраняет текущий черновик и открывает тренировку на выбранную дату."""
-    user_data: dict[str, int | dict] = await state.get_data()
     draft = await get_training_draft(state)
     async with BotApiClient() as api_client:
         await api_client.save_training(
@@ -247,23 +253,21 @@ async def save_current_training_and_open_selected_date(
             training=draft_to_bot_training(draft),
         )
 
-    changed_training_draft = user_data.get("changed_training_draft")
+    changed_training_draft = (await state.get_data()).get("changed_training_draft")
     draft = draft_from_json(changed_training_draft)
     draft.selection.mode = None
     draft.selection.exercise_id = None
     draft.selection.exercise_name = None
-    await set_training_draft(state, draft, user_id=callback.from_user.id)
+    await set_training_draft(state, draft)
     await state.update_data(
         changed_training_draft=None,
-        exercise_id=None,
-        exercise_name=None,
     )
 
     await state.set_state(TrainingStates.menu)
     draft = await get_training_draft(state)
 
-    last_weight = str(user_data.get("last_weight", "")).rstrip("0").rstrip(".")
-    last_repetitions = user_data.get("last_repetitions", "")
+    last_weight = str(draft.ui.last_weight or "").rstrip("0").rstrip(".")
+    last_repetitions = draft.ui.last_repetitions or ""
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
@@ -297,7 +301,7 @@ async def changed_to_current_date(callback: CallbackQuery, state: FSMContext):
     draft = await get_training_draft(state)
     draft.training.training_date = training_date
     draft.training.training_id = None
-    await set_training_draft(state, draft, user_id=callback.from_user.id)
+    await set_training_draft(state, draft)
 
     await state.update_data(changed_training_draft=None)
 

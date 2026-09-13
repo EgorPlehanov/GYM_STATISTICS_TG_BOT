@@ -8,10 +8,10 @@ from app.bot.fsm.training import (
     TrainingStates,
     accept_button_by_mode,
     check_accept_addition,
-    draft_to_legacy_exercise_sets_data,
+    get_draft_exercise,
     get_draft_set_by_local_id,
     get_training_draft,
-    get_weight_repetitions_modes_values,
+    get_weight_repetitions_modes_values_from_draft,
     set_training_draft,
 )
 from app.bot.keyboards.keyboards_types import PaginationAction
@@ -40,7 +40,7 @@ async def selected_set_pagination(
     page = int(callback_data.page)
     draft = await get_training_draft(state)
     edit_exercise_id = draft.edit.exercise_id
-    exercise_sets = draft_to_legacy_exercise_sets_data(draft, edit_exercise_id)
+    exercise_sets = get_draft_exercise(draft, edit_exercise_id).sets
 
     if callback_data.action == PaginationAction.PREV:
         page = page - 1 if page > 0 else 0
@@ -93,8 +93,8 @@ async def selected_set(
             accept_button_text=accept_button.text,
             accept_button_callback_data=accept_button.callback_data,
             has_delete_set_button=True,
-            switch_inline_query=get_weight_repetitions_modes_values(
-                user_data=await state.get_data(),
+            switch_inline_query=get_weight_repetitions_modes_values_from_draft(
+                draft,
                 is_weight=True,
             ),
         ),
@@ -118,7 +118,7 @@ async def back_to_edit_set(callback: CallbackQuery, state: FSMContext):
     await set_training_draft(state, draft)
 
     edit_exercise_id = draft.edit.exercise_id
-    exercise_sets = draft_to_legacy_exercise_sets_data(draft, edit_exercise_id)
+    exercise_sets = get_draft_exercise(draft, edit_exercise_id).sets
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),

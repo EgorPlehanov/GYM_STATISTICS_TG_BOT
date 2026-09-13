@@ -7,6 +7,8 @@ from aiogram.types import Message
 from app.bot.client import BotApiClient
 from app.bot.formatters.training import get_formatted_state_date
 from app.bot.fsm.training import (
+    TrainingDraft,
+    TrainingDraftData,
     get_training_draft,
     has_draft_exercises,
     set_training_draft,
@@ -68,18 +70,26 @@ async def cmd_training(message: Message, state: FSMContext) -> None:
             last_training_count=12,
         )
 
-    await state.update_data(
-        most_frequent_exercises=start_context.most_frequent_exercises,
+    draft = TrainingDraft(
+        training=TrainingDraftData(training_id=None, training_date=None),
     )
-    await state.update_data(
-        weight_repetitions_modes=start_context.weight_repetitions_modes,
-    )
+    draft.suggestions.most_frequent_exercises = [
+        {
+            "id": exercise.id,
+            "name": exercise.name,
+            "description": exercise.description,
+        }
+        for exercise in start_context.most_frequent_exercises
+    ]
+    draft.suggestions.weight_repetitions_modes = start_context.weight_repetitions_modes
+    await set_training_draft(state, draft)
 
     answer = await message.answer(
         text=await get_formatted_state_date(state),
         reply_markup=get_ikb_select_date(is_back_to_menu=False),
     )
-    await state.update_data(message_id=answer.message_id)
+    draft.ui.message_id = answer.message_id
+    await set_training_draft(state, draft)
 
 
 
@@ -104,10 +114,8 @@ async def back_to_menu(callback: CallbackQuery, state: FSMContext):
     draft.selection.sets_count = None
     await set_training_draft(state, draft)
 
-    user_data: dict[str, int | dict] = await state.get_data()
-
-    last_weight = str(user_data.get("last_weight", "")).rstrip("0").rstrip(".")
-    last_repetitions = user_data.get("last_repetitions", "")
+    last_weight = str(draft.ui.last_weight or "").rstrip("0").rstrip(".")
+    last_repetitions = draft.ui.last_repetitions or ""
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),

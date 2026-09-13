@@ -50,13 +50,11 @@ async def accept_addition(callback: CallbackQuery, state: FSMContext):
     draft.selection.weight = None
     draft.selection.repetitions = None
     draft.selection.sets_count = None
+    draft.ui.current_exercise_id = exercise_id
+    draft.ui.current_exercise_name = exercise_name
+    draft.ui.last_weight = weight
+    draft.ui.last_repetitions = repetitions
     await set_training_draft(state, draft)
-    await state.update_data(
-        exercise_id=exercise_id,
-        exercise_name=exercise_name,
-        last_weight=weight,
-        last_repetitions=repetitions,
-    )
     
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),

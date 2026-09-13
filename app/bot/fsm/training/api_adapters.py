@@ -88,8 +88,10 @@ def draft_to_bot_training(draft: TrainingDraft) -> BotTraining:
     )
 
 
-def _to_date(value: date | datetime | str) -> date:
+def _to_date(value: date | datetime | str | None) -> date:
     """Возвращает date из date, datetime или ISO-строки."""
+    if value is None:
+        raise ValueError("Нельзя отправить тренировку без даты")
     if isinstance(value, datetime):
         return value.date()
     if isinstance(value, date):

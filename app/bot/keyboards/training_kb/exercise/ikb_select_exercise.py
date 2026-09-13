@@ -1,5 +1,5 @@
 import math
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Protocol
 
 from aiogram.filters.callback_data import CallbackData
@@ -16,6 +16,9 @@ class ExerciseButtonData(Protocol):
     name: str
 
 
+ExerciseButtonItem = ExerciseButtonData | Mapping[str, object]
+
+
 
 class TrainingExercisePagination(CallbackData, prefix='ex_pag'):
     """
@@ -29,7 +32,7 @@ class TrainingExercisePagination(CallbackData, prefix='ex_pag'):
 
 
 def get_ikb_select_exercise_fab(
-    exercise_data: Sequence[ExerciseButtonData],
+    exercise_data: Sequence[ExerciseButtonItem],
     page: int = 0,
     page_size: int = 5,
     has_next_button: bool = False,
@@ -50,14 +53,16 @@ def get_ikb_select_exercise_fab(
     ))
     
     for exercise in exercise_data[page * page_size:(page + 1) * page_size]:
-        select_flag = " ⭐" if exercise.id == selected_exercise_id else ""
+        exercise_id = _get_exercise_id(exercise)
+        exercise_name = _get_exercise_name(exercise)
+        select_flag = " ⭐" if exercise_id == selected_exercise_id else ""
         builder.row(
             InlineKeyboardButton(
-                text=f"{exercise.name}{select_flag}",
+                text=f"{exercise_name}{select_flag}",
                 callback_data=TrainingExercisePagination(
                     action=PaginationAction.SET,
                     page=page,
-                    exercise_id=exercise.id,
+                    exercise_id=exercise_id,
                 ).pack()
             )
         )
@@ -94,5 +99,19 @@ def get_ikb_select_exercise_fab(
     )
 
     return builder.as_markup()
+
+
+def _get_exercise_id(exercise: ExerciseButtonItem) -> int:
+    """Возвращает id упражнения из DTO или JSON-friendly dict."""
+    if isinstance(exercise, Mapping):
+        return int(exercise["id"])
+    return exercise.id
+
+
+def _get_exercise_name(exercise: ExerciseButtonItem) -> str:
+    """Возвращает название упражнения из DTO или JSON-friendly dict."""
+    if isinstance(exercise, Mapping):
+        return str(exercise["name"])
+    return exercise.name
 
 

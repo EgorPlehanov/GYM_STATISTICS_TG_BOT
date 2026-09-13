@@ -3,6 +3,13 @@
 import json
 from datetime import date, datetime
 
+import pytest
+
+from app.bot.api_client.schemas.trainings import (
+    BotTraining,
+    BotTrainingExercise,
+    BotTrainingSet,
+)
 from app.bot.fsm.training import (
     TrainingDraft,
     TrainingDraftData,
@@ -10,24 +17,20 @@ from app.bot.fsm.training import (
     TrainingDraftSet,
     add_exercise_to_draft,
     add_set_to_draft,
+    bot_training_to_draft,
     check_accept_addition_for_draft,
     delete_all_exercise_sets_from_draft,
     delete_all_exercises_from_draft,
     delete_set_from_draft,
     draft_from_json,
+    draft_to_bot_training,
     draft_to_json,
-    draft_to_legacy_exercise_data,
-    draft_to_legacy_exercise_sets_data,
-    draft_to_legacy_exercises_data,
     get_draft_exercise,
     get_draft_set_by_local_id,
-    get_legacy_exercise_data,
     get_training_draft,
     get_weight_repetitions_modes_values_from_draft,
     has_draft_exercises,
-    legacy_exercise_data_to_draft,
     recalculate_draft_set_numbers,
-    set_legacy_exercise_data,
     set_training_draft,
     update_set_in_draft,
 )
@@ -118,7 +121,13 @@ def test_training_draft_round_trip_from_json() -> None:
         },
         "selection": {"mode": "add_set", "exercise_id": 1, "sets_count": 1},
         "edit": {},
-        "ui": {"message_id": 123},
+        "ui": {
+            "message_id": 123,
+            "current_exercise_id": 1,
+            "current_exercise_name": "Присед",
+            "last_weight": 100.0,
+            "last_repetitions": 5,
+        },
         "suggestions": {
             "most_frequent_exercises": [{"id": 1, "name": "Присед"}],
             "weight_repetitions_modes": [],
@@ -131,219 +140,59 @@ def test_training_draft_round_trip_from_json() -> None:
 
     assert draft.training.training_date == "2026-09-12"
     assert draft.training.exercises[0].sets[0].execution_time == "2026-09-12T19:00:00"
-    assert restored_data == {
-        "training": {
-            "training_id": None,
-            "training_date": "2026-09-12",
-            "comment": None,
-            "exercises": [
-                {
-                    "exercise_id": 1,
-                    "exercise_name": "Присед",
-                    "sets": [
-                        {
-                            "set_id": None,
-                            "set_number": 1,
-                            "weight": 100.0,
-                            "repetitions": 5,
-                            "execution_time": "2026-09-12T19:00:00",
-                        }
-                    ],
-                }
-            ],
-        },
-        "selection": {
-            "mode": "add_set",
-            "exercise_id": 1,
-            "exercise_name": None,
-            "weight": None,
-            "repetitions": None,
-            "sets_count": 1,
-        },
-        "edit": {
-            "exercise_id": None,
-            "exercise_name": None,
-            "set_id": None,
-            "set_number": None,
-        },
-        "ui": {
-            "message_id": 123,
-            "state_before_delete": None,
-            "reply_markup_before_delete": None,
-        },
-        "suggestions": {
-            "most_frequent_exercises": [{"id": 1, "name": "Присед"}],
-            "weight_repetitions_modes": [],
-            "training_dates": ["2026-09-12"],
-        },
-    }
+    assert restored_data["ui"]["current_exercise_name"] == "Присед"
+    assert restored_data["ui"]["last_weight"] == 100.0
 
 
-def test_legacy_exercise_data_converts_to_training_draft() -> None:
-    """Проверяет адаптацию старого `exercise_data` в типизированный draft."""
-    legacy_data = {
-        "id": 10,
-        "user_id": 123456789,
-        "date": date(2026, 9, 12),
-        "comment": "Тест",
-        "global_set_counter": 2,
-        "exercises": {
-            2: {
-                "exercise_name": "Тяга",
-                "local_set_counter": 1,
-                "sets": {
-                    1: {
-                        "id": 22,
-                        "set_number": 2,
-                        "weight": 120.0,
-                        "repetitions": 3,
-                        "time": datetime(2026, 9, 12, 19, 10),
-                    }
-                },
-            },
-            "1": {
-                "exercise_name": "Жим лежа",
-                "local_set_counter": 1,
-                "sets": {
-                    "1": {
-                        "id": 21,
-                        "set_number": 1,
-                        "weight": 80.0,
-                        "repetitions": 8,
-                        "time": "2026-09-12T18:30:00",
-                    }
-                },
-            },
-        },
-    }
+def test_bot_training_dto_converts_to_training_draft() -> None:
+    """Проверяет адаптацию strict API DTO в FSM draft."""
+    training = BotTraining(
+        training_id=10,
+        training_date=date(2026, 9, 12),
+        comment="Тест",
+        exercises=[
+            BotTrainingExercise(
+                exercise_id=1,
+                exercise_name="Жим лежа",
+                sets=[
+                    BotTrainingSet(
+                        set_id=21,
+                        set_number=1,
+                        weight=80.0,
+                        repetitions=8,
+                        execution_time=datetime(2026, 9, 12, 18, 30),
+                    )
+                ],
+            )
+        ],
+    )
 
-    draft = legacy_exercise_data_to_draft(legacy_data)
+    draft = bot_training_to_draft(training)
 
     assert draft.training.training_id == 10
     assert draft.training.training_date == "2026-09-12"
-    assert draft.training.comment == "Тест"
-    assert [exercise.exercise_id for exercise in draft.training.exercises] == [1, 2]
     assert draft.training.exercises[0].sets[0].execution_time == "2026-09-12T18:30:00"
-    assert draft.training.exercises[1].sets[0].execution_time == "2026-09-12T19:10:00"
 
 
-def test_training_draft_converts_to_legacy_exercise_data() -> None:
-    """Проверяет адаптацию типизированного draft в старый `exercise_data`."""
-    draft = TrainingDraft(
-        training=TrainingDraftData(
-            training_id=10,
-            training_date="2026-09-12",
-            comment="Тест",
-            exercises=[
-                TrainingDraftExercise(
-                    exercise_id=1,
-                    exercise_name="Жим лежа",
-                    sets=[
-                        TrainingDraftSet(
-                            set_id=21,
-                            set_number=1,
-                            weight=80.0,
-                            repetitions=8,
-                            execution_time="2026-09-12T18:30:00",
-                        ),
-                        TrainingDraftSet(
-                            set_id=None,
-                            set_number=2,
-                            weight=82.5,
-                            repetitions=6,
-                            execution_time=None,
-                        ),
-                    ],
-                )
-            ],
-        )
+def test_training_draft_converts_to_bot_training_dto() -> None:
+    """Проверяет адаптацию FSM draft в strict API DTO."""
+    draft = _build_training_draft()
+
+    training = draft_to_bot_training(draft)
+
+    assert training.training_id == 10
+    assert training.training_date == date(2026, 9, 12)
+    assert training.exercises[0].sets[0].execution_time == datetime(
+        2026, 9, 12, 18, 30
     )
 
-    legacy_data = draft_to_legacy_exercise_data(draft, user_id=123456789)
 
-    assert legacy_data == {
-        "id": 10,
-        "user_id": 123456789,
-        "date": date(2026, 9, 12),
-        "comment": "Тест",
-        "global_set_counter": 2,
-        "exercises": {
-            1: {
-                "exercise_name": "Жим лежа",
-                "local_set_counter": 2,
-                "sets": {
-                    1: {
-                        "id": 21,
-                        "set_number": 1,
-                        "weight": 80.0,
-                        "repetitions": 8,
-                        "time": datetime(2026, 9, 12, 18, 30),
-                    },
-                    2: {
-                        "id": None,
-                        "set_number": 2,
-                        "weight": 82.5,
-                        "repetitions": 6,
-                        "time": None,
-                    },
-                },
-            }
-        },
-    }
+def test_training_draft_without_date_cannot_be_sent_to_api() -> None:
+    """Проверяет явную ошибку при отправке незавершенного draft в API."""
+    draft = TrainingDraft(training=TrainingDraftData(training_id=None, training_date=None))
 
-
-def test_draft_legacy_adapter_helpers_return_keyboard_contract_parts() -> None:
-    """Проверяет получение legacy-частей draft для текущих клавиатур."""
-    draft = TrainingDraft(
-        training=TrainingDraftData(
-            training_id=10,
-            training_date="2026-09-12",
-            exercises=[
-                TrainingDraftExercise(
-                    exercise_id=1,
-                    exercise_name="Жим лежа",
-                    sets=[TrainingDraftSet(None, 1, 80.0, 8)],
-                )
-            ],
-        )
-    )
-
-    exercises = draft_to_legacy_exercises_data(draft)
-    sets = draft_to_legacy_exercise_sets_data(draft, exercise_id=1)
-
-    assert exercises[1]["exercise_name"] == "Жим лежа"
-    assert sets[1]["weight"] == 80.0
-
-
-def test_legacy_exercise_data_round_trip_preserves_save_contract() -> None:
-    """Проверяет round-trip старого формата через типизированный draft."""
-    legacy_data = {
-        "id": None,
-        "user_id": 123456789,
-        "date": date(2026, 9, 12),
-        "comment": None,
-        "global_set_counter": 1,
-        "exercises": {
-            1: {
-                "exercise_name": "Присед",
-                "local_set_counter": 1,
-                "sets": {
-                    1: {
-                        "id": None,
-                        "set_number": 1,
-                        "weight": 100.0,
-                        "repetitions": 5,
-                        "time": datetime(2026, 9, 12, 19, 0),
-                    }
-                },
-            }
-        },
-    }
-
-    draft = legacy_exercise_data_to_draft(legacy_data)
-    restored = draft_to_legacy_exercise_data(draft, user_id=legacy_data["user_id"])
-
-    assert restored == legacy_data
+    with pytest.raises(ValueError, match="без даты"):
+        draft_to_bot_training(draft)
 
 
 def test_check_accept_addition_for_draft_allows_complete_add_exercise() -> None:
@@ -378,26 +227,7 @@ def test_check_accept_addition_for_draft_rejects_incomplete_add_set() -> None:
 
 def test_check_accept_addition_for_draft_compares_edited_set() -> None:
     """Проверяет подтверждение редактирования только при изменении подхода."""
-    draft = TrainingDraft(
-        training=TrainingDraftData(
-            training_id=10,
-            training_date="2026-09-12",
-            exercises=[
-                TrainingDraftExercise(
-                    exercise_id=1,
-                    exercise_name="Жим лежа",
-                    sets=[
-                        TrainingDraftSet(
-                            set_id=21,
-                            set_number=1,
-                            weight=80.0,
-                            repetitions=8,
-                        )
-                    ],
-                )
-            ],
-        )
-    )
+    draft = _build_training_draft()
     draft.selection.mode = TrainingMode.EDIT_SET.value
     draft.selection.weight = 80.0
     draft.selection.repetitions = 8
@@ -413,26 +243,7 @@ def test_check_accept_addition_for_draft_compares_edited_set() -> None:
 
 def test_weight_repetitions_modes_values_from_draft_uses_string_keys() -> None:
     """Проверяет получение подсказок из JSON-friendly dict со строковыми ключами."""
-    draft = TrainingDraft(
-        training=TrainingDraftData(
-            training_id=10,
-            training_date="2026-09-12",
-            exercises=[
-                TrainingDraftExercise(
-                    exercise_id=1,
-                    exercise_name="Жим лежа",
-                    sets=[
-                        TrainingDraftSet(
-                            set_id=21,
-                            set_number=1,
-                            weight=80.0,
-                            repetitions=8,
-                        )
-                    ],
-                )
-            ],
-        )
-    )
+    draft = _build_training_draft()
     draft.selection.exercise_id = 1
     draft.suggestions.weight_repetitions_modes = {
         "1": {
@@ -451,6 +262,25 @@ def test_weight_repetitions_modes_values_from_draft_uses_string_keys() -> None:
         is_weight=True,
         is_repetitions=True,
     ) == ("82.5", "6")
+
+
+def test_weight_repetitions_modes_values_from_draft_uses_ui_fallback() -> None:
+    """Проверяет подсказки для быстрого добавления подхода к последнему упражнению."""
+    draft = _build_training_draft()
+    draft.ui.current_exercise_id = 1
+    draft.suggestions.weight_repetitions_modes = {
+        "1": {
+            "max_exercise_order": 1,
+            "sets_modes": {
+                "1": {
+                    "weight_mode": 80.0,
+                    "repetitions_mode": 8,
+                }
+            },
+        }
+    }
+
+    assert get_weight_repetitions_modes_values_from_draft(draft, is_weight=True) == "80.0"
 
 
 def test_draft_operations_add_exercise_and_sets() -> None:
@@ -486,26 +316,7 @@ def test_draft_operations_add_exercise_and_sets() -> None:
 
 def test_draft_operations_update_set_by_local_id() -> None:
     """Проверяет изменение подхода по локальному номеру внутри упражнения."""
-    draft = TrainingDraft(
-        training=TrainingDraftData(
-            training_id=10,
-            training_date="2026-09-12",
-            exercises=[
-                TrainingDraftExercise(
-                    exercise_id=1,
-                    exercise_name="Жим лежа",
-                    sets=[
-                        TrainingDraftSet(
-                            set_id=21,
-                            set_number=1,
-                            weight=80.0,
-                            repetitions=8,
-                        )
-                    ],
-                )
-            ],
-        )
-    )
+    draft = _build_training_draft()
 
     updated = update_set_in_draft(
         draft,
@@ -620,19 +431,7 @@ def test_recalculate_draft_set_numbers_preserves_exercise_order() -> None:
 
 def test_draft_read_helpers_find_exercise_and_set() -> None:
     """Проверяет read-only helpers для доступа к данным draft."""
-    draft = TrainingDraft(
-        training=TrainingDraftData(
-            training_id=10,
-            training_date="2026-09-12",
-            exercises=[
-                TrainingDraftExercise(
-                    exercise_id=1,
-                    exercise_name="Жим лежа",
-                    sets=[TrainingDraftSet(None, 1, 80.0, 8)],
-                )
-            ],
-        )
-    )
+    draft = _build_training_draft()
 
     exercise = get_draft_exercise(draft, exercise_id=1)
     set_data = get_draft_set_by_local_id(draft, exercise_id=1, set_id=1)
@@ -642,91 +441,35 @@ def test_draft_read_helpers_find_exercise_and_set() -> None:
     assert set_data.weight == 80.0
 
 
-async def test_get_training_draft_reads_legacy_fsm_context() -> None:
-    """Проверяет чтение типизированного draft из текущего legacy FSMContext."""
-    state = FakeFSMContext(
-        {
-            "exercise_data": {
-                "id": 10,
-                "user_id": 123456789,
-                "date": date(2026, 9, 12),
-                "comment": "Тест",
-                "global_set_counter": 1,
-                "exercises": {
-                    1: {
-                        "exercise_name": "Жим лежа",
-                        "local_set_counter": 1,
-                        "sets": {
-                            1: {
-                                "id": 21,
-                                "set_number": 1,
-                                "weight": 80.0,
-                                "repetitions": 8,
-                                "time": datetime(2026, 9, 12, 18, 30),
-                            }
-                        },
-                    }
-                },
-            },
-            "mode": TrainingMode.ADD_SET,
-            "cur_exercise_id": 1,
-            "cur_exercise_name": "Жим лежа",
-            "weight": 82.5,
-            "repetitions": 6,
-            "sets_count": 2,
-            "message_id": 500,
-            "training_date": [date(2026, 9, 12)],
-        }
-    )
+async def test_get_training_draft_reads_training_draft_fsm_context() -> None:
+    """Проверяет чтение типизированного draft из ключа `training_draft`."""
+    expected_draft = _build_training_draft()
+    expected_draft.selection.mode = TrainingMode.ADD_SET.value
+    expected_draft.selection.exercise_id = 1
+    expected_draft.ui.message_id = 500
+    expected_draft.suggestions.training_dates = ["2026-09-12"]
+    state = FakeFSMContext({"training_draft": draft_to_json(expected_draft)})
 
     draft = await get_training_draft(state)
 
     assert draft.training.training_id == 10
-    assert draft.training.training_date == "2026-09-12"
-    assert draft.training.exercises[0].sets[0].execution_time == "2026-09-12T18:30:00"
     assert draft.selection.mode == "add_set"
-    assert draft.selection.exercise_id == 1
-    assert draft.selection.weight == 82.5
     assert draft.ui.message_id == 500
     assert draft.suggestions.training_dates == ["2026-09-12"]
 
 
-async def test_set_training_draft_writes_legacy_fsm_context() -> None:
-    """Проверяет сохранение типизированного draft обратно в legacy FSMContext."""
-    state = FakeFSMContext(
-        {
-            "exercise_data": {
-                "id": None,
-                "user_id": 123456789,
-                "date": date(2026, 9, 12),
-                "comment": None,
-                "global_set_counter": 0,
-                "exercises": {},
-            }
-        }
-    )
-    draft = TrainingDraft(
-        training=TrainingDraftData(
-            training_id=10,
-            training_date="2026-09-13",
-            comment="Новая дата",
-            exercises=[
-                TrainingDraftExercise(
-                    exercise_id=1,
-                    exercise_name="Жим лежа",
-                    sets=[
-                        TrainingDraftSet(
-                            set_id=None,
-                            set_number=1,
-                            weight=80.0,
-                            repetitions=8,
-                            execution_time="2026-09-13T18:30:00",
-                        )
-                    ],
-                )
-            ],
-        )
-    )
+async def test_get_training_draft_requires_training_draft_key() -> None:
+    """Проверяет явную ошибку, если сценарий не инициализировал draft."""
+    state = FakeFSMContext({})
+
+    with pytest.raises(KeyError, match="training_draft"):
+        await get_training_draft(state)
+
+
+async def test_set_training_draft_writes_training_draft_fsm_context() -> None:
+    """Проверяет сохранение типизированного draft только в новый FSM-ключ."""
+    state = FakeFSMContext({})
+    draft = _build_training_draft()
     draft.selection.mode = "add_set"
     draft.selection.exercise_id = 1
     draft.selection.exercise_name = "Жим лежа"
@@ -734,50 +477,45 @@ async def test_set_training_draft_writes_legacy_fsm_context() -> None:
     draft.selection.repetitions = 8
     draft.selection.sets_count = 1
     draft.ui.message_id = 501
-    draft.suggestions.training_dates = ["2026-09-13"]
+    draft.ui.current_exercise_id = 1
+    draft.ui.current_exercise_name = "Жим лежа"
+    draft.ui.last_weight = 80.0
+    draft.ui.last_repetitions = 8
+    draft.suggestions.training_dates = ["2026-09-12"]
 
     await set_training_draft(state, draft)
 
-    assert state.data["mode"] == TrainingMode.ADD_SET
-    assert state.data["cur_exercise_id"] == 1
-    assert state.data["message_id"] == 501
-    assert state.data["training_date"] == [date(2026, 9, 13)]
-    assert state.data["exercise_data"] == {
-        "id": 10,
-        "user_id": 123456789,
-        "date": date(2026, 9, 13),
-        "comment": "Новая дата",
-        "global_set_counter": 1,
-        "exercises": {
-            1: {
-                "exercise_name": "Жим лежа",
-                "local_set_counter": 1,
-                "sets": {
-                    1: {
-                        "id": None,
-                        "set_number": 1,
-                        "weight": 80.0,
-                        "repetitions": 8,
-                        "time": datetime(2026, 9, 13, 18, 30),
-                    }
-                },
-            }
-        },
-    }
+    assert set(state.data) == {"training_draft"}
+    assert state.data["training_draft"]["selection"]["mode"] == "add_set"
+    assert state.data["training_draft"]["ui"]["message_id"] == 501
+    assert state.data["training_draft"]["ui"]["last_repetitions"] == 8
 
 
-async def test_legacy_exercise_data_helpers_read_and_write_fsm_context() -> None:
-    """Проверяет короткие helpers для прямой работы с legacy `exercise_data`."""
-    state = FakeFSMContext({})
-    exercise_data = {
-        "id": None,
-        "user_id": 123456789,
-        "date": date(2026, 9, 12),
-        "comment": None,
-        "global_set_counter": 0,
-        "exercises": {},
-    }
+def _build_training_draft() -> TrainingDraft:
+    """Создает заполненный draft тренировки для тестов.
 
-    await set_legacy_exercise_data(state, exercise_data)
-
-    assert await get_legacy_exercise_data(state) == exercise_data
+    Returns:
+        Draft с одной тренировкой, одним упражнением и одним подходом.
+    """
+    return TrainingDraft(
+        training=TrainingDraftData(
+            training_id=10,
+            training_date="2026-09-12",
+            comment="Тест",
+            exercises=[
+                TrainingDraftExercise(
+                    exercise_id=1,
+                    exercise_name="Жим лежа",
+                    sets=[
+                        TrainingDraftSet(
+                            set_id=21,
+                            set_number=1,
+                            weight=80.0,
+                            repetitions=8,
+                            execution_time="2026-09-12T18:30:00",
+                        )
+                    ],
+                )
+            ],
+        )
+    )

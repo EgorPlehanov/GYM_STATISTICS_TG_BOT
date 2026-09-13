@@ -5,27 +5,13 @@ from typing import Any
 from .draft import TrainingDraft, TrainingDraftExercise, TrainingDraftSet
 
 
-def get_current_exercise_id(user_data: dict[str, int | dict]) -> int:
-    """Возвращает id текущего упражнения из FSM data."""
-    exercise_id = None
-    if user_data.get("edit_exercise_id") is not None:  # если мы редактируем упражнение
-        exercise_id = user_data["edit_exercise_id"]
-    elif user_data.get("cur_exercise_id") is not None:  # если мы добавляем упражнение
-        exercise_id = user_data["cur_exercise_id"]
-    elif user_data.get("exercise_id") is not None:  # текущее упражнение
-        exercise_id = user_data["exercise_id"]
-    return exercise_id
-
-
 def get_current_exercise_id_from_draft(
     draft: TrainingDraft,
-    fallback_exercise_id: int | None = None,
 ) -> int | None:
     """Возвращает id текущего упражнения из типизированного FSM draft.
 
     Args:
         draft: текущий draft сценария тренировки.
-        fallback_exercise_id: id последнего выбранного упражнения из legacy FSM.
 
     Returns:
         Id упражнения для редактирования, добавления или повтора подхода.
@@ -34,25 +20,7 @@ def get_current_exercise_id_from_draft(
         return draft.edit.exercise_id
     if draft.selection.exercise_id is not None:
         return draft.selection.exercise_id
-    return fallback_exercise_id
-
-
-def get_current_set_id(
-    user_data: dict[str, int | dict],
-    current_exercise_id: int | None = None,
-) -> int:
-    """Возвращает id текущего подхода из FSM data."""
-    set_id = None
-    if user_data.get("edit_set_id") is not None:  # если мы редактируем подход
-        set_id = user_data["edit_set_id"]
-    else:  # текущий подход
-        exercise_data = user_data["exercise_data"]
-        exercise_sets = exercise_data["exercises"].get(current_exercise_id)
-        if exercise_sets is None:  # если это первый подход (упражнение еще не создано)
-            set_id = 1
-        else:  # текущий подход (больше на единицу чем последний записанный)
-            set_id = exercise_sets["local_set_counter"] + 1
-    return set_id
+    return draft.ui.current_exercise_id
 
 
 def get_current_set_id_from_draft(
@@ -77,41 +45,9 @@ def get_current_set_id_from_draft(
     return len(exercise.sets) + 1
 
 
-def get_weight_repetitions_modes_values(
-    user_data: dict[str, int | dict],
-    is_weight: bool = False,
-    is_repetitions: bool = False,
-):
-    """Возвращает подсказки веса и повторений для inline search."""
-    weight_repetitions_modes = user_data.get("weight_repetitions_modes")
-
-    exercise_id = get_current_exercise_id(user_data)
-
-    exercise_mode = _get_by_int_or_string_key(weight_repetitions_modes, exercise_id)
-    if exercise_mode is None:  # если для этого упражнения не рассчитана мода
-        return _empty_suggestion(is_weight=is_weight, is_repetitions=is_repetitions)
-
-    max_exercise_order = exercise_mode.get("max_exercise_order")
-    sets_modes = exercise_mode.get("sets_modes")
-
-    set_id = get_current_set_id(user_data, exercise_id)
-
-    if set_id > max_exercise_order:  # если для этого подхода не рассчитана мода
-        set_modes = _get_by_int_or_string_key(sets_modes, max_exercise_order)
-    else:
-        set_modes = _get_by_int_or_string_key(sets_modes, set_id)
-
-    return _format_weight_repetitions_modes(
-        set_modes,
-        is_weight=is_weight,
-        is_repetitions=is_repetitions,
-    )
-
-
 def get_weight_repetitions_modes_values_from_draft(
     draft: TrainingDraft,
     *,
-    fallback_exercise_id: int | None = None,
     is_weight: bool = False,
     is_repetitions: bool = False,
 ) -> str | tuple[str, str] | None:
@@ -119,7 +55,6 @@ def get_weight_repetitions_modes_values_from_draft(
 
     Args:
         draft: текущий draft сценария тренировки.
-        fallback_exercise_id: id последнего выбранного упражнения из legacy FSM.
         is_weight: вернуть подсказку веса.
         is_repetitions: вернуть подсказку количества повторений.
 
@@ -127,7 +62,7 @@ def get_weight_repetitions_modes_values_from_draft(
         Строка с подсказкой веса/повторений, кортеж из двух строк или пустое
         значение, если для текущего упражнения нет рассчитанной моды.
     """
-    exercise_id = get_current_exercise_id_from_draft(draft, fallback_exercise_id)
+    exercise_id = get_current_exercise_id_from_draft(draft)
     exercise_mode = _get_by_int_or_string_key(
         draft.suggestions.weight_repetitions_modes,
         exercise_id,

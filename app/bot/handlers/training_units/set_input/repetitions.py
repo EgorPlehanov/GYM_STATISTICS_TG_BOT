@@ -15,7 +15,7 @@ from app.bot.fsm.training import (
     accept_button_by_mode,
     check_accept_addition,
     get_training_draft,
-    get_weight_repetitions_modes_values,
+    get_weight_repetitions_modes_values_from_draft,
     set_training_draft,
 )
 from app.bot.keyboards.training_kb import (
@@ -84,13 +84,13 @@ async def selected_repetitions(message: Message, state: FSMContext):
     await set_training_draft(state, draft)
     await message.delete()
 
-    user_data: dict[str, int | dict] = await state.get_data()
+    mode = TrainingMode(draft.selection.mode)
 
     await message.bot.edit_message_text(
         chat_id=message.chat.id,
-        message_id=user_data.get('message_id'),
+        message_id=draft.ui.message_id,
         text=await get_formatted_state_date(state),
-        reply_markup=get_ikb_accept_addition(user_data.get('mode'))
+        reply_markup=get_ikb_accept_addition(mode)
     )
 
 
@@ -104,7 +104,6 @@ async def to_repetitions(callback: CallbackQuery, state: FSMContext):
 
     draft = await get_training_draft(state)
     mode = TrainingMode(draft.selection.mode)
-    user_data: dict[str, int | dict] = await state.get_data()
     accept_button = accept_button_by_mode.get(mode)
 
     await callback.message.edit_text(
@@ -123,8 +122,9 @@ async def to_repetitions(callback: CallbackQuery, state: FSMContext):
             accept_button_text = accept_button.text,
             accept_button_callback_data = accept_button.callback_data,
             has_delete_set_button = mode == TrainingMode.EDIT_SET,
-            switch_inline_query = get_weight_repetitions_modes_values(
-                user_data, is_repetitions=True
+            switch_inline_query = get_weight_repetitions_modes_values_from_draft(
+                draft,
+                is_repetitions=True,
             )
         ),
     )

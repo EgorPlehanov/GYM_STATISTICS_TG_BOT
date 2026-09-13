@@ -1,7 +1,6 @@
 """Форматирование текста Telegram-сценария тренировки."""
 
 from datetime import date, datetime
-from typing import Any
 
 from aiogram import html
 from aiogram.fsm.context import FSMContext
@@ -13,7 +12,6 @@ from app.bot.fsm.training import (
     TrainingStates,
     draft_from_json,
     get_training_draft,
-    legacy_exercise_data_to_draft,
 )
 
 WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
@@ -79,32 +77,6 @@ def format_exercises_data_from_draft(
         text_parts.append(html.blockquote("\n".join(exercise_text_parts)))
 
     return "\n".join(text_parts)
-
-
-def format_exercises_data(
-    exercise_data: dict[str, int | dict],
-    edit_exercise_id: int | None = None,
-    edit_set_id: int | None = None,
-    delete_accept_flag: bool = False,
-) -> str:
-    """Форматирует legacy `exercise_data` через временный draft adapter.
-
-    Args:
-        exercise_data: старый FSM-словарь тренировки.
-        edit_exercise_id: id редактируемого упражнения.
-        edit_set_id: локальный номер редактируемого подхода.
-        delete_accept_flag: выделить удаляемую сущность.
-
-    Returns:
-        HTML-текст списка упражнений и подходов.
-    """
-    draft = legacy_exercise_data_to_draft(exercise_data)
-    draft.edit.exercise_id = edit_exercise_id
-    draft.edit.set_id = edit_set_id
-    return format_exercises_data_from_draft(
-        draft,
-        delete_accept_flag=delete_accept_flag,
-    )
 
 
 def format_draft_set_to_text(
@@ -177,21 +149,6 @@ def result_format_exercise_sets_from_draft(sets_data: list[TrainingDraftSet]) ->
     return ", ".join(sets)
 
 
-def result_format_exercise_sets(sets_data: dict[str, dict[str, Any]]) -> str:
-    """Форматирует legacy-подходы через временный draft adapter."""
-    draft_sets = [
-        TrainingDraftSet(
-            set_id=set_data.get("id"),
-            set_number=set_data["set_number"],
-            weight=set_data["weight"],
-            repetitions=set_data["repetitions"],
-            execution_time=_normalize_datetime_or_none(set_data.get("time")),
-        )
-        for set_data in sets_data.values()
-    ]
-    return result_format_exercise_sets_from_draft(draft_sets)
-
-
 def result_format_exercise_data_from_draft(draft: TrainingDraft) -> str:
     """Форматирует упражнения из draft для итогового сообщения."""
     text_parts = []
@@ -203,13 +160,6 @@ def result_format_exercise_data_from_draft(draft: TrainingDraft) -> str:
         text_parts.append(exercise_text)
 
     return "\n".join(text_parts)
-
-
-def result_format_exercise_data(exercise_data: dict[str, int | dict]) -> str:
-    """Форматирует legacy `exercise_data` для итогового сообщения."""
-    return result_format_exercise_data_from_draft(
-        legacy_exercise_data_to_draft(exercise_data)
-    )
 
 
 def get_training_values_from_draft(
@@ -264,39 +214,11 @@ def get_training_values_from_draft(
     return "\n".join(training_values)
 
 
-def get_training_values(
-    user_data: dict[str, int | dict],
-    is_result: bool = False,
-) -> str | None:
-    """Возвращает текст тренировки из legacy FSM data через draft adapter."""
-    exercise_data = user_data.get("exercise_data")
-    if exercise_data is None:
-        return None
-
-    draft = legacy_exercise_data_to_draft(exercise_data)
-    draft.selection.mode = _mode_to_value(user_data.get("mode"))
-    draft.edit.exercise_id = user_data.get("edit_exercise_id")
-    draft.edit.set_id = user_data.get("edit_set_id")
-
-    return get_training_values_from_draft(
-        draft,
-        is_result=is_result,
-        delete_accept_flag=bool(user_data.get("delete_acept_flag")),
-    )
-
-
-def get_current_values_from_draft(
-    draft: TrainingDraft,
-    *,
-    fallback_exercise_name: str | None = None,
-) -> str | None:
+def get_current_values_from_draft(draft: TrainingDraft) -> str | None:
     """Возвращает текст текущего ввода из draft.
 
     Args:
         draft: текущий FSM draft тренировки.
-        fallback_exercise_name: последнее выбранное упражнение из legacy FSM,
-            пока оно не перенесено в draft.
-
     Returns:
         HTML-текст текущих значений или None, если текущих значений нет.
     """
@@ -307,11 +229,7 @@ def get_current_values_from_draft(
             f"x{html.bold(html.underline(draft.selection.sets_count))}"
         )
 
-    exercise_name = (
-        draft.edit.exercise_name
-        or draft.selection.exercise_name
-        or fallback_exercise_name
-    )
+    exercise_name = draft.edit.exercise_name or draft.selection.exercise_name
     if exercise_name is not None:
         cur_values.append(f"🏋️‍♂️ Упражнение: {html.bold(html.underline(exercise_name))}")
 
@@ -331,29 +249,6 @@ def get_current_values_from_draft(
     if cur_values:
         return "Текущие значения:\n" + html.blockquote("\n".join(cur_values))
     return None
-
-
-def get_current_values(user_data: dict[str, int | dict]) -> str | None:
-    """Возвращает текст текущего ввода из legacy FSM data через draft adapter."""
-    exercise_data = user_data.get("exercise_data")
-    if exercise_data is None:
-        return None
-
-    draft = legacy_exercise_data_to_draft(exercise_data)
-    draft.selection.mode = _mode_to_value(user_data.get("mode"))
-    draft.selection.exercise_id = user_data.get("cur_exercise_id")
-    draft.selection.exercise_name = user_data.get("cur_exercise_name")
-    draft.selection.weight = user_data.get("weight")
-    draft.selection.repetitions = user_data.get("repetitions")
-    draft.selection.sets_count = user_data.get("sets_count")
-    draft.edit.exercise_id = user_data.get("edit_exercise_id")
-    draft.edit.exercise_name = user_data.get("edit_exercise_name")
-    draft.edit.set_id = user_data.get("edit_set_id")
-
-    return get_current_values_from_draft(
-        draft,
-        fallback_exercise_name=user_data.get("exercise_name"),
-    )
 
 
 async def get_delete_object_text(state: FSMContext) -> str:
@@ -411,13 +306,6 @@ async def get_state_text(state: FSMContext) -> str:
     return f"⬇️ {html.bold(html.underline(state_to_text[cur_state]))} ⬇️" + adition_text
 
 
-def serialize_datetime(obj: Any) -> str | None:
-    """Сериализует datetime в ISO-строку для legacy-вызовов."""
-    if isinstance(obj, datetime):
-        return obj.isoformat()
-    return None
-
-
 async def get_formatted_state_date(state: FSMContext, is_result: bool = False) -> str:
     """Возвращает полный текст текущего состояния тренировки.
 
@@ -428,24 +316,21 @@ async def get_formatted_state_date(state: FSMContext, is_result: bool = False) -
     Returns:
         HTML-текст, который отправляется или редактируется в Telegram.
     """
-    user_data: dict[str, Any] = await state.get_data()
+    user_data = await state.get_data()
     text_list = []
 
-    if user_data.get("exercise_data") is not None:
+    if user_data.get("training_draft") is not None:
         draft = await get_training_draft(state)
         training_values = get_training_values_from_draft(
             draft,
             is_result=is_result,
-            delete_accept_flag=bool(user_data.get("delete_acept_flag")),
+            delete_accept_flag=await state.get_state() == TrainingStates.edit_delete,
         )
         if training_values is not None:
             text_list.append(training_values)
 
         if not is_result:
-            cur_values = get_current_values_from_draft(
-                draft,
-                fallback_exercise_name=user_data.get("exercise_name"),
-            )
+            cur_values = get_current_values_from_draft(draft)
             if cur_values is not None:
                 text_list.append(cur_values)
 
@@ -485,22 +370,6 @@ def _parse_date(value: date | datetime | str | None) -> date | None:
     if isinstance(value, date):
         return value
     return date.fromisoformat(value)
-
-
-def _normalize_datetime_or_none(value: datetime | str | None) -> str | None:
-    """Возвращает datetime-значение в ISO-формате или None."""
-    if isinstance(value, datetime):
-        return value.isoformat()
-    return value
-
-
-def _mode_to_value(value: Any) -> str | None:
-    """Возвращает строковое значение режима."""
-    if value is None:
-        return None
-    if isinstance(value, TrainingMode):
-        return value.value
-    return str(value)
 
 
 def _mode_from_value(value: str | TrainingMode | None) -> TrainingMode | None:

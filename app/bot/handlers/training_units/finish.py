@@ -1,5 +1,4 @@
 from asyncio import sleep
-from typing import Any
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
@@ -81,11 +80,9 @@ async def add_comment(message: Message, state: FSMContext):
     draft.training.comment = new_comment
     await set_training_draft(state, draft)
 
-    user_data: dict[str, Any] = await state.get_data()
-
     await message.bot.edit_message_text(
         chat_id=message.chat.id,
-        message_id=user_data.get("message_id"),
+        message_id=draft.ui.message_id,
         text=await get_formatted_state_date(state),
         reply_markup=get_ikb_finish_add_comment(
             current_comment=new_comment

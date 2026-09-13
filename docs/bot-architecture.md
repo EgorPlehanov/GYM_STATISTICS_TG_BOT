@@ -300,40 +300,19 @@ backend API.
 
 ## FSM Training Draft
 
-Сейчас черновик тренировки в aiogram FSM хранится как набор loosely typed значений
-в одном `dict`. Это рабочий legacy-формат, но его сложно проверять, сериализовать
-и безопасно развивать.
+Черновик тренировки в aiogram FSM хранится в одном ключе `training_draft`.
+Это JSON-friendly структура, которую можно будет без изменения контрактов
+перенести из `MemoryStorage` в Redis FSM storage.
 
-Текущий формат содержит данные нескольких типов:
+Текущие верхнеуровневые FSM-ключи сценария тренировки:
 
 ```text
-exercise_data              текущий черновик тренировки, пока сохраняется переходным adapter layer
+training_draft             основной JSON-friendly draft тренировки
 changed_training_draft     JSON-friendly draft выбранной даты при смене даты
-most_frequent_exercises    подсказки частых упражнений
-weight_repetitions_modes   подсказки веса и повторений
-message_id                 Telegram message id основного сообщения сценария
-mode                       текущий режим добавления или редактирования
-exercise_id                последнее выбранное упражнение
-exercise_name              имя последнего выбранного упражнения
-cur_exercise_id            упражнение текущего ввода
-cur_exercise_name          имя упражнения текущего ввода
-weight                     текущий ввод веса
-repetitions                текущий ввод повторений
-sets_count                 текущий ввод количества подходов
-last_weight                последний сохраненный вес
-last_repetitions           последнее сохраненное количество повторений
-edit_exercise_id           упражнение, выбранное для редактирования
-edit_exercise_name         имя упражнения, выбранного для редактирования
-edit_set_id                подход, выбранный для редактирования
-edit_set_number            номер подхода, выбранного для редактирования
-delete_acept_flag          legacy-флаг подтверждения удаления
-state_before_delete        состояние до экрана подтверждения удаления
-reply_markup_before_delete клавиатура до экрана подтверждения удаления
-training_date              список дат тренировок для календаря
 ```
 
-Целевой FSM draft должен быть JSON-friendly и явно разделять постоянный черновик,
-текущий ввод и UI-контекст:
+`training_draft` явно разделяет постоянный черновик, текущий ввод,
+контекст редактирования, Telegram UI-состояние и подсказки:
 
 ```text
 training:
@@ -368,6 +347,10 @@ ui:
   message_id: int | null
   state_before_delete: str | null
   reply_markup_before_delete: JSON-compatible markup | null
+  current_exercise_id: int | null
+  current_exercise_name: str | null
+  last_weight: float | null
+  last_repetitions: int | null
 
 suggestions:
   most_frequent_exercises: list
@@ -389,7 +372,6 @@ internal API DTO -> FSM training draft -> internal API DTO
 
 - handlers читают и меняют draft через helpers из `app/bot/fsm/training`;
 - прямой доступ к вложенным dict-ключам не допускается в handlers тренировки;
-- callback/state values `acept_*` меняются только после появления строгого draft;
 - DTO backend API не используются напрямую как FSM-хранилище;
 - тесты draft helpers должны покрывать добавление упражнения, добавление подхода,
   редактирование подхода, удаление подхода и смену даты.
@@ -418,6 +400,11 @@ training:
 у internal training router. Bot handlers и bot API client не должны отправлять
 старую FSM-структуру в API.
 
+Старый FSM-формат `exercise_data` и переходный adapter
+`legacy exercise_data <-> FSM draft` удалены из bot layer. Если после
+изменения FSM-контракта в старом хранилище остались незавершенные сценарии,
+их нужно сбросить и начать заново.
+
 ## Inline payload
 
 Inline payload не должен зависеть от runtime-only ключа, созданного при старте процесса.
@@ -439,20 +426,19 @@ Fernet.generate_key() при старте bot process
 
 ## Legacy FSM и callback values
 
-До полного рефакторинга FSM допускается сохранять старые значения Telegram callback data,
-aiogram state names и ключи FSM data.
+Старые ключи FSM data для тренировки больше не используются. При этом часть
+Telegram callback data и aiogram state names пока остается в старом написании,
+потому что это внешний протокол уже существующих callback handlers.
 
 Примеры старых значений:
 
 - `acept_addition`;
 - `acept_edit`;
 - `delete_acepted`;
-- `delete_acept_flag`;
 - `change_date_acept`.
 
 Эти значения являются частью текущего протокола Telegram-сценария. Их нужно менять
-отдельным шагом вместе с переводом сценария тренировки на строгий FSM draft, чтобы не
-сломать текущие callback handlers и восстановление состояния.
+отдельным шагом, чтобы не сломать текущие callback handlers.
 
 ## Правила импортов
 

@@ -88,10 +88,10 @@ async def delete_accept(callback: CallbackQuery, state: FSMContext):
     """Открывает подтверждение удаления упражнения, всех подходов или одного подхода."""
     state_before_delete = await state.get_state()
 
-    await state.update_data(delete_acept_flag=True)
-
-    await state.update_data(state_before_delete=state_before_delete)
-    await state.update_data(reply_markup_before_delete=callback.message.reply_markup)
+    draft = await get_training_draft(state)
+    draft.ui.state_before_delete = state_before_delete
+    draft.ui.reply_markup_before_delete = callback.message.reply_markup
+    await set_training_draft(state, draft)
 
     await state.set_state(TrainingStates.edit_delete)
 
@@ -105,16 +105,15 @@ async def delete_accept(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data == "delete_cancel", TrainingStates.edit_delete)
 async def delete_cancel(callback: CallbackQuery, state: FSMContext):
     """Отменяет удаление и возвращает пользователя к предыдущему экрану."""
-    user_data = await state.get_data()
-    state_before_delete = user_data.get("state_before_delete")
-    reply_markup_before_delete = user_data.get("reply_markup_before_delete")
+    draft = await get_training_draft(state)
+    state_before_delete = draft.ui.state_before_delete
+    reply_markup_before_delete = draft.ui.reply_markup_before_delete
 
     await state.set_state(state_before_delete)
 
-    await state.update_data(delete_acept_flag=None)
-
-    await state.update_data(state_before_delete=None)
-    await state.update_data(reply_markup_before_delete=None)
+    draft.ui.state_before_delete = None
+    draft.ui.reply_markup_before_delete = None
+    await set_training_draft(state, draft)
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
@@ -128,7 +127,6 @@ async def delete_exercises_sets(callback: CallbackQuery, state: FSMContext):
     """Удаляет выбранную сущность из FSM draft после подтверждения."""
     await state.set_state(TrainingStates.edit_menu)
 
-    user_data: dict[str, int | dict] = await state.get_data()
     draft = await get_training_draft(state)
     edit_exercise_id = draft.edit.exercise_id
     edit_set_id = draft.edit.set_id
@@ -140,13 +138,9 @@ async def delete_exercises_sets(callback: CallbackQuery, state: FSMContext):
     else:
         delete_set_from_draft(draft, edit_exercise_id, edit_set_id)
 
-    current_exercise_id = user_data.get("exercise_id")
+    current_exercise_id = draft.ui.current_exercise_id
     exercise_ids = {exercise.exercise_id for exercise in draft.training.exercises}
     should_clear_current_exercise = current_exercise_id not in exercise_ids
-
-    await state.update_data(delete_acept_flag=None)
-    await state.update_data(state_before_delete=None)
-    await state.update_data(reply_markup_before_delete=None)
 
     draft.selection.mode = None
     draft.selection.weight = None
@@ -155,14 +149,14 @@ async def delete_exercises_sets(callback: CallbackQuery, state: FSMContext):
     draft.edit.exercise_name = None
     draft.edit.set_id = None
     draft.edit.set_number = None
-    await set_training_draft(state, draft)
+    draft.ui.state_before_delete = None
+    draft.ui.reply_markup_before_delete = None
     if should_clear_current_exercise:
-        await state.update_data(
-            exercise_id=None,
-            exercise_name=None,
-            last_weight=None,
-            last_repetitions=None,
-        )
+        draft.ui.current_exercise_id = None
+        draft.ui.current_exercise_name = None
+        draft.ui.last_weight = None
+        draft.ui.last_repetitions = None
+    await set_training_draft(state, draft)
 
     await callback.message.edit_text(
         text=await get_formatted_state_date(state),
