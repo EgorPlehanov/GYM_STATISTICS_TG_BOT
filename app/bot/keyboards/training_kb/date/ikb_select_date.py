@@ -16,6 +16,6 @@ def get_ikb_select_date(
     if is_back_to_menu:
         builder.row(InlineKeyboardButton(text="⬅️ Меню исправления ⬅️", callback_data="to_edit_menu"))
     else:
-        builder.row(InlineKeyboardButton(text="❌ Отменить тренировку ❌", callback_data="cancel"))
+        builder.row(InlineKeyboardButton(text="❌ Отменить ❌", callback_data="cancel"))
     return builder.as_markup()
 
