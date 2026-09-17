@@ -197,6 +197,14 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Удалить неиспользуемый helper `app/bot/utils/number_to_emojis.py`.
 - [ ] Решить, оставляем ли `ikb_` как постоянную конвенцию именования inline-клавиатур или переходим на более явное `inline_keyboard`/`reply_keyboard`.
 - [ ] Пересмотреть inline payload выбора упражнения: убрать runtime-only `Fernet.generate_key()` и заменить на устойчивый signed/Redis-backed payload.
+- [ ] Сделать UI-сценарий тренировки устойчивым к удалению главного Telegram-сообщения и ошибкам его отправки или редактирования.
+  - [ ] Ввести `TrainingFlowStep` и typed UI-контекст с явными параметрами восстанавливаемых экранов без хранения текста и готовых клавиатур в FSM.
+  - [ ] Вынести построение экранов в чистый renderer, а операции с главным сообщением — в общий Telegram message service.
+  - [ ] Перевести переходы тренировки на оптимистичное обновление целевого экрана без отдельной проверки сообщения тем же содержимым.
+  - [ ] Добавить `resume_prompt`, глобальные `/training` и `/cancel`, восстановление финального экрана после успешного backend-действия.
+  - [ ] Убрать `state_before_delete`, `reply_markup_before_delete` и отдельный FSM-ключ `changed_training_draft` в пользу typed `TrainingDraft`.
+  - [ ] Добавить проверку актуальности callback message id и локальную блокировку сценария по чату и пользователю.
+  - [ ] Покрыть renderer, message service и сценарии восстановления тестами.
 - [x] Описать правила структуры `app/bot`: где живут handlers, keyboards, formatters, filters, middlewares, FSM draft и API client.
 - [ ] Перевести aiogram FSM storage с `MemoryStorage` на Redis после выбора Redis как инфраструктурного сервиса.
 - [ ] Заменить `app/bot/utils/migration_cache.py` на Redis TTL key для обработки миграции Telegram group -> supergroup.
@@ -294,6 +302,7 @@ Backlog фиксирует крупные задачи перехода на н�
 - [ ] Выбрать механизм фоновых задач: простой async worker, task queue, Redis/RQ, Celery, Dramatiq или другой вариант.
 - [ ] Ввести Redis для временных данных: одноразовые auth-коды, будущие `sid`-сессии, aiogram FSM storage и короткие TTL-флаги бота.
 - [ ] Решить, хранить ли inline payload бота через Redis TTL или через подписанный payload с постоянным секретом.
+- [ ] Добавить idempotency key для необратимых internal API-операций, если потребуется безопасно повторять запросы после сетевого таймаута backend.
 - [ ] Решить, нужно ли выделять отдельные feature-пакеты внутри `app/bot` для training, redirect, admin и export.
 - [ ] После удаления `aiogram3-calendar` пересмотреть ограничение Python `>=3.10,<3.11`.
 - [x] Решить, нужен ли отдельный API token для bot-service при обращении к backend.
