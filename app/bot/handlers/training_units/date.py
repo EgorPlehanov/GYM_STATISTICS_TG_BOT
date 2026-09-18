@@ -20,7 +20,7 @@ from app.bot.fsm.training import (
     set_training_draft,
 )
 from app.bot.keyboards.training_kb import DialogCalendar, DialogCalendarCallback
-from app.bot.training_ui import (
+from app.bot.ui.training import (
     is_current_training_callback,
     replace_after_backend,
     replace_training_markup,

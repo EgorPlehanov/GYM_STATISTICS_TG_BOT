@@ -15,7 +15,7 @@ from app.bot.fsm.training import (
 )
 from app.bot.keyboards.keyboards_types import PaginationAction
 from app.bot.keyboards.training_kb import EditTrainingSetPagination
-from app.bot.training_ui import is_current_training_callback, transition_training_screen
+from app.bot.ui.training import is_current_training_callback, transition_training_screen
 
 router = Router()
 

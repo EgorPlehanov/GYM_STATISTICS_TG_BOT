@@ -13,7 +13,7 @@ from aiogram.types import (
 )
 
 from app.bot.fsm.training import TrainingFlowStep, TrainingStates, get_training_draft
-from app.bot.training_ui import (
+from app.bot.ui.training import (
     TrainingTransitionResult,
     is_current_training_callback,
     transition_training_screen,

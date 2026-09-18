@@ -200,6 +200,11 @@ app/bot/
     errors.py
     export.py
 
+  ui/
+    training/
+      renderer.py
+      service.py
+
   filters/
     main_admin.py
     state_attribute.py
@@ -207,6 +212,7 @@ app/bot/
   middlewares/
     chat_action.py
     error_context.py
+    user_chat_lock.py
 
   utils/
     user_access.py
@@ -233,6 +239,8 @@ app/bot/
 - `keyboards/training_kb/edit/` - клавиатуры редактирования и подтверждения удаления;
 - `keyboards/training_kb/ikb_finish_add_comment.py` - клавиатура комментария и завершения;
 - `formatters/training.py` - текстовое представление тренировки;
+- `ui/training/` - renderer и жизненный цикл главного сообщения;
+- `middlewares/user_chat_lock.py` - локальная синхронизация сценариев с общим FSM draft;
 - `api_client/trainings.py` - вызовы internal training API.
 
 Handlers сценария должны работать с draft через helper-функции, а не напрямую менять вложенные словари через строковые ключи.
@@ -458,7 +466,8 @@ backend API.
 
 ### Renderer И Операции С Сообщением
 
-Telegram UI-слой сценария тренировки разделяется на две части:
+Telegram UI-слой сценария тренировки находится в `app/bot/ui/training/` и
+разделяется на две части:
 
 - renderer получает `TrainingDraft`, `TrainingFlowStep` и явные параметры,
   возвращает текст, клавиатуру и настройки отображения;

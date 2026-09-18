@@ -1,6 +1,5 @@
 """Общий Telegram UI-слой сценария тренировки."""
 
-from .lock import TrainingFlowLockMiddleware
 from .renderer import TrainingView, render_training_view
 from .service import (
     TrainingTransitionResult,
@@ -15,7 +14,6 @@ from .service import (
 
 __all__ = [
     "TrainingTransitionResult",
-    "TrainingFlowLockMiddleware",
     "TrainingView",
     "delete_training_message",
     "is_current_training_callback",

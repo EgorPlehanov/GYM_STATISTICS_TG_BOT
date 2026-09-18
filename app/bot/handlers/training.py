@@ -17,9 +17,8 @@ from app.bot.fsm.training import (
     flow_step_from_state,
     get_training_draft,
 )
-from app.bot.middlewares import ChatActionMiddleware
-from app.bot.training_ui import (
-    TrainingFlowLockMiddleware,
+from app.bot.middlewares import ChatActionMiddleware, UserChatLockMiddleware
+from app.bot.ui.training import (
     delete_training_message,
     is_current_training_callback,
     show_or_recover_target,
@@ -44,8 +43,9 @@ from .training_units import (
 router = Router()
 router.message.filter(F.chat.type == "private")
 router.message.middleware(ChatActionMiddleware())
-router.message.outer_middleware(TrainingFlowLockMiddleware())
-router.callback_query.outer_middleware(TrainingFlowLockMiddleware())
+training_flow_lock = UserChatLockMiddleware()
+router.message.outer_middleware(training_flow_lock)
+router.callback_query.outer_middleware(training_flow_lock)
 router.include_routers(
     select_date_router,
     select_exercise_router,

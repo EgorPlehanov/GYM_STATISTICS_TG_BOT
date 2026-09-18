@@ -23,7 +23,7 @@ from app.bot.fsm.training import (
 )
 from app.bot.keyboards.keyboards_types import PaginationAction
 from app.bot.keyboards.training_kb import TrainingExercisePagination
-from app.bot.training_ui import (
+from app.bot.ui.training import (
     TrainingTransitionResult,
     is_current_training_callback,
     transition_training_screen,

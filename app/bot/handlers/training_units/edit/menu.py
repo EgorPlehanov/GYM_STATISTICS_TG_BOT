@@ -15,7 +15,7 @@ from app.bot.fsm.training import (
     get_training_draft,
     update_set_in_draft,
 )
-from app.bot.training_ui import is_current_training_callback, transition_training_screen
+from app.bot.ui.training import is_current_training_callback, transition_training_screen
 
 router = Router()
 

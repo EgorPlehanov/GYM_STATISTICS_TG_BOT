@@ -14,7 +14,7 @@ from app.bot.fsm.training import (
     TrainingStates,
     draft_to_json,
 )
-from app.bot.training_ui import (
+from app.bot.ui.training import (
     TrainingTransitionResult,
     render_training_view,
     transition_training_screen,
