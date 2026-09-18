@@ -3,7 +3,6 @@
 from enum import Enum
 
 from aiogram import Bot
-from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup
 
@@ -13,6 +12,12 @@ from app.bot.fsm.training import (
     flow_step_from_state,
     set_training_draft,
     state_from_flow_step,
+)
+from app.bot.telegram.message_operations import (
+    ControlledMessageOperationResult,
+    delete_controlled_message,
+    edit_controlled_message_reply_markup,
+    edit_controlled_message_text,
 )
 
 from .renderer import render_training_view
@@ -88,27 +93,22 @@ async def transition_training_screen(
         )
         return TrainingTransitionResult.RECOVERED
 
-    try:
-        await bot.edit_message_text(
+    operation_result = await edit_controlled_message_text(
+        bot=bot,
+        chat_id=chat_id,
+        message_id=message_id,
+        text=next_view.text,
+        reply_markup=next_view.reply_markup,
+    )
+    if operation_result is ControlledMessageOperationResult.MESSAGE_UNAVAILABLE:
+        await _recover_current_screen(
+            bot=bot,
             chat_id=chat_id,
-            message_id=message_id,
-            text=next_view.text,
-            reply_markup=next_view.reply_markup,
+            state=state,
+            draft=current_draft,
+            step=current_step,
         )
-    except TelegramBadRequest as error:
-        if _is_not_modified(error):
-            pass
-        elif _is_message_not_found(error):
-            await _recover_current_screen(
-                bot=bot,
-                chat_id=chat_id,
-                state=state,
-                draft=current_draft,
-                step=current_step,
-            )
-            return TrainingTransitionResult.RECOVERED
-        else:
-            raise
+        return TrainingTransitionResult.RECOVERED
 
     next_draft.ui.message_id = message_id
     await set_training_draft(state, next_draft)
@@ -163,11 +163,11 @@ async def delete_training_message(
     """Удаляет главное сообщение, игнорируя уже удаленный интерфейс."""
     if message_id is None:
         return
-    try:
-        await bot.delete_message(chat_id=chat_id, message_id=message_id)
-    except TelegramBadRequest as error:
-        if not _is_message_not_found(error):
-            raise
+    await delete_controlled_message(
+        bot=bot,
+        chat_id=chat_id,
+        message_id=message_id,
+    )
 
 
 async def replace_training_markup(
@@ -181,18 +181,14 @@ async def replace_training_markup(
 ) -> None:
     """Обновляет клавиатуру главного сообщения или восстанавливает его целиком."""
     if draft.ui.message_id is not None:
-        try:
-            await bot.edit_message_reply_markup(
-                chat_id=chat_id,
-                message_id=draft.ui.message_id,
-                reply_markup=reply_markup,
-            )
+        operation_result = await edit_controlled_message_reply_markup(
+            bot=bot,
+            chat_id=chat_id,
+            message_id=draft.ui.message_id,
+            reply_markup=reply_markup,
+        )
+        if operation_result is not ControlledMessageOperationResult.MESSAGE_UNAVAILABLE:
             return
-        except TelegramBadRequest as error:
-            if _is_not_modified(error):
-                return
-            if not _is_message_not_found(error):
-                raise
 
     view = render_training_view(draft, step)
     message = await bot.send_message(
@@ -214,19 +210,15 @@ async def _replace_or_send(
     """Редактирует актуальный экран или отправляет новый при его отсутствии."""
     view = render_training_view(draft, step)
     if draft.ui.message_id is not None:
-        try:
-            await bot.edit_message_text(
-                chat_id=chat_id,
-                message_id=draft.ui.message_id,
-                text=view.text,
-                reply_markup=view.reply_markup,
-            )
+        operation_result = await edit_controlled_message_text(
+            bot=bot,
+            chat_id=chat_id,
+            message_id=draft.ui.message_id,
+            text=view.text,
+            reply_markup=view.reply_markup,
+        )
+        if operation_result is not ControlledMessageOperationResult.MESSAGE_UNAVAILABLE:
             return
-        except TelegramBadRequest as error:
-            if _is_not_modified(error):
-                return
-            if not _is_message_not_found(error):
-                raise
 
     message = await bot.send_message(
         chat_id=chat_id,
@@ -248,15 +240,3 @@ async def _recover_current_screen(
     draft.ui.message_id = None
     await _replace_or_send(bot=bot, chat_id=chat_id, draft=draft, step=step)
     await set_training_draft(state, draft)
-
-
-def _is_message_not_found(error: TelegramBadRequest) -> bool:
-    """Определяет отсутствие редактируемого или удаляемого сообщения."""
-    return "message to edit not found" in error.message.lower() or (
-        "message to delete not found" in error.message.lower()
-    )
-
-
-def _is_not_modified(error: TelegramBadRequest) -> bool:
-    """Определяет безопасный ответ Telegram о неизмененном сообщении."""
-    return "message is not modified" in error.message.lower()

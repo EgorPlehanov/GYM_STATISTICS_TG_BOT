@@ -17,6 +17,8 @@ from app.bot.fsm.training import (
 from app.bot.ui.training import (
     TrainingTransitionResult,
     render_training_view,
+    replace_after_backend,
+    show_or_recover_target,
     transition_training_screen,
 )
 
@@ -123,3 +125,58 @@ async def test_transition_accepts_message_not_modified() -> None:
 
     assert result is TrainingTransitionResult.APPLIED
     assert state.data["training_draft"]["training"]["comment"] == "Новый комментарий"
+
+
+async def test_show_or_recover_target_restores_resume_prompt_after_message_deletion() -> None:
+    """Проверяет восстановление resume_prompt после удаления главного сообщения."""
+    draft = _draft()
+    state = FakeFSMContext(draft, TrainingStates.menu.state)
+    bot = SimpleNamespace(
+        edit_message_text=AsyncMock(
+            side_effect=TelegramBadRequest(
+                method=EditMessageText(chat_id=1, message_id=41, text="test"),
+                message="Bad Request: message to edit not found",
+            )
+        ),
+        send_message=AsyncMock(return_value=SimpleNamespace(message_id=77)),
+    )
+
+    await show_or_recover_target(
+        bot=bot,
+        chat_id=1,
+        state=state,
+        draft=draft,
+        step=TrainingFlowStep.RESUME_PROMPT,
+    )
+
+    assert draft.ui.message_id == 77
+    assert state.state_name == TrainingStates.resume_prompt.state
+    assert "незавершённая тренировка" in bot.send_message.await_args.kwargs["text"]
+
+
+async def test_replace_after_backend_restores_result_after_message_deletion() -> None:
+    """Проверяет создание экрана фактического результата после backend-операции."""
+    draft = _draft()
+    draft.training.training_id = 10
+    state = FakeFSMContext(draft, TrainingStates.add_comment.state)
+    bot = SimpleNamespace(
+        edit_message_text=AsyncMock(
+            side_effect=TelegramBadRequest(
+                method=EditMessageText(chat_id=1, message_id=41, text="test"),
+                message="Bad Request: message to edit not found",
+            )
+        ),
+        send_message=AsyncMock(return_value=SimpleNamespace(message_id=77)),
+    )
+
+    await replace_after_backend(
+        bot=bot,
+        chat_id=1,
+        state=state,
+        draft=draft,
+        step=TrainingFlowStep.RESULT,
+    )
+
+    assert draft.ui.message_id == 77
+    assert state.state_name == TrainingStates.result.state
+    bot.send_message.assert_awaited_once()
