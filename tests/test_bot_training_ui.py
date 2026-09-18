@@ -127,18 +127,13 @@ async def test_transition_accepts_message_not_modified() -> None:
     assert state.data["training_draft"]["training"]["comment"] == "Новый комментарий"
 
 
-async def test_show_or_recover_target_restores_resume_prompt_after_message_deletion() -> None:
-    """Проверяет восстановление resume_prompt после удаления главного сообщения."""
+async def test_show_or_recover_target_replaces_message_for_resume_prompt() -> None:
+    """Проверяет принудительную замену UI при повторном запуске тренировки."""
     draft = _draft()
     state = FakeFSMContext(draft, TrainingStates.menu.state)
     bot = SimpleNamespace(
-        edit_message_text=AsyncMock(
-            side_effect=TelegramBadRequest(
-                method=EditMessageText(chat_id=1, message_id=41, text="test"),
-                message="Bad Request: message to edit not found",
-            )
-        ),
         send_message=AsyncMock(return_value=SimpleNamespace(message_id=77)),
+        delete_message=AsyncMock(),
     )
 
     await show_or_recover_target(
@@ -152,6 +147,7 @@ async def test_show_or_recover_target_restores_resume_prompt_after_message_delet
     assert draft.ui.message_id == 77
     assert state.state_name == TrainingStates.resume_prompt.state
     assert "незавершённая тренировка" in bot.send_message.await_args.kwargs["text"]
+    bot.delete_message.assert_awaited_once_with(chat_id=1, message_id=41)
 
 
 async def test_replace_after_backend_restores_result_after_message_deletion() -> None:

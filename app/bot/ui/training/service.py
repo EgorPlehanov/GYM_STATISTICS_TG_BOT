@@ -148,10 +148,29 @@ async def show_or_recover_target(
     draft: TrainingDraft,
     step: TrainingFlowStep,
 ) -> None:
-    """Показывает указанный безопасный экран или создает его заново."""
-    await _replace_or_send(bot=bot, chat_id=chat_id, draft=draft, step=step)
+    """Принудительно заменяет интерфейсный экран при повторном запуске сценария.
+
+    Команда ``/training`` должна вернуть пользователю видимый интерфейс даже если
+    прежнее сообщение было удалено только в его Telegram-клиенте. Такое удаление
+    не видно Bot API: ``editMessageText`` завершается успешно, хотя пользователь
+    сообщения уже не видит. Поэтому этот путь всегда отправляет новый экран и
+    затем удаляет прежний экземпляр на стороне Telegram.
+    """
+    previous_message_id = draft.ui.message_id
+    view = render_training_view(draft, step)
+    message = await bot.send_message(
+        chat_id=chat_id,
+        text=view.text,
+        reply_markup=view.reply_markup,
+    )
+    draft.ui.message_id = message.message_id
     await set_training_draft(state, draft)
     await state.set_state(state_from_flow_step(step))
+    await delete_training_message(
+        bot=bot,
+        chat_id=chat_id,
+        message_id=previous_message_id,
+    )
 
 
 async def delete_training_message(
