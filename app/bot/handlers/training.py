@@ -1,29 +1,33 @@
+"""Входные команды и общие переходы сценария тренировки."""
+
+from copy import deepcopy
+
 from aiogram import F, Router
 from aiogram.filters import Command, StateFilter
-from aiogram.filters.callback_data import CallbackQuery
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, Message
 
 from app.bot.client import BotApiClient
-from app.bot.formatters.training import get_formatted_state_date
 from app.bot.fsm.training import (
     TrainingDraft,
     TrainingDraftData,
+    TrainingFlowStep,
+    TrainingStates,
+    flow_step_from_state,
     get_training_draft,
-    has_draft_exercises,
-    set_training_draft,
 )
-from app.bot.keyboards.training_kb import (
-    get_ikb_select_date,
-    get_ikb_training_menu,
-)
-from app.bot.middlewares import (
-    ChatActionMiddleware,
+from app.bot.middlewares import ChatActionMiddleware
+from app.bot.training_ui import (
+    TrainingFlowLockMiddleware,
+    delete_training_message,
+    is_current_training_callback,
+    show_or_recover_target,
+    start_training_screen,
+    transition_training_screen,
 )
 from app.bot.utils.user_access import ensure_bot_user
 
 from .training_units import (
-    TrainingStates,
     accept_router,
     edit_menu_router,
     edit_select_exercise_router,
@@ -39,6 +43,8 @@ from .training_units import (
 router = Router()
 router.message.filter(F.chat.type == "private")
 router.message.middleware(ChatActionMiddleware())
+router.message.outer_middleware(TrainingFlowLockMiddleware())
+router.callback_query.outer_middleware(TrainingFlowLockMiddleware())
 router.include_routers(
     select_date_router,
     select_exercise_router,
@@ -53,16 +59,139 @@ router.include_routers(
 )
 
 
-
-@router.message(StateFilter(None), Command("training"))
+@router.message(Command("training"))
 async def cmd_training(message: Message, state: FSMContext) -> None:
-    """
-    Команда /training
-    """
+    """Создает новый draft или предлагает продолжить незавершенную тренировку."""
     await ensure_bot_user(message.from_user)
+    try:
+        draft = await get_training_draft(state)
+    except KeyError:
+        await _start_new_training(message, state)
+        return
 
-    await state.set_state(TrainingStates.select_date)
+    current_step = flow_step_from_state(await state.get_state())
+    if current_step is TrainingFlowStep.RESULT:
+        await show_or_recover_target(
+            bot=message.bot,
+            chat_id=message.chat.id,
+            state=state,
+            draft=draft,
+            step=TrainingFlowStep.RESULT,
+        )
+        await state.clear()
+        return
 
+    if current_step is not TrainingFlowStep.RESUME_PROMPT:
+        draft.ui.suspended_step = current_step
+
+    await show_or_recover_target(
+        bot=message.bot,
+        chat_id=message.chat.id,
+        state=state,
+        draft=draft,
+        step=TrainingFlowStep.RESUME_PROMPT,
+    )
+
+
+@router.message(Command("cancel"), StateFilter(TrainingStates))
+async def cancel_training_by_command(message: Message, state: FSMContext) -> None:
+    """Аварийно очищает сценарий тренировки из любого его состояния."""
+    draft = await get_training_draft(state)
+    await state.clear()
+    await delete_training_message(
+        bot=message.bot,
+        chat_id=message.chat.id,
+        message_id=draft.ui.message_id,
+    )
+    await message.answer("Тренировка отменена.")
+
+
+@router.callback_query(F.data == "cancel", StateFilter(TrainingStates))
+async def cancel_training_by_callback(callback: CallbackQuery, state: FSMContext) -> None:
+    """Отменяет тренировку по кнопке главного интерфейса."""
+    draft = await get_training_draft(state)
+    if not await is_current_training_callback(callback, draft):
+        return
+    await state.clear()
+    await delete_training_message(
+        bot=callback.bot,
+        chat_id=callback.message.chat.id,
+        message_id=draft.ui.message_id,
+    )
+    await callback.message.answer("Тренировка отменена.")
+
+
+@router.callback_query(F.data == "to_menu", TrainingStates.select_date)
+@router.callback_query(F.data == "to_menu", TrainingStates.select_exercise)
+@router.callback_query(F.data == "to_menu", TrainingStates.select_weight)
+@router.callback_query(F.data == "to_menu", TrainingStates.accept_addition)
+@router.callback_query(F.data == "to_menu", TrainingStates.edit_menu)
+@router.callback_query(F.data == "to_menu", TrainingStates.add_comment)
+async def back_to_menu(callback: CallbackQuery, state: FSMContext) -> None:
+    """Возвращает в меню, не применяя переход при удаленном интерфейсе."""
+    current_draft = await get_training_draft(state)
+    if not await is_current_training_callback(callback, current_draft):
+        return
+    next_draft = deepcopy(current_draft)
+    next_draft.selection.mode = None
+    next_draft.selection.exercise_id = None
+    next_draft.selection.exercise_name = None
+    next_draft.selection.weight = None
+    next_draft.selection.repetitions = None
+    next_draft.selection.sets_count = None
+    await transition_training_screen(
+        bot=callback.bot,
+        chat_id=callback.message.chat.id,
+        state=state,
+        current_draft=current_draft,
+        next_draft=next_draft,
+        next_step=TrainingFlowStep.MENU,
+    )
+
+
+@router.callback_query(F.data == "resume_continue", TrainingStates.resume_prompt)
+async def resume_training(callback: CallbackQuery, state: FSMContext) -> None:
+    """Возвращает пользователя на шаг, сохраненный перед resume_prompt."""
+    current_draft = await get_training_draft(state)
+    if not await is_current_training_callback(callback, current_draft):
+        return
+    suspended_step = current_draft.ui.suspended_step
+    if suspended_step is None:
+        raise ValueError("У resume_prompt отсутствует suspended_step")
+    next_draft = deepcopy(current_draft)
+    next_draft.ui.suspended_step = None
+    await transition_training_screen(
+        bot=callback.bot,
+        chat_id=callback.message.chat.id,
+        state=state,
+        current_draft=current_draft,
+        next_draft=next_draft,
+        next_step=suspended_step,
+    )
+
+
+@router.callback_query(F.data == "resume_discard", TrainingStates.resume_prompt)
+async def discard_training_draft(callback: CallbackQuery, state: FSMContext) -> None:
+    """Удаляет старый draft только после успешной замены resume_prompt."""
+    current_draft = await get_training_draft(state)
+    if not await is_current_training_callback(callback, current_draft):
+        return
+    next_draft = TrainingDraft(
+        training=TrainingDraftData(training_id=None, training_date=None),
+    )
+    next_draft.suggestions = deepcopy(current_draft.suggestions)
+    await transition_training_screen(
+        bot=callback.bot,
+        chat_id=callback.message.chat.id,
+        state=state,
+        current_draft=current_draft,
+        next_draft=next_draft,
+        next_step=TrainingFlowStep.SELECT_DATE,
+    )
+
+
+async def _start_new_training(message: Message, state: FSMContext) -> None:
+    """Загружает стартовые подсказки и отправляет первый экран без partial FSM."""
     async with BotApiClient() as api_client:
         start_context = await api_client.get_training_start_context(
             telegram_id=message.from_user.id,
@@ -70,9 +199,7 @@ async def cmd_training(message: Message, state: FSMContext) -> None:
             last_training_count=12,
         )
 
-    draft = TrainingDraft(
-        training=TrainingDraftData(training_id=None, training_date=None),
-    )
+    draft = TrainingDraft(training=TrainingDraftData(training_id=None, training_date=None))
     draft.suggestions.most_frequent_exercises = [
         {
             "id": exercise.id,
@@ -82,61 +209,13 @@ async def cmd_training(message: Message, state: FSMContext) -> None:
         for exercise in start_context.most_frequent_exercises
     ]
     draft.suggestions.weight_repetitions_modes = start_context.weight_repetitions_modes
-    await set_training_draft(state, draft)
-
-    answer = await message.answer(
-        text=await get_formatted_state_date(state),
-        reply_markup=get_ikb_select_date(is_back_to_menu=False),
-    )
-    draft.ui.message_id = answer.message_id
-    await set_training_draft(state, draft)
-
-
-
-@router.callback_query(F.data == 'to_menu', TrainingStates.select_date)
-@router.callback_query(F.data == 'to_menu', TrainingStates.select_exercise)
-@router.callback_query(F.data == 'to_menu', TrainingStates.select_weight)
-@router.callback_query(F.data == 'to_menu', TrainingStates.accept_addition)
-@router.callback_query(F.data == 'to_menu', TrainingStates.edit_menu)
-@router.callback_query(F.data == 'to_menu', TrainingStates.add_comment)
-async def back_to_menu(callback: CallbackQuery, state: FSMContext):
-    """
-    Инлайн кнопка "Назад" возврат в меню
-    """
-    await state.set_state(TrainingStates.menu)
-
-    draft = await get_training_draft(state)
-    draft.selection.mode = None
-    draft.selection.exercise_id = None
-    draft.selection.exercise_name = None
-    draft.selection.weight = None
-    draft.selection.repetitions = None
-    draft.selection.sets_count = None
-    await set_training_draft(state, draft)
-
-    last_weight = str(draft.ui.last_weight or "").rstrip("0").rstrip(".")
-    last_repetitions = draft.ui.last_repetitions or ""
-
-    await callback.message.edit_text(
-        text=await get_formatted_state_date(state),
-        reply_markup=get_ikb_training_menu(
-            is_add_edit_button=has_draft_exercises(draft),
-            is_add_add_set_button=draft.selection.exercise_id is not None,
-            repeat_set_button_text=f"{last_weight}×{last_repetitions}",
-        ),
-    )
-
-
-
-@router.callback_query(F.data == 'cancel', TrainingStates.select_date)
-@router.callback_query(F.data == 'cancel', TrainingStates.menu)
-async def cancel_trainings(callback: CallbackQuery, state: FSMContext):
-    """
-    Инлайн кнопка "❌"("Отмена")
-    """
-    await state.clear()
-    await callback.message.delete()
-
-    await callback.message.answer("Слабак🫵, попробуй ещё раз 🤣")
-
-
+    try:
+        await start_training_screen(
+            bot=message.bot,
+            chat_id=message.chat.id,
+            state=state,
+            draft=draft,
+        )
+    except Exception:
+        await state.clear()
+        raise

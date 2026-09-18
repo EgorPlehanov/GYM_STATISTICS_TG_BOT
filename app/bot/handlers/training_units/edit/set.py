@@ -1,127 +1,89 @@
+"""Выбор и изменение подхода в режиме редактирования."""
+
+from copy import deepcopy
+
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
-from app.bot.formatters.training import get_formatted_state_date
 from app.bot.fsm.training import (
+    TrainingFlowStep,
     TrainingMode,
     TrainingStates,
-    accept_button_by_mode,
-    check_accept_addition,
-    get_draft_exercise,
     get_draft_set_by_local_id,
     get_training_draft,
-    get_weight_repetitions_modes_values_from_draft,
-    set_training_draft,
 )
 from app.bot.keyboards.keyboards_types import PaginationAction
-from app.bot.keyboards.training_kb import (
-    EditTrainingSetPagination,
-    get_ikb_edit_select_set_fab,
-    get_ikb_open_inline_search,
-)
+from app.bot.keyboards.training_kb import EditTrainingSetPagination
+from app.bot.training_ui import is_current_training_callback, transition_training_screen
 
 router = Router()
 
 
-
 @router.callback_query(
-    EditTrainingSetPagination.filter(
-        F.action.in_([PaginationAction.NEXT, PaginationAction.PREV])
-    ),
+    EditTrainingSetPagination.filter(F.action.in_([PaginationAction.NEXT, PaginationAction.PREV])),
     TrainingStates.edit_select_set,
 )
 async def selected_set_pagination(
-    callback: CallbackQuery,
-    callback_data: EditTrainingSetPagination,
-    state: FSMContext,
-):
+    callback: CallbackQuery, callback_data: EditTrainingSetPagination, state: FSMContext
+) -> None:
     """Переключает страницу списка подходов выбранного упражнения."""
+    current_draft = await get_training_draft(state)
+    if not await is_current_training_callback(callback, current_draft):
+        return
+    next_draft = deepcopy(current_draft)
     page = int(callback_data.page)
-    draft = await get_training_draft(state)
-    edit_exercise_id = draft.edit.exercise_id
-    exercise_sets = get_draft_exercise(draft, edit_exercise_id).sets
-
-    if callback_data.action == PaginationAction.PREV:
-        page = page - 1 if page > 0 else 0
-    elif callback_data.action == PaginationAction.NEXT:
-        page = page + 1 if page < len(exercise_sets) - 1 else page
-
-    await callback.message.edit_reply_markup(
-        reply_markup=get_ikb_edit_select_set_fab(exercise_sets, page),
+    next_draft.ui.edit_set_page = (
+        max(page - 1, 0)
+        if callback_data.action is PaginationAction.PREV
+        else page + 1
+    )
+    await transition_training_screen(
+        bot=callback.bot, chat_id=callback.message.chat.id, state=state,
+        current_draft=current_draft, next_draft=next_draft,
+        next_step=TrainingFlowStep.EDIT_SELECT_SET,
     )
 
 
-    
 @router.callback_query(
     EditTrainingSetPagination.filter(F.action == PaginationAction.SET),
     TrainingStates.edit_select_set,
 )
 async def selected_set(
-    callback: CallbackQuery,
-    callback_data: EditTrainingSetPagination,
-    state: FSMContext,
-):
+    callback: CallbackQuery, callback_data: EditTrainingSetPagination, state: FSMContext
+) -> None:
     """Открывает выбранный подход для редактирования веса и повторений."""
-    await state.set_state(TrainingStates.select_weight)
-
+    current_draft = await get_training_draft(state)
+    if not await is_current_training_callback(callback, current_draft):
+        return
+    next_draft = deepcopy(current_draft)
     set_id = callback_data.set_id
-
-    draft = await get_training_draft(state)
-    edit_exercise_id = draft.edit.exercise_id
-    set_data = get_draft_set_by_local_id(draft, edit_exercise_id, set_id)
-
-    draft.edit.set_id = set_id
-    draft.edit.set_number = set_data.set_number
-    draft.selection.mode = TrainingMode.EDIT_SET.value
-    draft.selection.weight = set_data.weight
-    draft.selection.repetitions = set_data.repetitions
-    await set_training_draft(state, draft)
-
-    accept_button = accept_button_by_mode.get(TrainingMode.EDIT_SET)
-
-    await callback.message.edit_text(
-        text=await get_formatted_state_date(state),
-        reply_markup=get_ikb_open_inline_search(
-            entity_name="вес",
-            back_button_text="Подход",
-            back_button_callback_data="to_edit_menu_set",
-            has_next_button=True,
-            next_button_text="Повторения",
-            next_button_callback_data="to_repetitions",
-            has_accept_button=await check_accept_addition(state),
-            accept_button_text=accept_button.text,
-            accept_button_callback_data=accept_button.callback_data,
-            has_delete_set_button=True,
-            switch_inline_query=get_weight_repetitions_modes_values_from_draft(
-                draft,
-                is_weight=True,
-            ),
-        ),
+    set_data = get_draft_set_by_local_id(next_draft, next_draft.edit.exercise_id, set_id)
+    next_draft.edit.set_id = set_id
+    next_draft.edit.set_number = set_data.set_number
+    next_draft.selection.mode = TrainingMode.EDIT_SET.value
+    next_draft.selection.weight = set_data.weight
+    next_draft.selection.repetitions = set_data.repetitions
+    await transition_training_screen(
+        bot=callback.bot, chat_id=callback.message.chat.id, state=state,
+        current_draft=current_draft, next_draft=next_draft,
+        next_step=TrainingFlowStep.SELECT_WEIGHT,
     )
 
 
-
-@router.callback_query(
-    F.data == "to_edit_menu_set",
-    TrainingStates.select_weight,
-)
-async def back_to_edit_set(callback: CallbackQuery, state: FSMContext):
-    """Возвращает пользователя к выбору подхода для редактирования."""
-    await state.set_state(TrainingStates.edit_select_set)
-
-    draft = await get_training_draft(state)
-    draft.edit.set_id = None
-    draft.edit.set_number = None
-    draft.selection.weight = None
-    draft.selection.repetitions = None
-    await set_training_draft(state, draft)
-
-    edit_exercise_id = draft.edit.exercise_id
-    exercise_sets = get_draft_exercise(draft, edit_exercise_id).sets
-
-    await callback.message.edit_text(
-        text=await get_formatted_state_date(state),
-        reply_markup=get_ikb_edit_select_set_fab(exercise_sets),
+@router.callback_query(F.data == "to_edit_menu_set", TrainingStates.select_weight)
+async def back_to_edit_set(callback: CallbackQuery, state: FSMContext) -> None:
+    """Возвращает к выбору подхода для редактирования."""
+    current_draft = await get_training_draft(state)
+    if not await is_current_training_callback(callback, current_draft):
+        return
+    next_draft = deepcopy(current_draft)
+    next_draft.edit.set_id = None
+    next_draft.edit.set_number = None
+    next_draft.selection.weight = None
+    next_draft.selection.repetitions = None
+    await transition_training_screen(
+        bot=callback.bot, chat_id=callback.message.chat.id, state=state,
+        current_draft=current_draft, next_draft=next_draft,
+        next_step=TrainingFlowStep.EDIT_SELECT_SET,
     )
-

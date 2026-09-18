@@ -197,14 +197,15 @@ Backlog фиксирует крупные задачи перехода на н�
 - [x] Удалить неиспользуемый helper `app/bot/utils/number_to_emojis.py`.
 - [ ] Решить, оставляем ли `ikb_` как постоянную конвенцию именования inline-клавиатур или переходим на более явное `inline_keyboard`/`reply_keyboard`.
 - [ ] Пересмотреть inline payload выбора упражнения: убрать runtime-only `Fernet.generate_key()` и заменить на устойчивый signed/Redis-backed payload.
-- [ ] Сделать UI-сценарий тренировки устойчивым к удалению главного Telegram-сообщения и ошибкам его отправки или редактирования.
-  - [ ] Ввести `TrainingFlowStep` и typed UI-контекст с явными параметрами восстанавливаемых экранов без хранения текста и готовых клавиатур в FSM.
-  - [ ] Вынести построение экранов в чистый renderer, а операции с главным сообщением — в общий Telegram message service.
-  - [ ] Перевести переходы тренировки на оптимистичное обновление целевого экрана без отдельной проверки сообщения тем же содержимым.
-  - [ ] Добавить `resume_prompt`, глобальные `/training` и `/cancel`, восстановление финального экрана после успешного backend-действия.
-  - [ ] Убрать `state_before_delete`, `reply_markup_before_delete` и отдельный FSM-ключ `changed_training_draft` в пользу typed `TrainingDraft`.
-  - [ ] Добавить проверку актуальности callback message id и локальную блокировку сценария по чату и пользователю.
-  - [ ] Покрыть renderer, message service и сценарии восстановления тестами.
+- [x] Сделать UI-сценарий тренировки устойчивым к удалению главного Telegram-сообщения и ошибкам его отправки или редактирования.
+  - [x] Ввести `TrainingFlowStep` и typed UI-контекст с явными параметрами восстанавливаемых экранов без хранения текста и готовых клавиатур в FSM.
+  - [x] Вынести построение экранов в чистый renderer, а операции с главным сообщением — в общий Telegram message service.
+  - [x] Перевести переходы тренировки на оптимистичное обновление целевого экрана без отдельной проверки сообщения тем же содержимым.
+  - [x] Добавить `resume_prompt`, глобальные `/training` и `/cancel`, восстановление финального экрана после успешного backend-действия.
+  - [x] Убрать `state_before_delete`, `reply_markup_before_delete` и отдельный FSM-ключ `changed_training_draft` в пользу typed `TrainingDraft`.
+  - [x] Добавить проверку актуальности callback message id и локальную блокировку сценария по чату и пользователю.
+  - [x] Покрыть renderer, message service и базовые сценарии восстановления тестами.
+  - [ ] Добавить интеграционные тесты aiogram router-ов для всех переходов `/training`, `resume_prompt`, календаря и backend-действий.
 - [x] Описать правила структуры `app/bot`: где живут handlers, keyboards, formatters, filters, middlewares, FSM draft и API client.
 - [ ] Перевести aiogram FSM storage с `MemoryStorage` на Redis после выбора Redis как инфраструктурного сервиса.
 - [ ] Заменить `app/bot/utils/migration_cache.py` на Redis TTL key для обработки миграции Telegram group -> supergroup.

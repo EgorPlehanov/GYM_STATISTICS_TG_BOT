@@ -1,168 +1,137 @@
+"""Меню редактирования и удаления сущностей черновика."""
+
+from copy import deepcopy
+
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
-from app.bot.formatters.training import get_formatted_state_date
 from app.bot.fsm.training import (
+    TrainingFlowStep,
     TrainingStates,
     delete_all_exercise_sets_from_draft,
     delete_all_exercises_from_draft,
     delete_set_from_draft,
     get_training_draft,
-    has_draft_exercises,
-    set_training_draft,
     update_set_in_draft,
 )
-from app.bot.keyboards.training_kb import (
-    get_ikb_edit_menu,
-    ikb_edit_accept_delete,
-)
+from app.bot.training_ui import is_current_training_callback, transition_training_screen
 
 router = Router()
-
 
 
 @router.callback_query(F.data == "to_edit_menu", TrainingStates.menu)
 @router.callback_query(F.data == "to_edit_menu", TrainingStates.select_date)
 @router.callback_query(F.data == "to_edit_menu", TrainingStates.edit_select_exercise)
-async def open_edit_menu(callback: CallbackQuery, state: FSMContext):
-    """Открывает меню редактирования текущей тренировки."""
-    await state.set_state(TrainingStates.edit_menu)
-
+async def open_edit_menu(callback: CallbackQuery, state: FSMContext) -> None:
+    """Открывает меню редактирования текущего draft."""
     draft = await get_training_draft(state)
-
-    await callback.message.edit_text(
-        text=await get_formatted_state_date(state),
-        reply_markup=get_ikb_edit_menu(
-            has_edit_exercise_button=has_draft_exercises(draft)
-        ),
+    if not await is_current_training_callback(callback, draft):
+        return
+    await transition_training_screen(
+        bot=callback.bot, chat_id=callback.message.chat.id, state=state,
+        current_draft=draft, next_draft=deepcopy(draft),
+        next_step=TrainingFlowStep.EDIT_MENU,
     )
-
 
 
 @router.callback_query(F.data == "accept_edit", TrainingStates.select_weight)
 @router.callback_query(F.data == "accept_edit", TrainingStates.select_repetitions)
 @router.callback_query(F.data == "accept_edit", TrainingStates.accept_addition)
-async def accept_edit(callback: CallbackQuery, state: FSMContext):
-    """Применяет изменения выбранного подхода в FSM draft."""
-    await state.set_state(TrainingStates.edit_menu)
-
-    draft = await get_training_draft(state)
-
-    edit_exercise_id = draft.edit.exercise_id
-    edit_set_id = draft.edit.set_id
-    new_weight = draft.selection.weight
-    new_repetitions = draft.selection.repetitions
-
+async def accept_edit(callback: CallbackQuery, state: FSMContext) -> None:
+    """Применяет изменения выбранного подхода в draft."""
+    current_draft = await get_training_draft(state)
+    if not await is_current_training_callback(callback, current_draft):
+        return
+    next_draft = deepcopy(current_draft)
     update_set_in_draft(
-        draft,
-        edit_exercise_id,
-        edit_set_id,
-        new_weight=new_weight,
-        new_repetitions=new_repetitions,
+        next_draft, next_draft.edit.exercise_id, next_draft.edit.set_id,
+        new_weight=next_draft.selection.weight,
+        new_repetitions=next_draft.selection.repetitions,
     )
-
-    draft.selection.mode = None
-    draft.selection.weight = None
-    draft.selection.repetitions = None
-    draft.edit.exercise_id = None
-    draft.edit.exercise_name = None
-    draft.edit.set_id = None
-    draft.edit.set_number = None
-    await set_training_draft(state, draft)
-
-    await callback.message.edit_text(
-        text=await get_formatted_state_date(state),
-        reply_markup=get_ikb_edit_menu(
-            has_edit_exercise_button=has_draft_exercises(draft)
-        ),
+    next_draft.selection.mode = None
+    next_draft.selection.weight = None
+    next_draft.selection.repetitions = None
+    next_draft.edit.exercise_id = None
+    next_draft.edit.exercise_name = None
+    next_draft.edit.set_id = None
+    next_draft.edit.set_number = None
+    await transition_training_screen(
+        bot=callback.bot, chat_id=callback.message.chat.id, state=state,
+        current_draft=current_draft, next_draft=next_draft,
+        next_step=TrainingFlowStep.EDIT_MENU,
     )
-
 
 
 @router.callback_query(F.data == "delete_all_exercises", TrainingStates.edit_select_exercise)
 @router.callback_query(F.data == "delete_all_sets", TrainingStates.edit_select_set)
 @router.callback_query(F.data == "delete_set", TrainingStates.select_weight)
 @router.callback_query(F.data == "delete_set", TrainingStates.select_repetitions)
-async def delete_accept(callback: CallbackQuery, state: FSMContext):
-    """Открывает подтверждение удаления упражнения, всех подходов или одного подхода."""
-    state_before_delete = await state.get_state()
-
-    draft = await get_training_draft(state)
-    draft.ui.state_before_delete = state_before_delete
-    draft.ui.reply_markup_before_delete = callback.message.reply_markup
-    await set_training_draft(state, draft)
-
-    await state.set_state(TrainingStates.edit_delete)
-
-    await callback.message.edit_text(
-        text=await get_formatted_state_date(state),
-        reply_markup=ikb_edit_accept_delete,
+async def delete_accept(callback: CallbackQuery, state: FSMContext) -> None:
+    """Открывает typed-подтверждение удаления без сохранения клавиатуры."""
+    current_draft = await get_training_draft(state)
+    if not await is_current_training_callback(callback, current_draft):
+        return
+    next_draft = deepcopy(current_draft)
+    next_draft.ui.suspended_step = TrainingFlowStep(
+        (await state.get_state()).rsplit(":", maxsplit=1)[-1]
     )
-
+    await transition_training_screen(
+        bot=callback.bot, chat_id=callback.message.chat.id, state=state,
+        current_draft=current_draft, next_draft=next_draft,
+        next_step=TrainingFlowStep.EDIT_DELETE,
+    )
 
 
 @router.callback_query(F.data == "delete_cancel", TrainingStates.edit_delete)
-async def delete_cancel(callback: CallbackQuery, state: FSMContext):
-    """Отменяет удаление и возвращает пользователя к предыдущему экрану."""
-    draft = await get_training_draft(state)
-    state_before_delete = draft.ui.state_before_delete
-    reply_markup_before_delete = draft.ui.reply_markup_before_delete
-
-    await state.set_state(state_before_delete)
-
-    draft.ui.state_before_delete = None
-    draft.ui.reply_markup_before_delete = None
-    await set_training_draft(state, draft)
-
-    await callback.message.edit_text(
-        text=await get_formatted_state_date(state),
-        reply_markup=reply_markup_before_delete,
+async def delete_cancel(callback: CallbackQuery, state: FSMContext) -> None:
+    """Возвращает на шаг под подтверждением удаления."""
+    current_draft = await get_training_draft(state)
+    if not await is_current_training_callback(callback, current_draft):
+        return
+    suspended_step = current_draft.ui.suspended_step
+    if suspended_step is None:
+        raise ValueError("Для отмены удаления нужен suspended_step")
+    next_draft = deepcopy(current_draft)
+    next_draft.ui.suspended_step = None
+    await transition_training_screen(
+        bot=callback.bot, chat_id=callback.message.chat.id, state=state,
+        current_draft=current_draft, next_draft=next_draft, next_step=suspended_step,
     )
-
 
 
 @router.callback_query(F.data == "delete_accepted", TrainingStates.edit_delete)
-async def delete_exercises_sets(callback: CallbackQuery, state: FSMContext):
-    """Удаляет выбранную сущность из FSM draft после подтверждения."""
-    await state.set_state(TrainingStates.edit_menu)
-
-    draft = await get_training_draft(state)
-    edit_exercise_id = draft.edit.exercise_id
-    edit_set_id = draft.edit.set_id
-
-    if edit_exercise_id is None:
-        delete_all_exercises_from_draft(draft)
-    elif edit_set_id is None:
-        delete_all_exercise_sets_from_draft(draft, edit_exercise_id)
+async def delete_exercises_sets(callback: CallbackQuery, state: FSMContext) -> None:
+    """Удаляет подтвержденную сущность из draft."""
+    current_draft = await get_training_draft(state)
+    if not await is_current_training_callback(callback, current_draft):
+        return
+    next_draft = deepcopy(current_draft)
+    exercise_id = next_draft.edit.exercise_id
+    set_id = next_draft.edit.set_id
+    if exercise_id is None:
+        delete_all_exercises_from_draft(next_draft)
+    elif set_id is None:
+        delete_all_exercise_sets_from_draft(next_draft, exercise_id)
     else:
-        delete_set_from_draft(draft, edit_exercise_id, edit_set_id)
-
-    current_exercise_id = draft.ui.current_exercise_id
-    exercise_ids = {exercise.exercise_id for exercise in draft.training.exercises}
-    should_clear_current_exercise = current_exercise_id not in exercise_ids
-
-    draft.selection.mode = None
-    draft.selection.weight = None
-    draft.selection.repetitions = None
-    draft.edit.exercise_id = None
-    draft.edit.exercise_name = None
-    draft.edit.set_id = None
-    draft.edit.set_number = None
-    draft.ui.state_before_delete = None
-    draft.ui.reply_markup_before_delete = None
-    if should_clear_current_exercise:
-        draft.ui.current_exercise_id = None
-        draft.ui.current_exercise_name = None
-        draft.ui.last_weight = None
-        draft.ui.last_repetitions = None
-    await set_training_draft(state, draft)
-
-    await callback.message.edit_text(
-        text=await get_formatted_state_date(state),
-        reply_markup=get_ikb_edit_menu(
-            has_edit_exercise_button=has_draft_exercises(draft)
-        ),
+        delete_set_from_draft(next_draft, exercise_id, set_id)
+    if next_draft.ui.current_exercise_id not in {
+        exercise.exercise_id for exercise in next_draft.training.exercises
+    }:
+        next_draft.ui.current_exercise_id = None
+        next_draft.ui.current_exercise_name = None
+        next_draft.ui.last_weight = None
+        next_draft.ui.last_repetitions = None
+    next_draft.selection.mode = None
+    next_draft.selection.weight = None
+    next_draft.selection.repetitions = None
+    next_draft.edit.exercise_id = None
+    next_draft.edit.exercise_name = None
+    next_draft.edit.set_id = None
+    next_draft.edit.set_number = None
+    next_draft.ui.suspended_step = None
+    await transition_training_screen(
+        bot=callback.bot, chat_id=callback.message.chat.id, state=state,
+        current_draft=current_draft, next_draft=next_draft,
+        next_step=TrainingFlowStep.EDIT_MENU,
     )
-    
-

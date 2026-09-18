@@ -1,3 +1,7 @@
+"""Ввод количества добавляемых подходов."""
+
+from copy import deepcopy
+
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
@@ -8,107 +12,60 @@ from aiogram.types import (
     Message,
 )
 
-from app.bot.formatters.training import get_formatted_state_date
-from app.bot.fsm.training import (
-    TrainingMode,
-    TrainingStates,
-    accept_button_by_mode,
-    check_accept_addition,
-    get_training_draft,
-    set_training_draft,
-)
-from app.bot.keyboards.training_kb import (
-    get_ikb_accept_addition,
-    get_ikb_open_inline_search,
+from app.bot.fsm.training import TrainingFlowStep, TrainingStates, get_training_draft
+from app.bot.training_ui import (
+    TrainingTransitionResult,
+    is_current_training_callback,
+    transition_training_screen,
 )
 
 router = Router()
 
 
-
 @router.inline_query(TrainingStates.select_sets_count)
-async def inline_sets_count(inline_query: InlineQuery, state: FSMContext):
+async def inline_sets_count(inline_query: InlineQuery, state: FSMContext) -> None:
     """Возвращает inline-подсказки для выбора количества подходов."""
-    def generate_numbers(substring: str) -> list[int]:
-        """Генерирует значения количества подходов, которые содержат введенную подстроку."""
-        numbers = []
-        for number in range(1, 101):
-            if str(number).find(substring) != -1:
-                numbers.append(number)
-        return numbers
-    
     offset = int(inline_query.offset) if inline_query.offset else 0
-    
-    results = []
-    for number in generate_numbers(inline_query.query):
-        results.append(
-            InlineQueryResultArticle(
-                id=str(number),
-                title=f"{number} подходов",
-                input_message_content=InputTextMessageContent(
-                    message_text = str(number)
-                ),
-            )
+    results = [
+        InlineQueryResultArticle(
+            id=str(number), title=f"{number} подходов",
+            input_message_content=InputTextMessageContent(message_text=str(number)),
         )
-    if len(results) < 50:
-        await inline_query.answer(
-            results,
-            cache_time = 0,
-            is_personal=True
-        )
-    else:
-        await inline_query.answer(
-            results[offset:offset+50],
-            next_offset=str(offset+50),
-            cache_time = 0,
-            is_personal=True
-        )
-
+        for number in range(1, 101)
+        if inline_query.query in str(number)
+    ]
+    await inline_query.answer(
+        results if len(results) < 50 else results[offset : offset + 50],
+        next_offset="" if len(results) < 50 else str(offset + 50),
+        cache_time=0, is_personal=True,
+    )
 
 
 @router.message(F.via_bot, TrainingStates.select_sets_count)
-@router.message(F.text.regexp(r'^\d+$'), TrainingStates.select_sets_count)
-async def selected_sets_count(message: Message, state: FSMContext):
-    """Сохраняет выбранное количество подходов."""
-    await state.set_state(TrainingStates.accept_addition)
-
-    sets_count = int(message.text)
-    draft = await get_training_draft(state)
-    draft.selection.sets_count = sets_count
-    await set_training_draft(state, draft)
-    await message.delete()
-
-    mode = TrainingMode(draft.selection.mode)
-
-    await message.bot.edit_message_text(
-        chat_id=message.chat.id,
-        message_id=draft.ui.message_id,
-        text=await get_formatted_state_date(state),
-        reply_markup=get_ikb_accept_addition(mode)
+@router.message(F.text.regexp(r"^\d+$"), TrainingStates.select_sets_count)
+async def selected_sets_count(message: Message, state: FSMContext) -> None:
+    """Сохраняет число подходов после успешного показа подтверждения."""
+    current_draft = await get_training_draft(state)
+    next_draft = deepcopy(current_draft)
+    next_draft.selection.sets_count = int(message.text)
+    result = await transition_training_screen(
+        bot=message.bot, chat_id=message.chat.id, state=state,
+        current_draft=current_draft, next_draft=next_draft,
+        next_step=TrainingFlowStep.ACCEPT_ADDITION,
     )
-
+    if result is TrainingTransitionResult.APPLIED:
+        await message.delete()
 
 
 @router.callback_query(F.data == "to_sets_count", TrainingStates.select_repetitions)
 @router.callback_query(F.data == "to_sets_count", TrainingStates.accept_addition)
-async def to_sets_count(callback: CallbackQuery, state: FSMContext):
+async def to_sets_count(callback: CallbackQuery, state: FSMContext) -> None:
     """Переводит сценарий к выбору количества подходов."""
-    await state.set_state(TrainingStates.select_sets_count)
-
     draft = await get_training_draft(state)
-    mode = TrainingMode(draft.selection.mode)
-    accept_button = accept_button_by_mode.get(mode)
-
-    await callback.message.edit_text(
-        text=await get_formatted_state_date(state),
-        reply_markup = get_ikb_open_inline_search(
-            entity_name = "кол-во подходов",
-            back_button_text="Повторения",
-            back_button_callback_data="to_repetitions",
-            has_accept_button = await check_accept_addition(state),
-            accept_button_text = accept_button.text,
-            accept_button_callback_data = accept_button.callback_data,
-            has_delete_set_button = mode == TrainingMode.EDIT_SET
-        ),
+    if not await is_current_training_callback(callback, draft):
+        return
+    await transition_training_screen(
+        bot=callback.bot, chat_id=callback.message.chat.id, state=state,
+        current_draft=draft, next_draft=deepcopy(draft),
+        next_step=TrainingFlowStep.SELECT_SETS_COUNT,
     )
-

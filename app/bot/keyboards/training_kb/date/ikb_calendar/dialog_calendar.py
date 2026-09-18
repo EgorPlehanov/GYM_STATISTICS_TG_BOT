@@ -2,8 +2,7 @@
 import calendar
 from datetime import date, datetime
 
-from aiogram.filters.callback_data import CallbackData
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram3_calendar.calendar_types import WEEKDAYS, DialogCalendarAction, DialogCalendarCallback
 
 ignore_callback = DialogCalendarCallback(act=DialogCalendarAction.IGNORE, year=-1, month=-1, day=-1)
@@ -167,39 +166,37 @@ class DialogCalendar:
 
 
 
-    async def process_selection(
+    async def get_selection_view(
         self,
-        query: CallbackQuery,
-        data: list[CallbackData, DialogCalendarCallback]
-    ) -> tuple:
+        data: DialogCalendarCallback,
+    ) -> tuple[bool, date | None, InlineKeyboardMarkup | None]:
+        """Возвращает результат календарного callback без обращения к Telegram API.
+
+        Args:
+            data: распакованные данные callback календаря.
+
+        Returns:
+            Признак выбора дня, выбранную дату и следующую клавиатуру. Для
+            выбора дня клавиатура равна None, потому что handler покажет
+            следующий экран тренировки.
+        """
         return_data = (False, None)
         if data.act == DialogCalendarAction.IGNORE:
-            await query.answer(cache_time=60)
+            return False, None, None
         if data.act == DialogCalendarAction.SET_YEAR:
-            await query.message.edit_reply_markup(
-                reply_markup=await self._get_month_kb(int(data.year))
-            )
+            return False, None, await self._get_month_kb(int(data.year))
         if data.act == DialogCalendarAction.PREV_YEARS:
             new_year = int(data.year) - 5
-            await query.message.edit_reply_markup(
-                reply_markup=await self.start_calendar(new_year)
-            )
+            return False, None, await self.start_calendar(new_year)
         if data.act == DialogCalendarAction.NEXT_YEARS:
             new_year = min(int(data.year) + 5, datetime.now().year)
-            await query.message.edit_reply_markup(
-                reply_markup=await self.start_calendar(new_year)
-            )
+            return False, None, await self.start_calendar(new_year)
         if data.act == DialogCalendarAction.START:
-            await query.message.edit_reply_markup(
-                reply_markup=await self.start_calendar(int(data.year))
-            )
+            return False, None, await self.start_calendar(int(data.year))
         if data.act == DialogCalendarAction.SET_MONTH:
-            await query.message.edit_reply_markup(
-                reply_markup=await self._get_days_kb(int(data.year), int(data.month))
-            )
+            return False, None, await self._get_days_kb(int(data.year), int(data.month))
         if data.act == DialogCalendarAction.SET_DAY:
-            await query.message.delete_reply_markup()  # removing inline keyboard
-            return_data = True, date(int(data.year), int(data.month), int(data.day))
-        return return_data
+            return True, date(int(data.year), int(data.month), int(data.day)), None
+        return return_data[0], return_data[1], None
 
 

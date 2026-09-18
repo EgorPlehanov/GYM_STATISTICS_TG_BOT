@@ -1,4 +1,7 @@
+"""Ввод веса и сокращенный ввод параметров подхода."""
+
 import re
+from copy import deepcopy
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
@@ -10,26 +13,19 @@ from aiogram.types import (
     Message,
 )
 
-from app.bot.formatters.training import get_formatted_state_date
 from app.bot.fsm.training import (
-    Button,
+    TrainingFlowStep,
     TrainingMode,
     TrainingStates,
-    accept_button_by_mode,
-    check_accept_addition,
     get_training_draft,
-    get_weight_repetitions_modes_values_from_draft,
-    set_training_draft,
-    weight_back_button_by_mode,
 )
-from app.bot.keyboards.training_kb import (
-    get_ikb_accept_addition,
-    get_ikb_open_inline_search,
+from app.bot.training_ui import (
+    TrainingTransitionResult,
+    is_current_training_callback,
+    transition_training_screen,
 )
 
 router = Router()
-
-
 
 r_float = r"\d+([.,]?\d+)?"
 r_int = r"\d+"
@@ -38,250 +34,159 @@ r_weight = rf"^\s*{r_float}\s*$"
 r_weight_repetitions_sets = rf"^\s*{r_float}{r_separator}{r_int}({r_separator}{r_int})?\s*$"
 
 
-
-@router.callback_query(
-    F.data == 'add_set',
-    TrainingStates.menu
-)
-async def add_set_handler(callback: CallbackQuery, state: FSMContext):
-    """Открывает ввод нового подхода для текущего упражнения."""
-    await state.set_state(TrainingStates.select_weight)
-
-    draft = await get_training_draft(state)
-    draft.selection.mode = TrainingMode.ADD_SET.value
-    draft.selection.exercise_id = draft.ui.current_exercise_id
-    draft.selection.exercise_name = draft.ui.current_exercise_name
-    draft.selection.sets_count = 1
-    await set_training_draft(state, draft)
-
-    await callback.message.edit_text(
-        text=await get_formatted_state_date(state),
-        reply_markup = get_ikb_open_inline_search(
-            entity_name = "вес",
-            has_next_button = draft.selection.weight is not None,
-            next_button_text = "Повторения",
-            next_button_callback_data = "to_repetitions",
-            has_delete_set_button = False,
-            switch_inline_query = get_weight_repetitions_modes_values_from_draft(
-                draft,
-                is_weight=True,
-            )
-        ),
+@router.callback_query(F.data == "add_set", TrainingStates.menu)
+async def add_set_handler(callback: CallbackQuery, state: FSMContext) -> None:
+    """Открывает ввод нового подхода текущего упражнения."""
+    current_draft = await get_training_draft(state)
+    if not await is_current_training_callback(callback, current_draft):
+        return
+    next_draft = deepcopy(current_draft)
+    next_draft.selection.mode = TrainingMode.ADD_SET.value
+    next_draft.selection.exercise_id = next_draft.ui.current_exercise_id
+    next_draft.selection.exercise_name = next_draft.ui.current_exercise_name
+    next_draft.selection.sets_count = 1
+    await transition_training_screen(
+        bot=callback.bot,
+        chat_id=callback.message.chat.id,
+        state=state,
+        current_draft=current_draft,
+        next_draft=next_draft,
+        next_step=TrainingFlowStep.SELECT_WEIGHT,
     )
 
 
-
 @router.inline_query(TrainingStates.select_weight)
-async def inline_weight(inline_query: InlineQuery, state: FSMContext):
+async def inline_weight(inline_query: InlineQuery, state: FSMContext) -> None:
     """Возвращает inline-подсказки для выбора веса."""
     def generate_numbers(substring: str) -> list[float]:
-        """Генерирует значения веса, которые содержат введенную подстроку."""
-        numbers = []
-        for i in range(0, 50100, 25):
-            number = i / 100
-            if str(number).find(substring) != -1:
-                numbers.append(number)
-        return numbers
-    
+        return [
+            number / 100
+            for number in range(0, 50100, 25)
+            if substring in str(number / 100)
+        ]
+
     offset = int(inline_query.offset) if inline_query.offset else 0
-    
-    results = []
-    for number in generate_numbers(inline_query.query):
-        results.append(
-            InlineQueryResultArticle(
-                id=str(number),
-                title=f"{number:.2f} кг",
-                input_message_content=InputTextMessageContent(
-                    message_text = str(number)
-                ),
-            )
+    results = [
+        InlineQueryResultArticle(
+            id=str(number),
+            title=f"{number:.2f} кг",
+            input_message_content=InputTextMessageContent(message_text=str(number)),
         )
-
-    if len(results) < 50:
-        await inline_query.answer(
-            results,
-            cache_time = 0,
-            is_personal=True
-        )
-    else:
-        await inline_query.answer(
-            results[offset:offset+50],
-            next_offset=str(offset+50),
-            cache_time = 0,
-            is_personal=True,
-        )
-
+        for number in generate_numbers(inline_query.query)
+    ]
+    await inline_query.answer(
+        results if len(results) < 50 else results[offset : offset + 50],
+        next_offset="" if len(results) < 50 else str(offset + 50),
+        cache_time=0,
+        is_personal=True,
+    )
 
 
 @router.message(F.via_bot, TrainingStates.select_weight)
 @router.message(F.text.regexp(r_weight), TrainingStates.select_weight)
-async def selected_weight(message: Message, state: FSMContext):
-    """Сохраняет выбранный вес и переводит сценарий к вводу повторений."""
-    weight = float(message.text.replace(',', '.'))
-
-    await state.set_state(TrainingStates.select_repetitions)
-
-    draft = await get_training_draft(state)
-    draft.selection.weight = weight
-    await set_training_draft(state, draft)
-    await message.delete()
-
-    mode = TrainingMode(draft.selection.mode)
-    accept_button = accept_button_by_mode.get(mode)
-
-    await message.bot.edit_message_text(
+async def selected_weight(message: Message, state: FSMContext) -> None:
+    """Сохраняет вес только после успешного перехода к вводу повторений."""
+    current_draft = await get_training_draft(state)
+    next_draft = deepcopy(current_draft)
+    next_draft.selection.weight = float(message.text.replace(",", "."))
+    result = await transition_training_screen(
+        bot=message.bot,
         chat_id=message.chat.id,
-        message_id=draft.ui.message_id,
-        text=await get_formatted_state_date(state),
-        reply_markup=get_ikb_open_inline_search(
-            entity_name = "повторения",
-            back_button_text = "Вес",
-            back_button_callback_data = "to_weight",
-            has_next_button = (
-                draft.selection.repetitions is not None
-                and mode != TrainingMode.EDIT_SET
-            ),
-            next_button_text = "Кол-во подходов",
-            next_button_callback_data = "to_sets_count",
-            has_accept_button = await check_accept_addition(state),
-            accept_button_text = accept_button.text,
-            accept_button_callback_data = accept_button.callback_data,
-            has_delete_set_button = mode == TrainingMode.EDIT_SET,
-            switch_inline_query = get_weight_repetitions_modes_values_from_draft(
-                draft,
-                is_repetitions=True,
-            )
-        ),
+        state=state,
+        current_draft=current_draft,
+        next_draft=next_draft,
+        next_step=TrainingFlowStep.SELECT_REPETITIONS,
     )
+    if result is TrainingTransitionResult.APPLIED:
+        await message.delete()
 
 
-
 @router.message(
     F.text.regexp(r_weight_repetitions_sets, flags=re.IGNORECASE),
-    TrainingStates.menu
+    TrainingStates.menu,
 )
 @router.message(
     F.text.regexp(r_weight_repetitions_sets, flags=re.IGNORECASE),
-    TrainingStates.select_weight
+    TrainingStates.select_weight,
 )
 @router.message(
     F.text.regexp(r_weight_repetitions_sets, flags=re.IGNORECASE),
-    TrainingStates.select_repetitions
+    TrainingStates.select_repetitions,
 )
 @router.message(
     F.text.regexp(r_weight_repetitions_sets, flags=re.IGNORECASE),
-    TrainingStates.select_sets_count
+    TrainingStates.select_sets_count,
 )
 @router.message(
     F.text.regexp(r_weight_repetitions_sets, flags=re.IGNORECASE),
-    TrainingStates.accept_addition
+    TrainingStates.accept_addition,
 )
-async def read_weight_and_repetitions(message: Message, state: FSMContext):
-    """Обрабатывает ручной ввод веса, повторений и опционально количества подходов."""
-    await message.delete()
-
+async def read_weight_and_repetitions(message: Message, state: FSMContext) -> None:
+    """Обрабатывает ручной ввод веса, повторений и количества подходов."""
     values = re.split(r_separator, message.text, flags=re.IGNORECASE)
+    weight, repetitions = values[:2]
+    sets_count = values[2] if len(values) == 3 else None
 
-    if len(values) == 3:
-        weight, repetitions, sets_count = values
-    else:
-        weight, repetitions = values
-        sets_count = None
-    
-    weight = float(weight.replace(',', '.'))
-    repetitions = int(repetitions)
-    sets_count = int(sets_count) if sets_count is not None and int(sets_count) > 0 else None
+    current_draft = await get_training_draft(state)
+    next_draft = deepcopy(current_draft)
+    if next_draft.selection.mode is None:
+        next_draft.selection.mode = TrainingMode.ADD_SET.value
+        next_draft.selection.exercise_id = next_draft.ui.current_exercise_id
+        next_draft.selection.exercise_name = next_draft.ui.current_exercise_name
+        next_draft.selection.sets_count = 1
+    next_draft.selection.weight = float(weight.replace(",", "."))
+    next_draft.selection.repetitions = int(repetitions)
+    if sets_count is not None and int(sets_count) > 0:
+        next_draft.selection.sets_count = int(sets_count)
 
-    draft = await get_training_draft(state)
-    mode = TrainingMode(draft.selection.mode) if draft.selection.mode else None
-
-    # Если значение введено в меню тренировки
-    if mode is None:
-        mode = TrainingMode.ADD_SET
-        draft.selection.mode = TrainingMode.ADD_SET.value
-        draft.selection.exercise_id = draft.ui.current_exercise_id
-        draft.selection.exercise_name = draft.ui.current_exercise_name
-        draft.selection.sets_count = 1
-
-    if (
-        weight == draft.selection.weight
-        and repetitions == draft.selection.repetitions
-        and (
-            sets_count is not None and sets_count == draft.selection.sets_count
-            or sets_count is None
-        )
-        and await state.get_state() == TrainingStates.accept_addition
-    ):
-        return
-    
-    await state.set_state(TrainingStates.accept_addition)
-
-    draft.selection.weight = weight
-    draft.selection.repetitions = repetitions
-    if sets_count is not None:
-        draft.selection.sets_count = sets_count
-    await set_training_draft(state, draft)
-
-    await message.bot.edit_message_text(
+    result = await transition_training_screen(
+        bot=message.bot,
         chat_id=message.chat.id,
-        message_id=draft.ui.message_id,
-        text=await get_formatted_state_date(state),
-        reply_markup=get_ikb_accept_addition(mode)
+        state=state,
+        current_draft=current_draft,
+        next_draft=next_draft,
+        next_step=TrainingFlowStep.ACCEPT_ADDITION,
     )
-        
+    if result is TrainingTransitionResult.APPLIED:
+        await message.delete()
 
 
 @router.callback_query(F.data == "to_weight", TrainingStates.select_exercise)
 @router.callback_query(F.data == "to_weight", TrainingStates.select_repetitions)
 @router.callback_query(F.data == "to_weight", TrainingStates.accept_addition)
-async def to_weight(callback: CallbackQuery, state: FSMContext):
+async def to_weight(callback: CallbackQuery, state: FSMContext) -> None:
     """Переводит сценарий к выбору веса."""
-    await state.set_state(TrainingStates.select_weight)
-
     draft = await get_training_draft(state)
-    mode = TrainingMode(draft.selection.mode)
-
-    back_button: Button = weight_back_button_by_mode.get(mode)
-    accept_button = accept_button_by_mode.get(mode)
-
-    await callback.message.edit_text(
-        text=await get_formatted_state_date(state),
-        reply_markup = get_ikb_open_inline_search(
-            entity_name = "вес",
-            back_button_text = back_button.text,
-            back_button_callback_data = back_button.callback_data,
-            has_next_button = draft.selection.weight is not None,
-            next_button_text = "Повторения",
-            next_button_callback_data = "to_repetitions",
-            has_accept_button = await check_accept_addition(state),
-            accept_button_text = accept_button.text,
-            accept_button_callback_data = accept_button.callback_data,
-            has_delete_set_button = mode == TrainingMode.EDIT_SET,
-            switch_inline_query = get_weight_repetitions_modes_values_from_draft(
-                draft,
-                is_weight=True,
-            )
-        ),
+    if not await is_current_training_callback(callback, draft):
+        return
+    await transition_training_screen(
+        bot=callback.bot,
+        chat_id=callback.message.chat.id,
+        state=state,
+        current_draft=draft,
+        next_draft=deepcopy(draft),
+        next_step=TrainingFlowStep.SELECT_WEIGHT,
     )
-
 
 
 @router.callback_query(F.data == "repeat_set", TrainingStates.menu)
-async def repeat_set(callback: CallbackQuery, state: FSMContext):
-    """Предлагает повторить последний сохраненный подход текущего упражнения."""
-    await state.set_state(TrainingStates.accept_addition)
-
-    draft = await get_training_draft(state)
-    draft.selection.mode = TrainingMode.ADD_SET.value
-    draft.selection.exercise_id = draft.ui.current_exercise_id
-    draft.selection.exercise_name = draft.ui.current_exercise_name
-    draft.selection.sets_count = 1
-    draft.selection.weight = draft.ui.last_weight
-    draft.selection.repetitions = draft.ui.last_repetitions
-    await set_training_draft(state, draft)
-
-    await callback.message.edit_text(
-        text=await get_formatted_state_date(state),
-        reply_markup = get_ikb_accept_addition(TrainingMode.ADD_SET)
+async def repeat_set(callback: CallbackQuery, state: FSMContext) -> None:
+    """Предлагает подтвердить повтор последнего сохраненного подхода."""
+    current_draft = await get_training_draft(state)
+    if not await is_current_training_callback(callback, current_draft):
+        return
+    next_draft = deepcopy(current_draft)
+    next_draft.selection.mode = TrainingMode.ADD_SET.value
+    next_draft.selection.exercise_id = next_draft.ui.current_exercise_id
+    next_draft.selection.exercise_name = next_draft.ui.current_exercise_name
+    next_draft.selection.sets_count = 1
+    next_draft.selection.weight = next_draft.ui.last_weight
+    next_draft.selection.repetitions = next_draft.ui.last_repetitions
+    await transition_training_screen(
+        bot=callback.bot,
+        chat_id=callback.message.chat.id,
+        state=state,
+        current_draft=current_draft,
+        next_draft=next_draft,
+        next_step=TrainingFlowStep.ACCEPT_ADDITION,
     )
-

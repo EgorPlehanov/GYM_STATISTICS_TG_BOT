@@ -3,15 +3,12 @@
 from datetime import date, datetime
 
 from aiogram import html
-from aiogram.fsm.context import FSMContext
 
 from app.bot.fsm.training import (
     TrainingDraft,
     TrainingDraftSet,
+    TrainingFlowStep,
     TrainingMode,
-    TrainingStates,
-    draft_from_json,
-    get_training_draft,
 )
 
 WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
@@ -251,10 +248,8 @@ def get_current_values_from_draft(draft: TrainingDraft) -> str | None:
     return None
 
 
-async def get_delete_object_text(state: FSMContext) -> str:
-    """Возвращает текст удаляемого объекта."""
-    draft = await get_training_draft(state)
-
+def get_delete_object_text_from_draft(draft: TrainingDraft) -> str:
+    """Возвращает текст удаляемой сущности из typed draft."""
     if draft.edit.exercise_id is None:
         return "Всех упражнений с подходами"
     if draft.edit.set_id is None:
@@ -262,82 +257,91 @@ async def get_delete_object_text(state: FSMContext) -> str:
     return f"Подхода упражнения {html.underline(draft.edit.exercise_name)}"
 
 
-async def get_formatted_other_date(state: FSMContext) -> str:
-    """Возвращает текст тренировки на другой выбранной дате."""
-    user_data = await state.get_data()
-    changed_training_draft = user_data.get("changed_training_draft")
-    if changed_training_draft is None:
-        return ""
-
-    changed_draft = draft_from_json(changed_training_draft)
-    return get_training_values_from_draft(changed_draft, is_result=True) or ""
-
-
-async def get_state_text(state: FSMContext) -> str:
-    """Возвращает текст текущего FSM-состояния."""
-    state_to_text = {
-        TrainingStates.select_date: "Выберите дату",
-        TrainingStates.change_date_accept: "Что делать с этой тренировкой",
-        TrainingStates.select_exercise: "Выберите упражнение",
-        TrainingStates.select_weight: "Выберите доп. вес",
-        TrainingStates.select_repetitions: "Выберите кол-во повторений",
-        TrainingStates.accept_addition: "Подтвердите добавление",
-        TrainingStates.select_sets_count: "Выберите кол-во добавляемых подходов",
-        TrainingStates.menu: "Что дальше",
-        TrainingStates.add_comment: "Отправить комментарий или просто заверши",
-        TrainingStates.edit_menu: "Что исправить",
-        TrainingStates.edit_select_exercise: "Выберите упражнение",
-        TrainingStates.edit_select_set: "Выберите подход",
-        TrainingStates.edit_delete: "Подтвердите удаление",
-    }
-    cur_state = await state.get_state()
-
-    adition_text = ""
-    if cur_state == TrainingStates.edit_delete:
-        adition_text = await get_delete_object_text(state)
-    elif cur_state == TrainingStates.change_date_accept:
-        adition_text = await get_formatted_other_date(state)
-
-    if adition_text:
-        adition_text = html.blockquote(
-            f"\n❗❗❗\n{html.bold(adition_text)}\n❗❗❗"
-        )
-
-    return f"⬇️ {html.bold(html.underline(state_to_text[cur_state]))} ⬇️" + adition_text
-
-
-async def get_formatted_state_date(state: FSMContext, is_result: bool = False) -> str:
-    """Возвращает полный текст текущего состояния тренировки.
+def format_training_step(
+    draft: TrainingDraft,
+    step: TrainingFlowStep,
+    *,
+    is_result: bool = False,
+) -> str:
+    """Строит текст экрана тренировки без обращения к FSMContext.
 
     Args:
-        state: FSMContext текущего сценария тренировки.
-        is_result: форматировать текст как итог сохраненной тренировки.
+        draft: данные текущего сценария.
+        step: шаг, для которого строится экран.
+        is_result: отобразить сохраненную тренировку как итог.
 
     Returns:
-        HTML-текст, который отправляется или редактируется в Telegram.
+        Готовый HTML-текст Telegram-сообщения.
     """
-    user_data = await state.get_data()
-    text_list = []
+    if step is TrainingFlowStep.RESUME_PROMPT:
+        return _format_resume_prompt(draft)
 
-    if user_data.get("training_draft") is not None:
-        draft = await get_training_draft(state)
-        training_values = get_training_values_from_draft(
-            draft,
-            is_result=is_result,
-            delete_accept_flag=await state.get_state() == TrainingStates.edit_delete,
+    text_parts: list[str] = []
+    training_values = get_training_values_from_draft(
+        draft,
+        is_result=is_result or step is TrainingFlowStep.RESULT,
+        delete_accept_flag=step is TrainingFlowStep.EDIT_DELETE,
+    )
+    if training_values is not None:
+        text_parts.append(training_values)
+
+    if step is TrainingFlowStep.RESULT:
+        return "\n".join(text_parts)
+
+    current_values = get_current_values_from_draft(draft)
+    if current_values is not None:
+        text_parts.append(current_values)
+
+    text_parts.append(_get_step_text(draft, step))
+    return "\n".join(text_parts)
+
+
+def _get_step_text(draft: TrainingDraft, step: TrainingFlowStep) -> str:
+    """Возвращает заголовок и дополнительный текст конкретного шага."""
+    step_to_text = {
+        TrainingFlowStep.SELECT_DATE: "Выберите дату",
+        TrainingFlowStep.CHANGE_DATE_ACCEPT: "Что делать с этой тренировкой",
+        TrainingFlowStep.SELECT_EXERCISE: "Выберите упражнение",
+        TrainingFlowStep.SELECT_WEIGHT: "Выберите доп. вес",
+        TrainingFlowStep.SELECT_REPETITIONS: "Выберите кол-во повторений",
+        TrainingFlowStep.ACCEPT_ADDITION: "Подтвердите добавление",
+        TrainingFlowStep.SELECT_SETS_COUNT: "Выберите кол-во добавляемых подходов",
+        TrainingFlowStep.MENU: "Что дальше",
+        TrainingFlowStep.ADD_COMMENT: "Отправить комментарий или просто заверши",
+        TrainingFlowStep.EDIT_MENU: "Что исправить",
+        TrainingFlowStep.EDIT_SELECT_EXERCISE: "Выберите упражнение",
+        TrainingFlowStep.EDIT_SELECT_SET: "Выберите подход",
+        TrainingFlowStep.EDIT_DELETE: "Подтвердите удаление",
+    }
+    additional_text = ""
+    if step is TrainingFlowStep.EDIT_DELETE:
+        additional_text = get_delete_object_text_from_draft(draft)
+    elif step is TrainingFlowStep.CHANGE_DATE_ACCEPT and draft.ui.date_conflict:
+        conflict_draft = TrainingDraft(training=draft.ui.date_conflict.training)
+        additional_text = get_training_values_from_draft(conflict_draft, is_result=True) or ""
+
+    if additional_text:
+        additional_text = html.blockquote(
+            f"\n❗❗❗\n{html.bold(additional_text)}\n❗❗❗"
         )
-        if training_values is not None:
-            text_list.append(training_values)
+    return (
+        f"⬇️ {html.bold(html.underline(step_to_text[step]))} ⬇️"
+        f"{additional_text}"
+    )
 
-        if not is_result:
-            cur_values = get_current_values_from_draft(draft)
-            if cur_values is not None:
-                text_list.append(cur_values)
 
-    if not is_result:
-        text_list.append(await get_state_text(state))
-
-    return "\n".join(text_list)
+def _format_resume_prompt(draft: TrainingDraft) -> str:
+    """Формирует краткое сообщение о незавершенном черновике."""
+    training_date = _parse_date(draft.training.training_date)
+    date_text = training_date.strftime("%d.%m.%Y") if training_date else "не выбрана"
+    exercises_count = len(draft.training.exercises)
+    sets_count = sum(len(exercise.sets) for exercise in draft.training.exercises)
+    return (
+        "Есть незавершённая тренировка.\n\n"
+        f"Дата: {html.bold(date_text)}\n"
+        f"Упражнений: {html.bold(exercises_count)}\n"
+        f"Подходов: {html.bold(sets_count)}"
+    )
 
 
 def _format_result_set(weight: str | None, repetitions: int | None, factor: int) -> str:

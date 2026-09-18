@@ -2,9 +2,12 @@
 
 from dataclasses import asdict, dataclass, field, is_dataclass
 from datetime import date, datetime
+from enum import Enum
 from typing import Any
 
 from aiogram.fsm.context import FSMContext
+
+from .states import TrainingFlowStep
 
 
 @dataclass(slots=True)
@@ -97,13 +100,29 @@ class TrainingEditContext:
 
 
 @dataclass(slots=True)
+class TrainingDateConflict:
+    """Данные существующей тренировки, конфликтующей с выбранной датой.
+
+    Attributes:
+        training: тренировка, уже сохраненная на выбранную дату.
+    """
+
+    training: TrainingDraftData
+
+
+@dataclass(slots=True)
 class TrainingUiContext:
     """Telegram UI-контекст сценария тренировки.
 
     Attributes:
         message_id: id основного Telegram-сообщения, которое редактирует бот.
-        state_before_delete: состояние FSM до экрана подтверждения удаления.
-        reply_markup_before_delete: JSON-compatible представление клавиатуры до удаления.
+        suspended_step: шаг под временным экраном подтверждения или восстановления.
+        date_conflict: данные тренировки, конфликтующей с выбранной датой.
+        exercise_page: страница списка частых упражнений.
+        edit_exercise_page: страница списка упражнений в режиме редактирования.
+        edit_set_page: страница списка подходов в режиме редактирования.
+        calendar_year: открытый год календаря.
+        calendar_month: открытый месяц календаря.
         current_exercise_id: последнее выбранное упражнение для быстрого добавления подхода.
         current_exercise_name: имя последнего выбранного упражнения.
         last_weight: последний сохраненный вес для кнопки повтора.
@@ -111,8 +130,13 @@ class TrainingUiContext:
     """
 
     message_id: int | None = None
-    state_before_delete: str | None = None
-    reply_markup_before_delete: dict[str, Any] | None = None
+    suspended_step: TrainingFlowStep | None = None
+    date_conflict: TrainingDateConflict | None = None
+    exercise_page: int = 0
+    edit_exercise_page: int = 0
+    edit_set_page: int = 0
+    calendar_year: int | None = None
+    calendar_month: int | None = None
     current_exercise_id: int | None = None
     current_exercise_name: str | None = None
     last_weight: float | None = None
@@ -174,35 +198,11 @@ def draft_from_json(data: dict[str, Any]) -> TrainingDraft:
     Returns:
         Типизированный черновик тренировки.
     """
-    training_data = data["training"]
     return TrainingDraft(
-        training=TrainingDraftData(
-            training_id=training_data.get("training_id"),
-            training_date=_normalize_date_or_none(training_data.get("training_date")),
-            comment=training_data.get("comment"),
-            exercises=[
-                TrainingDraftExercise(
-                    exercise_id=exercise["exercise_id"],
-                    exercise_name=exercise["exercise_name"],
-                    sets=[
-                        TrainingDraftSet(
-                            set_id=set_data.get("set_id"),
-                            set_number=set_data["set_number"],
-                            weight=set_data["weight"],
-                            repetitions=set_data["repetitions"],
-                            execution_time=_normalize_datetime_or_none(
-                                set_data.get("execution_time")
-                            ),
-                        )
-                        for set_data in exercise.get("sets", [])
-                    ],
-                )
-                for exercise in training_data.get("exercises", [])
-            ],
-        ),
+        training=_training_data_from_json(data["training"]),
         selection=TrainingSelection(**data.get("selection", {})),
         edit=TrainingEditContext(**data.get("edit", {})),
-        ui=TrainingUiContext(**data.get("ui", {})),
+        ui=_ui_context_from_json(data.get("ui", {})),
         suggestions=TrainingSuggestions(**data.get("suggestions", {})),
     )
 
@@ -248,6 +248,8 @@ def _normalize_json_value(value: Any) -> Any:
         return value.isoformat()
     if isinstance(value, date):
         return value.isoformat()
+    if isinstance(value, Enum):
+        return value.value
     if is_dataclass(value) and not isinstance(value, type):
         return _normalize_json_value(asdict(value))
     if isinstance(value, dict):
@@ -281,6 +283,50 @@ def _normalize_datetime_or_none(value: datetime | str | None) -> str | None:
     if isinstance(value, datetime):
         return value.isoformat()
     return value
+
+
+def _training_data_from_json(data: dict[str, Any]) -> TrainingDraftData:
+    """Восстанавливает раздел training из JSON-friendly FSM-словаря."""
+    return TrainingDraftData(
+        training_id=data.get("training_id"),
+        training_date=_normalize_date_or_none(data.get("training_date")),
+        comment=data.get("comment"),
+        exercises=[
+            TrainingDraftExercise(
+                exercise_id=exercise["exercise_id"],
+                exercise_name=exercise["exercise_name"],
+                sets=[
+                    TrainingDraftSet(
+                        set_id=set_data.get("set_id"),
+                        set_number=set_data["set_number"],
+                        weight=set_data["weight"],
+                        repetitions=set_data["repetitions"],
+                        execution_time=_normalize_datetime_or_none(
+                            set_data.get("execution_time")
+                        ),
+                    )
+                    for set_data in exercise.get("sets", [])
+                ],
+            )
+            for exercise in data.get("exercises", [])
+        ],
+    )
+
+
+def _ui_context_from_json(data: dict[str, Any]) -> TrainingUiContext:
+    """Восстанавливает typed Telegram UI-контекст из JSON-friendly словаря."""
+    context_data = dict(data)
+    suspended_step = context_data.get("suspended_step")
+    if suspended_step is not None:
+        context_data["suspended_step"] = TrainingFlowStep(suspended_step)
+
+    date_conflict = context_data.get("date_conflict")
+    if date_conflict is not None:
+        context_data["date_conflict"] = TrainingDateConflict(
+            training=_training_data_from_json(date_conflict["training"])
+        )
+
+    return TrainingUiContext(**context_data)
 
 
 
