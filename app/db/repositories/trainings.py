@@ -66,7 +66,7 @@ async def get_exercises_weight_repetitions_modes(
     session: AsyncSession,
     user_id: int,
     last_training_count: int = 12,
-) -> dict[int, dict[str, int | dict[str, int | float]]]:
+) -> dict[int, dict]:
     """Возвращает модальные вес и повторения по подходам последних тренировок.
 
     `user_id` - Telegram user id. Если пользователь не найден, возвращается пустой словарь.
@@ -97,7 +97,7 @@ async def get_exercises_weight_repetitions_modes(
         .order_by(Set.exercise_id, Set.exercise_order)
     )
 
-    weight_repetitions_modes = {}
+    weight_repetitions_modes: dict[int, dict] = {}
     for row in result.all():
         if row.exercise_id not in weight_repetitions_modes:
             weight_repetitions_modes[row.exercise_id] = {

@@ -9,6 +9,7 @@ from app.api.schemas.internal.trainings import (
     InternalBotTrainingByDateResponse,
     InternalBotTrainingData,
     InternalBotTrainingExercise,
+    InternalBotTrainingExerciseMode,
     InternalBotTrainingSaveOutcome,
     InternalBotTrainingSaveRequest,
     InternalBotTrainingSaveResponse,
@@ -57,7 +58,10 @@ async def get_bot_training_start_context(
     )
     return InternalBotTrainingStartContextResponse(
         most_frequent_exercises=most_frequent_exercises,
-        weight_repetitions_modes=weight_repetitions_modes,
+        weight_repetitions_modes={
+            exercise_id: InternalBotTrainingExerciseMode.model_validate(exercise_mode)
+            for exercise_id, exercise_mode in weight_repetitions_modes.items()
+        },
     )
 
 

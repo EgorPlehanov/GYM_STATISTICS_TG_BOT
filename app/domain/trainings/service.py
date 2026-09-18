@@ -17,9 +17,6 @@ class TrainingsService:
     get_sorted_exercises_by_sets_count = staticmethod(
         training_repository.get_sorted_exercises_by_sets_count
     )
-    get_exercises_weight_repetitions_modes = staticmethod(
-        training_repository.get_exercises_weight_repetitions_modes
-    )
     get_exercise_by_id = staticmethod(exercise_repository.get_exercise_by_id)
     check_training_exists_for_user_and_date = staticmethod(
         training_repository.check_training_exists_for_user_and_date
@@ -57,8 +54,17 @@ async def get_exercises_weight_repetitions_modes(
     session: AsyncSession,
     user_id: int,
     last_training_count: int = 12,
-):
-    """Возвращает подсказки веса и повторений на основе последних тренировок."""
+) -> dict[int, dict]:
+    """Возвращает рассчитанные подсказки веса и повторений.
+
+    Args:
+        session: активная сессия базы данных.
+        user_id: Telegram user id владельца тренировок.
+        last_training_count: число последних тренировок для расчета моды.
+
+    Returns:
+        read-структуру подсказок по упражнениям и номерам подходов.
+    """
     return await training_repository.get_exercises_weight_repetitions_modes(
         session,
         user_id,

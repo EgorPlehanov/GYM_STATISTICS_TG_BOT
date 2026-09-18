@@ -2,11 +2,24 @@
 
 from datetime import date, datetime
 from enum import Enum
-from typing import Any
 
 from pydantic import BaseModel
 
 from app.api.schemas.internal.exercises import InternalBotExerciseResponse
+
+
+class InternalBotTrainingSetMode(BaseModel):
+    """Модальные значения веса и повторений одного подхода."""
+
+    weight_mode: float
+    repetitions_mode: int
+
+
+class InternalBotTrainingExerciseMode(BaseModel):
+    """Подсказки подходов для одного упражнения в internal API."""
+
+    max_exercise_order: int
+    sets_modes: dict[int, InternalBotTrainingSetMode]
 
 
 class InternalBotTrainingStartContextResponse(BaseModel):
@@ -18,7 +31,7 @@ class InternalBotTrainingStartContextResponse(BaseModel):
     """
 
     most_frequent_exercises: list[InternalBotExerciseResponse]
-    weight_repetitions_modes: dict[int, Any]
+    weight_repetitions_modes: dict[int, InternalBotTrainingExerciseMode]
 
 
 class InternalBotTrainingSet(BaseModel):
