@@ -6,6 +6,8 @@ from types import SimpleNamespace
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
 
+from app.domain.trainings.schemas import TrainingSaveOutcome
+
 
 def test_internal_health_requires_token(monkeypatch):
     """Проверяет, что `/internal/health` закрыт без service token."""
@@ -733,10 +735,10 @@ def test_internal_bot_training_save_calls_domain_service(monkeypatch):
 
     calls = []
 
-    async def fake_save_training_data(session, training_data):
+    async def fake_save_training(session, training_data):
         """Фиксирует восстановленную FSM-структуру перед сохранением."""
         calls.append({"session": session, "training_data": training_data})
-        return 10, False, True
+        return 10, TrainingSaveOutcome.CREATED
 
     async def fake_db_session():
         """Возвращает тестовую заглушку DB-сессии."""
@@ -744,8 +746,8 @@ def test_internal_bot_training_save_calls_domain_service(monkeypatch):
 
     monkeypatch.setattr(
         internal_trainings,
-        "save_training_data",
-        fake_save_training_data,
+        "save_training",
+        fake_save_training,
     )
     app.dependency_overrides[get_db_session] = fake_db_session
 
@@ -783,8 +785,7 @@ def test_internal_bot_training_save_calls_domain_service(monkeypatch):
     assert response.status_code == 200
     assert response.json() == {
         "training_id": 10,
-        "updated": False,
-        "created": True,
+        "outcome": "created",
     }
     assert calls == [
         {

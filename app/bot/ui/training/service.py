@@ -5,7 +5,7 @@ from enum import Enum
 from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup
 
 from app.bot.fsm.training import (
     TrainingDraft,
@@ -177,7 +177,7 @@ async def replace_training_markup(
     state: FSMContext,
     draft: TrainingDraft,
     step: TrainingFlowStep,
-    reply_markup: object,
+    reply_markup: InlineKeyboardMarkup | None,
 ) -> None:
     """Обновляет клавиатуру главного сообщения или восстанавливает его целиком."""
     if draft.ui.message_id is not None:

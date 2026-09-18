@@ -8,6 +8,8 @@ from app.db.models import Exercise
 from app.db.repositories import exercises as exercise_repository
 from app.db.repositories import trainings as training_repository
 
+from .schemas import TrainingSaveOutcome
+
 
 class TrainingsService:
     """Бизнес-сценарии для тренировок."""
@@ -19,7 +21,6 @@ class TrainingsService:
         training_repository.get_exercises_weight_repetitions_modes
     )
     get_exercise_by_id = staticmethod(exercise_repository.get_exercise_by_id)
-    save_training_data = staticmethod(training_repository.save_training_data)
     check_training_exists_for_user_and_date = staticmethod(
         training_repository.check_training_exists_for_user_and_date
     )
@@ -70,12 +71,30 @@ async def get_exercise_by_id(session: AsyncSession, exercise_id: int) -> Exercis
     return await exercise_repository.get_exercise_by_id(session, exercise_id)
 
 
-async def save_training_data(
+async def save_training(
     session: AsyncSession,
     training_data: TrainingData,
-) -> tuple[int, bool, bool]:
-    """Сохраняет тренировку и подходы."""
-    return await training_repository.save_training_data(session, training_data)
+) -> tuple[int, TrainingSaveOutcome]:
+    """Сохраняет тренировку и возвращает единый бизнес-результат операции.
+
+    Args:
+        session: активная сессия базы данных.
+        training_data: данные тренировки в текущем формате репозитория.
+
+    Returns:
+        пару из id тренировки и семантического результата сохранения.
+        Создание тренировки имеет приоритет над техническими изменениями
+        созданных вместе с ней подходов.
+    """
+    training_id, updated, created = await training_repository.save_training_data(
+        session,
+        training_data,
+    )
+    if created:
+        return training_id, TrainingSaveOutcome.CREATED
+    if updated:
+        return training_id, TrainingSaveOutcome.UPDATED
+    return training_id, TrainingSaveOutcome.UNCHANGED
 
 
 async def check_training_exists_for_user_and_date(

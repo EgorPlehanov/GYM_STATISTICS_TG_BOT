@@ -1,3 +1,4 @@
+from datetime import date
 from io import BytesIO
 from typing import Protocol
 
@@ -7,7 +8,7 @@ from openpyxl import Workbook
 class ExportDataRow(Protocol):
     """Минимальные данные строки, необходимые для XLSX-экспорта."""
 
-    date: object
+    date: date
     comment: str | None
     exercise_name: str
     overall_order: int

@@ -9,6 +9,7 @@ from app.api.schemas.internal.trainings import (
     InternalBotTrainingByDateResponse,
     InternalBotTrainingData,
     InternalBotTrainingExercise,
+    InternalBotTrainingSaveOutcome,
     InternalBotTrainingSaveRequest,
     InternalBotTrainingSaveResponse,
     InternalBotTrainingSet,
@@ -21,7 +22,7 @@ from app.domain.trainings.service import (
     get_sorted_exercises_by_sets_count,
     get_training_data_by_date_and_user,
     get_training_date_by_user_id,
-    save_training_data,
+    save_training,
 )
 
 router = APIRouter()
@@ -130,7 +131,7 @@ async def save_bot_training(
     Returns:
         результат сохранения из domain service.
     """
-    training_id, updated, created = await save_training_data(
+    training_id, outcome = await save_training(
         session=session,
         training_data=_dto_to_repository_training_data(
             payload.training,
@@ -139,8 +140,7 @@ async def save_bot_training(
     )
     return InternalBotTrainingSaveResponse(
         training_id=training_id,
-        updated=updated,
-        created=created,
+        outcome=InternalBotTrainingSaveOutcome(outcome.value),
     )
 
 

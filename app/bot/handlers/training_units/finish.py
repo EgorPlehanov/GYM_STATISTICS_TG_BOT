@@ -2,7 +2,6 @@
 
 from asyncio import sleep
 from copy import deepcopy
-from typing import Any
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
@@ -14,8 +13,10 @@ from aiogram.types import (
     Message,
 )
 
+from app.bot.api_client.schemas.trainings import BotTrainingSaveResult
 from app.bot.client import BotApiClient
 from app.bot.fsm.training import (
+    TrainingDraft,
     TrainingFlowStep,
     TrainingStates,
     draft_to_bot_training,
@@ -116,8 +117,8 @@ async def finish(callback: CallbackQuery, state: FSMContext) -> None:
 
 async def _run_post_save_actions(
     callback: CallbackQuery,
-    save_result: Any,
-    draft: Any,
+    save_result: BotTrainingSaveResult,
+    draft: TrainingDraft,
 ) -> None:
     """Отправляет побочные результаты после фактически сохраненной тренировки."""
     from app.bot.formatters.training import format_training_step
@@ -127,9 +128,8 @@ async def _run_post_save_actions(
         bot=callback.bot,
         result_text=f"@{callback.from_user.username}\n{rendered_result}",
         telegram_id=callback.from_user.id,
-        is_update=save_result.updated,
-        is_created=save_result.created,
         training_id=save_result.training_id,
+        outcome=save_result.outcome,
     )
     async with BotApiClient() as api_client:
         await api_client.recalculate_user_rating(callback.from_user.id)

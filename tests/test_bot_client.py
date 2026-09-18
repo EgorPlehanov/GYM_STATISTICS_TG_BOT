@@ -469,6 +469,7 @@ async def test_bot_api_client_save_training_serializes_training_dto(monkeypatch)
     from app.bot.api_client.schemas.trainings import (
         BotTraining,
         BotTrainingExercise,
+        BotTrainingSaveOutcome,
         BotTrainingSet,
     )
     from app.bot.client import BotApiClient
@@ -485,8 +486,7 @@ async def test_bot_api_client_save_training_serializes_training_dto(monkeypatch)
             200,
             json={
                 "training_id": 10,
-                "updated": False,
-                "created": True,
+                "outcome": "created",
             },
         )
 
@@ -526,8 +526,7 @@ async def test_bot_api_client_save_training_serializes_training_dto(monkeypatch)
             )
 
     assert result.training_id == 10
-    assert result.updated is False
-    assert result.created is True
+    assert result.outcome is BotTrainingSaveOutcome.CREATED
     assert captured_request == {
         "method": "POST",
         "url": "http://api:8000/internal/bot/trainings",

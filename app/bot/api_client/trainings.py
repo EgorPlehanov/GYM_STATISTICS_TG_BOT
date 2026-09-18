@@ -10,6 +10,7 @@ from app.bot.api_client.schemas.trainings import (
     BotTrainingByDateResult,
     BotTrainingExercise,
     BotTrainingExerciseMode,
+    BotTrainingSaveOutcome,
     BotTrainingSaveResult,
     BotTrainingSet,
     BotTrainingSetMode,
@@ -135,7 +136,11 @@ class BotTrainingsApiClientMixin(BotApiClientBase):
             },
         )
         response.raise_for_status()
-        return BotTrainingSaveResult(**response.json())
+        payload = response.json()
+        return BotTrainingSaveResult(
+            training_id=payload["training_id"],
+            outcome=BotTrainingSaveOutcome(payload["outcome"]),
+        )
 
     async def delete_training(self, training_id: int) -> None:
         """Удаляет тренировку через internal API.

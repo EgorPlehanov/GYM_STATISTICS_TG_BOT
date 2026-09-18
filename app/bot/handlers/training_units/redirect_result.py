@@ -1,6 +1,7 @@
 from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest
 
+from app.bot.api_client.schemas.trainings import BotTrainingSaveOutcome
 from app.bot.client import BotApiClient
 
 
@@ -8,27 +9,24 @@ async def send_training_result_to_redirect_groups(
     bot: Bot,
     result_text: str,
     telegram_id: int,
-    is_update: bool = False,
-    is_created: bool = False,
-    training_id: int | None = None,
+    training_id: int,
+    outcome: BotTrainingSaveOutcome,
 ) -> None:
     """Отправляет результат тренировки в группы с включенным редиректом.
 
     Функция используется после сохранения тренировки в Telegram-сценарии.
     Если тренировка создана впервые, результат отправляется новым сообщением,
-    а id сообщения сохраняется через internal API. Если тренировка обновлена,
-    бот пытается отредактировать ранее отправленное сообщение. Если старое
-    сообщение удалено, результат отправляется повторно, а сохраненный message id
-    обновляется или создается заново.
+    а id сообщения сохраняется через internal API. При обновлении бот пытается
+    отредактировать ранее отправленное сообщение. Неизмененная тренировка не
+    вызывает обращений к Telegram или backend API.
 
     Args:
         bot: экземпляр aiogram Bot для отправки и редактирования сообщений.
         result_text: уже отформатированный текст результата тренировки.
         telegram_id: Telegram user id пользователя, для которого ищутся группы редиректа.
-        is_update: признак обновления существующей тренировки.
-        is_created: признак создания новой тренировки.
         training_id: внутренний id сохраненной тренировки. Используется для поиска
             и сохранения связи между тренировкой и сообщением в группе.
+        outcome: единый семантический результат сохранения тренировки.
 
     Returns:
         None. Все изменения выполняются через Telegram Bot API и internal API.
@@ -41,11 +39,14 @@ async def send_training_result_to_redirect_groups(
         группа помечается как недоступная через internal API, чтобы следующий
         сценарий не считал редирект гарантированно рабочим.
     """
+    if outcome is BotTrainingSaveOutcome.UNCHANGED:
+        return
+
     async with BotApiClient() as api_client:
         redirect_group_ids = await api_client.get_redirect_group_ids(telegram_id)
 
         for group_id in redirect_group_ids:
-            if is_update:
+            if outcome is BotTrainingSaveOutcome.UPDATED:
                 group_result_message_id = await api_client.get_training_result_message_id(
                     group_id=group_id,
                     training_id=training_id,
@@ -87,7 +88,7 @@ async def send_training_result_to_redirect_groups(
                         )
                 continue
 
-            if is_created:
+            if outcome is BotTrainingSaveOutcome.CREATED:
                 group_result_message = await bot.send_message(
                     chat_id=group_id,
                     text=result_text,

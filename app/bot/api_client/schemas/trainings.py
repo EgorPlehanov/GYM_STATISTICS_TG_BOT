@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import date, datetime
+from enum import Enum
 
 from app.bot.api_client.schemas.exercises import BotExercise
 
@@ -109,16 +110,22 @@ class BotTrainingStartContext:
     weight_repetitions_modes: dict[int, BotTrainingExerciseMode]
 
 
+class BotTrainingSaveOutcome(str, Enum):
+    """Семантический результат сохранения тренировки через internal API."""
+
+    CREATED = "created"
+    UPDATED = "updated"
+    UNCHANGED = "unchanged"
+
+
 @dataclass(frozen=True)
 class BotTrainingSaveResult:
     """Результат сохранения тренировки через backend API.
 
     Attributes:
         training_id: внутренний id сохраненной тренировки.
-        updated: признак обновления существующей тренировки.
-        created: признак создания новой тренировки.
+        outcome: единый семантический результат сохранения.
     """
 
     training_id: int
-    updated: bool
-    created: bool
+    outcome: BotTrainingSaveOutcome

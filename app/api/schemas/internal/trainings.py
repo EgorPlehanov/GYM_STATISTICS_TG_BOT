@@ -1,6 +1,7 @@
 """DTO-схемы internal API для тренировок Telegram-бота."""
 
 from datetime import date, datetime
+from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel
@@ -92,15 +93,21 @@ class InternalBotTrainingSaveRequest(BaseModel):
     training: InternalBotTrainingData
 
 
+class InternalBotTrainingSaveOutcome(str, Enum):
+    """Семантический результат сохранения в контракте internal API."""
+
+    CREATED = "created"
+    UPDATED = "updated"
+    UNCHANGED = "unchanged"
+
+
 class InternalBotTrainingSaveResponse(BaseModel):
     """Результат сохранения тренировки из Telegram-бота.
 
     Attributes:
         training_id: id сохраненной тренировки.
-        updated: признак обновления существующей тренировки.
-        created: признак создания новой тренировки.
+        outcome: единый семантический результат сохранения.
     """
 
     training_id: int
-    updated: bool
-    created: bool
+    outcome: InternalBotTrainingSaveOutcome
