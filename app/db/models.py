@@ -183,11 +183,19 @@ class GroupTrainingResultMessage(Base):
         group_id: Telegram chat id группы, куда отправлен результат.
         training_id: id тренировки, результат которой был отправлен.
         message_id: Telegram message id отправленного сообщения.
+        Пара `group_id` и `training_id` уникальна.
         created_at: дата и время создания записи.
         updated_at: дата и время последнего обновления записи.
     """
 
     __tablename__ = "group_training_result_message"
+    __table_args__ = (
+        UniqueConstraint(
+            "group_id",
+            "training_id",
+            name="uq_group_training_result_message",
+        ),
+    )
 
     id: Mapped[intpk]
     group_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("group.id", ondelete="CASCADE"))

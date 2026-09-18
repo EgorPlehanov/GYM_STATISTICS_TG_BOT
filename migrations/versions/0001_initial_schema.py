@@ -179,6 +179,11 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["group_id"], ["group.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["training_id"], ["training.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint(
+            "group_id",
+            "training_id",
+            name="uq_group_training_result_message",
+        ),
     )
 
     op.create_table(

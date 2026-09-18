@@ -642,15 +642,10 @@ async def test_bot_api_client_redirect_methods_send_internal_token(monkeypatch):
                 group_id=-1001,
                 training_id=10,
             )
-            await api_client.create_training_result_message(
+            await api_client.upsert_training_result_message(
                 group_id=-1001,
                 training_id=10,
-                message_id=42,
-            )
-            updated = await api_client.update_training_result_message(
-                group_id=-1001,
-                training_id=10,
-                new_message_id=43,
+                message_id=43,
             )
             await api_client.update_group_bot_banned(
                 group_id=-1001,
@@ -659,7 +654,6 @@ async def test_bot_api_client_redirect_methods_send_internal_token(monkeypatch):
 
     assert redirect_group_ids == [-1001, -1002]
     assert message_id == 42
-    assert updated is True
     assert captured_requests == [
         {
             "method": "GET",
@@ -674,23 +668,13 @@ async def test_bot_api_client_redirect_methods_send_internal_token(monkeypatch):
             "payload": None,
         },
         {
-            "method": "POST",
+            "method": "PUT",
             "url": "http://api:8000/internal/bot/groups/training-result-messages",
             "token": "internal-test-token",
             "payload": {
                 "group_id": -1001,
                 "training_id": 10,
-                "message_id": 42,
-            },
-        },
-        {
-            "method": "PATCH",
-            "url": "http://api:8000/internal/bot/groups/training-result-messages",
-            "token": "internal-test-token",
-            "payload": {
-                "group_id": -1001,
-                "training_id": 10,
-                "new_message_id": 43,
+                "message_id": 43,
             },
         },
         {

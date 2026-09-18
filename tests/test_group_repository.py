@@ -1,6 +1,7 @@
 """Тесты репозитория Telegram-групп."""
 
 import pytest
+from sqlalchemy.dialects import postgresql
 
 
 @pytest.mark.asyncio
@@ -24,6 +25,29 @@ async def test_update_group_to_supergroup_creates_group_before_relations_update(
         ("Update", "group_training_result_message"),
         ("Delete", "group"),
     ]
+    assert session.is_committed is True
+
+
+@pytest.mark.asyncio
+async def test_upsert_group_training_result_message_uses_postgresql_conflict_clause():
+    """Проверяет атомарное сохранение связи результата с сообщением."""
+    from app.db.repositories.groups import upsert_group_training_result_message
+
+    session = FakeSession()
+
+    await upsert_group_training_result_message(
+        session=session,
+        group_id=-1001,
+        training_id=10,
+        message_id=42,
+    )
+
+    statement = session.statements[0]
+    sql = str(statement.compile(dialect=postgresql.dialect()))
+
+    assert "ON CONFLICT (group_id, training_id) DO UPDATE" in sql
+    assert "message_id = excluded.message_id" in sql
+    assert "updated_at = now()" in sql
     assert session.is_committed is True
 
 

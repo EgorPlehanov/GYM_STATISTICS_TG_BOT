@@ -65,8 +65,8 @@ class InternalBotRedirectGroupUpdateRequest(BaseModel):
     is_redirect_to_group: bool
 
 
-class InternalBotTrainingResultMessageCreateRequest(BaseModel):
-    """Данные для создания записи о сообщении результата тренировки.
+class InternalBotTrainingResultMessageUpsertRequest(BaseModel):
+    """Данные для атомарного сохранения сообщения результата тренировки.
 
     Attributes:
         group_id: Telegram chat id группы.
@@ -77,30 +77,6 @@ class InternalBotTrainingResultMessageCreateRequest(BaseModel):
     group_id: int
     training_id: int
     message_id: int
-
-
-class InternalBotTrainingResultMessageUpdateRequest(BaseModel):
-    """Данные для обновления Telegram message id результата тренировки.
-
-    Attributes:
-        group_id: Telegram chat id группы.
-        training_id: id сохраненной тренировки.
-        new_message_id: новый Telegram message id после повторной отправки.
-    """
-
-    group_id: int
-    training_id: int
-    new_message_id: int
-
-
-class InternalBotTrainingResultMessageUpdateResponse(BaseModel):
-    """Результат обновления записи о сообщении результата тренировки.
-
-    Attributes:
-        updated: признак того, что существующая запись была найдена и обновлена.
-    """
-
-    updated: bool
 
 
 class InternalBotGroupBotBannedRequest(BaseModel):

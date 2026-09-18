@@ -68,18 +68,11 @@ async def send_training_result_to_redirect_groups(
                             chat_id=group_id,
                             text=result_text,
                         )
-                        is_id_updated = await api_client.update_training_result_message(
+                        await api_client.upsert_training_result_message(
                             group_id=group_id,
                             training_id=training_id,
-                            new_message_id=new_group_result_message.message_id,
+                            message_id=new_group_result_message.message_id,
                         )
-                        # Если запись о сообщении была удалена из БД, создаем ее заново.
-                        if not is_id_updated:
-                            await api_client.create_training_result_message(
-                                group_id=group_id,
-                                training_id=training_id,
-                                message_id=new_group_result_message.message_id,
-                            )
                     except TelegramBadRequest:
                         # Если бот был удален из чата, помечаем группу как недоступную.
                         await api_client.update_group_bot_banned(
@@ -93,7 +86,7 @@ async def send_training_result_to_redirect_groups(
                     chat_id=group_id,
                     text=result_text,
                 )
-                await api_client.create_training_result_message(
+                await api_client.upsert_training_result_message(
                     group_id=group_id,
                     training_id=training_id,
                     message_id=group_result_message.message_id,

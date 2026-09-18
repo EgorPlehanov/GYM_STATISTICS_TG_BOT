@@ -2,7 +2,7 @@
 
 from collections import namedtuple
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -302,18 +302,32 @@ async def delete_group_user(
     await session.commit()
 
 
-async def create_group_training_result_message(
+async def upsert_group_training_result_message(
     session: AsyncSession,
     group_id: int,
     training_id: int,
     message_id: int,
 ) -> None:
-    """Создает запись о Telegram-сообщении с результатом тренировки."""
-    session.add(
-        GroupTrainingResultMessage(
-            group_id=group_id,
-            training_id=training_id,
-            message_id=message_id,
+    """Создает или обновляет связь результата тренировки с Telegram-сообщением.
+
+    Пара `group_id` и `training_id` однозначно определяет сообщение результата.
+    PostgreSQL выполняет вставку или обновление одной атомарной командой.
+    """
+    statement = insert(GroupTrainingResultMessage).values(
+        group_id=group_id,
+        training_id=training_id,
+        message_id=message_id,
+    )
+    await session.execute(
+        statement.on_conflict_do_update(
+            index_elements=[
+                GroupTrainingResultMessage.group_id,
+                GroupTrainingResultMessage.training_id,
+            ],
+            set_={
+                "message_id": statement.excluded.message_id,
+                "updated_at": func.now(),
+            },
         )
     )
     await session.commit()
@@ -335,22 +349,3 @@ async def get_group_training_result_messages_id(
     if first_result is not None:
         return first_result[0]
     return None
-
-
-async def update_group_training_result_message_id(
-    session: AsyncSession,
-    group_id: int,
-    training_id: int,
-    new_message_id: int,
-) -> bool:
-    """Обновляет Telegram message id результата тренировки в группе."""
-    result = await session.execute(
-        update(GroupTrainingResultMessage)
-        .values(message_id=new_message_id)
-        .where(
-            GroupTrainingResultMessage.group_id == group_id,
-            GroupTrainingResultMessage.training_id == training_id,
-        )
-    )
-    await session.commit()
-    return result.rowcount > 0

@@ -1512,7 +1512,7 @@ def test_internal_bot_redirect_setting_update_calls_domain_service(monkeypatch):
 
 
 def test_internal_bot_training_result_message_calls_domain_service(monkeypatch):
-    """Проверяет операции с Telegram message id результата тренировки."""
+    """Проверяет получение и upsert Telegram message id через domain service."""
     _set_required_env(monkeypatch)
 
     from app.api.deps import config, get_db_session
@@ -1532,24 +1532,14 @@ def test_internal_bot_training_result_message_calls_domain_service(monkeypatch):
         calls.append(("get", session, group_id, training_id))
         return 42
 
-    async def fake_create_group_training_result_message(
+    async def fake_upsert_group_training_result_message(
         session,
         group_id,
         training_id,
         message_id,
     ):
-        """Фиксирует параметры создания записи о Telegram message id."""
-        calls.append(("create", session, group_id, training_id, message_id))
-
-    async def fake_update_group_training_result_message_id(
-        session,
-        group_id,
-        training_id,
-        new_message_id,
-    ):
-        """Фиксирует параметры обновления Telegram message id."""
-        calls.append(("update", session, group_id, training_id, new_message_id))
-        return True
+        """Фиксирует параметры атомарного сохранения Telegram message id."""
+        calls.append(("upsert", session, group_id, training_id, message_id))
 
     async def fake_db_session():
         """Возвращает тестовую заглушку DB-сессии."""
@@ -1562,13 +1552,8 @@ def test_internal_bot_training_result_message_calls_domain_service(monkeypatch):
     )
     monkeypatch.setattr(
         internal_groups,
-        "create_group_training_result_message",
-        fake_create_group_training_result_message,
-    )
-    monkeypatch.setattr(
-        internal_groups,
-        "update_group_training_result_message_id",
-        fake_update_group_training_result_message_id,
+        "upsert_group_training_result_message",
+        fake_upsert_group_training_result_message,
     )
     app.dependency_overrides[get_db_session] = fake_db_session
 
@@ -1578,7 +1563,7 @@ def test_internal_bot_training_result_message_calls_domain_service(monkeypatch):
         "/internal/bot/groups/-1001/training-results/10/message",
         headers=headers,
     )
-    create_response = client.post(
+    upsert_response = client.put(
         "/internal/bot/groups/training-result-messages",
         headers=headers,
         json={
@@ -1587,28 +1572,15 @@ def test_internal_bot_training_result_message_calls_domain_service(monkeypatch):
             "message_id": 42,
         },
     )
-    update_response = client.patch(
-        "/internal/bot/groups/training-result-messages",
-        headers=headers,
-        json={
-            "group_id": -1001,
-            "training_id": 10,
-            "new_message_id": 43,
-        },
-    )
-
     app.dependency_overrides.clear()
 
     assert get_response.status_code == 200
     assert get_response.json() == {"message_id": 42}
-    assert create_response.status_code == 200
-    assert create_response.json() == {"status": "ok"}
-    assert update_response.status_code == 200
-    assert update_response.json() == {"updated": True}
+    assert upsert_response.status_code == 200
+    assert upsert_response.json() == {"status": "ok"}
     assert [call[:1] + call[2:] for call in calls] == [
         ("get", -1001, 10),
-        ("create", -1001, 10, 42),
-        ("update", -1001, 10, 43),
+        ("upsert", -1001, 10, 42),
     ]
 
 

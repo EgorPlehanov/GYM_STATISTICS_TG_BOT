@@ -27,14 +27,11 @@ class GroupsService:
     get_user_group_to_redirect = staticmethod(group_repository.get_user_group_to_redirect)
     update_group_user_is_admin = staticmethod(group_repository.update_group_user_is_admin)
     delete_group_user = staticmethod(group_repository.delete_group_user)
-    create_group_training_result_message = staticmethod(
-        group_repository.create_group_training_result_message
-    )
     get_group_training_result_messages_id = staticmethod(
         group_repository.get_group_training_result_messages_id
     )
-    update_group_training_result_message_id = staticmethod(
-        group_repository.update_group_training_result_message_id
+    upsert_group_training_result_message = staticmethod(
+        group_repository.upsert_group_training_result_message
     )
 
 
@@ -167,14 +164,14 @@ async def delete_group_user(session: AsyncSession, group_id: int, user_id: int) 
     await group_repository.delete_group_user(session, group_id, user_id)
 
 
-async def create_group_training_result_message(
+async def upsert_group_training_result_message(
     session: AsyncSession,
     group_id: int,
     training_id: int,
     message_id: int,
 ) -> None:
-    """Создает запись о сообщении с результатом тренировки."""
-    await group_repository.create_group_training_result_message(
+    """Сохраняет актуальный Telegram message id результата тренировки."""
+    await group_repository.upsert_group_training_result_message(
         session,
         group_id,
         training_id,
@@ -192,19 +189,4 @@ async def get_group_training_result_messages_id(
         session,
         group_id,
         training_id,
-    )
-
-
-async def update_group_training_result_message_id(
-    session: AsyncSession,
-    group_id: int,
-    training_id: int,
-    new_message_id: int,
-) -> bool:
-    """Обновляет Telegram message id результата тренировки в группе."""
-    return await group_repository.update_group_training_result_message_id(
-        session,
-        group_id,
-        training_id,
-        new_message_id,
     )

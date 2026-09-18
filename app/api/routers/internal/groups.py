@@ -14,13 +14,10 @@ from app.api.schemas.internal.groups import (
     InternalBotGroupUserAdminRequest,
     InternalBotRedirectGroupResponse,
     InternalBotRedirectGroupUpdateRequest,
-    InternalBotTrainingResultMessageCreateRequest,
-    InternalBotTrainingResultMessageUpdateRequest,
-    InternalBotTrainingResultMessageUpdateResponse,
+    InternalBotTrainingResultMessageUpsertRequest,
 )
 from app.domain.groups.service import (
     create_group_if_not_exists,
-    create_group_training_result_message,
     create_group_user,
     delete_group_user,
     get_all_user_redirect_groups,
@@ -30,9 +27,9 @@ from app.domain.groups.service import (
     update_group_is_bot_admin,
     update_group_is_bot_banned,
     update_group_to_supergroup,
-    update_group_training_result_message_id,
     update_group_user_is_admin,
     update_redirect_to_group,
+    upsert_group_training_result_message,
 )
 
 router = APIRouter()
@@ -289,12 +286,12 @@ async def get_bot_training_result_message(
     return {"message_id": message_id}
 
 
-@router.post("/bot/groups/training-result-messages")
-async def create_bot_training_result_message(
-    payload: InternalBotTrainingResultMessageCreateRequest,
+@router.put("/bot/groups/training-result-messages")
+async def upsert_bot_training_result_message(
+    payload: InternalBotTrainingResultMessageUpsertRequest,
     session: DbSession,
 ) -> dict[str, str]:
-    """Создает запись о Telegram-сообщении результата тренировки.
+    """Создает или обновляет запись о Telegram-сообщении результата тренировки.
 
     Args:
         payload: group/training/message ids для сохранения.
@@ -302,40 +299,13 @@ async def create_bot_training_result_message(
     Returns:
         короткий статус успешного выполнения операции.
     """
-    await create_group_training_result_message(
+    await upsert_group_training_result_message(
         session=session,
         group_id=payload.group_id,
         training_id=payload.training_id,
         message_id=payload.message_id,
     )
     return {"status": "ok"}
-
-
-@router.patch(
-    "/bot/groups/training-result-messages",
-    response_model=InternalBotTrainingResultMessageUpdateResponse,
-)
-async def update_bot_training_result_message(
-    payload: InternalBotTrainingResultMessageUpdateRequest,
-    session: DbSession,
-) -> InternalBotTrainingResultMessageUpdateResponse:
-    """Обновляет Telegram message id результата тренировки.
-
-    Args:
-        payload: group/training ids и новый Telegram message id.
-
-    Returns:
-        признак того, что запись была найдена и обновлена.
-    """
-    updated = await update_group_training_result_message_id(
-        session=session,
-        group_id=payload.group_id,
-        training_id=payload.training_id,
-        new_message_id=payload.new_message_id,
-    )
-    return InternalBotTrainingResultMessageUpdateResponse(updated=updated)
-
-
 @router.patch("/bot/groups/{group_id}/bot-banned")
 async def update_bot_group_banned(
     group_id: int,

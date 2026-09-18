@@ -163,13 +163,13 @@ class BotGroupsApiClientMixin(BotApiClientBase):
         response.raise_for_status()
         return response.json()["message_id"]
 
-    async def create_training_result_message(
+    async def upsert_training_result_message(
         self,
         group_id: int,
         training_id: int,
         message_id: int,
     ) -> None:
-        """Создает запись о сообщении результата тренировки.
+        """Сохраняет актуальный Telegram message id результата тренировки.
 
         Args:
             group_id: Telegram chat id группы.
@@ -178,7 +178,7 @@ class BotGroupsApiClientMixin(BotApiClientBase):
         """
         client = self._get_client()
 
-        response = await client.post(
+        response = await client.put(
             "/internal/bot/groups/training-result-messages",
             headers={"X-Internal-Api-Key": self.internal_api_token},
             json={
@@ -188,36 +188,6 @@ class BotGroupsApiClientMixin(BotApiClientBase):
             },
         )
         response.raise_for_status()
-
-    async def update_training_result_message(
-        self,
-        group_id: int,
-        training_id: int,
-        new_message_id: int,
-    ) -> bool:
-        """Обновляет Telegram message id результата тренировки.
-
-        Args:
-            group_id: Telegram chat id группы.
-            training_id: id сохраненной тренировки.
-            new_message_id: новый Telegram message id после повторной отправки.
-
-        Returns:
-            признак того, что существующая запись была найдена и обновлена.
-        """
-        client = self._get_client()
-
-        response = await client.patch(
-            "/internal/bot/groups/training-result-messages",
-            headers={"X-Internal-Api-Key": self.internal_api_token},
-            json={
-                "group_id": group_id,
-                "training_id": training_id,
-                "new_message_id": new_message_id,
-            },
-        )
-        response.raise_for_status()
-        return response.json()["updated"]
 
     async def update_group_bot_banned(
         self,
