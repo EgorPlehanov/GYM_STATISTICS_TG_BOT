@@ -14,7 +14,13 @@ from aiogram.types import (
 from cryptography.fernet import Fernet
 
 from app.bot.client import BotApiClient
-from app.bot.fsm.training import TrainingFlowStep, TrainingMode, TrainingStates, get_training_draft
+from app.bot.fsm.training import (
+    TrainingFlowStep,
+    TrainingMode,
+    TrainingStates,
+    TrainingSuggestedExercise,
+    get_training_draft,
+)
 from app.bot.keyboards.keyboards_types import PaginationAction
 from app.bot.keyboards.training_kb import TrainingExercisePagination
 from app.bot.training_ui import (
@@ -88,12 +94,12 @@ async def selected_exercise(
     exercise_id = int(callback_data.exercise_id)
     exercise = next(
         item for item in next_draft.suggestions.most_frequent_exercises
-        if int(item["id"]) == exercise_id
+        if item.id == exercise_id
     )
     next_draft.suggestions.most_frequent_exercises.remove(exercise)
     next_draft.suggestions.most_frequent_exercises.insert(0, exercise)
     next_draft.selection.exercise_id = exercise_id
-    next_draft.selection.exercise_name = exercise["name"]
+    next_draft.selection.exercise_name = exercise.name
     next_draft.ui.exercise_page = 0
     await transition_training_screen(
         bot=callback.bot, chat_id=callback.message.chat.id, state=state,
@@ -152,8 +158,15 @@ async def inline_selected_exercise(message: Message, state: FSMContext) -> None:
     current_draft = await get_training_draft(state)
     next_draft = deepcopy(current_draft)
     items = next_draft.suggestions.most_frequent_exercises
-    items[:] = [item for item in items if int(item["id"]) != exercise.id]
-    items.insert(0, {"id": exercise.id, "name": exercise.name, "description": exercise.description})
+    items[:] = [item for item in items if item.id != exercise.id]
+    items.insert(
+        0,
+        TrainingSuggestedExercise(
+            id=exercise.id,
+            name=exercise.name,
+            description=exercise.description,
+        ),
+    )
     next_draft.selection.exercise_id = exercise.id
     next_draft.selection.exercise_name = exercise.name
     next_draft.ui.exercise_page = 0

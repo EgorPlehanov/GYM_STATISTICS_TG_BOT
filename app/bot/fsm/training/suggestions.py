@@ -1,8 +1,6 @@
 """Подсказки для FSM-сценария тренировки."""
 
-from typing import Any
-
-from .draft import TrainingDraft, TrainingDraftExercise, TrainingDraftSet
+from .draft import TrainingDraft, TrainingDraftExercise, TrainingSetModeSuggestion
 
 
 def get_current_exercise_id_from_draft(
@@ -63,24 +61,24 @@ def get_weight_repetitions_modes_values_from_draft(
         значение, если для текущего упражнения нет рассчитанной моды.
     """
     exercise_id = get_current_exercise_id_from_draft(draft)
-    exercise_mode = _get_by_int_or_string_key(
-        draft.suggestions.weight_repetitions_modes,
-        exercise_id,
-    )
+    if exercise_id is None:
+        return _empty_suggestion(is_weight=is_weight, is_repetitions=is_repetitions)
+
+    exercise_mode = draft.suggestions.weight_repetitions_modes.get(exercise_id)
     if exercise_mode is None:
         return _empty_suggestion(is_weight=is_weight, is_repetitions=is_repetitions)
 
-    max_exercise_order = exercise_mode.get("max_exercise_order")
-    sets_modes = exercise_mode.get("sets_modes")
+    max_exercise_order = exercise_mode.max_exercise_order
+    sets_modes = exercise_mode.sets_modes
     set_id = get_current_set_id_from_draft(draft, exercise_id)
 
     if set_id is None or max_exercise_order is None or not sets_modes:
         return _empty_suggestion(is_weight=is_weight, is_repetitions=is_repetitions)
 
     if set_id > max_exercise_order:
-        set_modes = _get_by_int_or_string_key(sets_modes, max_exercise_order)
+        set_modes = sets_modes.get(max_exercise_order)
     else:
-        set_modes = _get_by_int_or_string_key(sets_modes, set_id)
+        set_modes = sets_modes.get(set_id)
 
     return _format_weight_repetitions_modes(
         set_modes,
@@ -106,17 +104,8 @@ def _find_draft_exercise(
     )
 
 
-def _get_by_int_or_string_key(data: Any, key: int | None) -> Any:
-    """Возвращает значение из словаря по int-ключу или его строковому аналогу."""
-    if not isinstance(data, dict) or key is None:
-        return None
-    if key in data:
-        return data[key]
-    return data.get(str(key))
-
-
 def _format_weight_repetitions_modes(
-    set_modes: TrainingDraftSet | dict[str, Any] | None,
+    set_modes: TrainingSetModeSuggestion | None,
     *,
     is_weight: bool,
     is_repetitions: bool,
@@ -125,8 +114,8 @@ def _format_weight_repetitions_modes(
     if set_modes is None:
         return _empty_suggestion(is_weight=is_weight, is_repetitions=is_repetitions)
 
-    weight = _get_mode_value(set_modes, "weight_mode")
-    repetitions = _get_mode_value(set_modes, "repetitions_mode")
+    weight = set_modes.weight_mode
+    repetitions = set_modes.repetitions_mode
     if is_weight and is_repetitions:
         return str(weight), str(repetitions)
     if is_weight:
@@ -134,13 +123,6 @@ def _format_weight_repetitions_modes(
     if is_repetitions:
         return str(repetitions)
     return None
-
-
-def _get_mode_value(set_modes: TrainingDraftSet | dict[str, Any], key: str) -> Any:
-    """Возвращает значение моды из словаря подсказок."""
-    if isinstance(set_modes, dict):
-        return set_modes.get(key, "")
-    return getattr(set_modes, key, "")
 
 
 def _empty_suggestion(*, is_weight: bool, is_repetitions: bool) -> str | tuple[str, str]:

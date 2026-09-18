@@ -15,6 +15,9 @@ from app.bot.fsm.training import (
     TrainingDraftData,
     TrainingDraftExercise,
     TrainingDraftSet,
+    TrainingExerciseModeSuggestion,
+    TrainingSetModeSuggestion,
+    TrainingSuggestedExercise,
     add_exercise_to_draft,
     add_set_to_draft,
     bot_training_to_draft,
@@ -129,8 +132,17 @@ def test_training_draft_round_trip_from_json() -> None:
             "last_repetitions": 5,
         },
         "suggestions": {
-            "most_frequent_exercises": [{"id": 1, "name": "Присед"}],
-            "weight_repetitions_modes": [],
+            "most_frequent_exercises": [
+                {"id": 1, "name": "Присед", "description": "Базовое упражнение"}
+            ],
+            "weight_repetitions_modes": {
+                "1": {
+                    "max_exercise_order": 1,
+                    "sets_modes": {
+                        "1": {"weight_mode": 100.0, "repetitions_mode": 5}
+                    },
+                }
+            },
             "training_dates": ["2026-09-12"],
         },
     }
@@ -142,6 +154,29 @@ def test_training_draft_round_trip_from_json() -> None:
     assert draft.training.exercises[0].sets[0].execution_time == "2026-09-12T19:00:00"
     assert restored_data["ui"]["current_exercise_name"] == "Присед"
     assert restored_data["ui"]["last_weight"] == 100.0
+    assert draft.suggestions.most_frequent_exercises == [
+        TrainingSuggestedExercise(
+            id=1,
+            name="Присед",
+            description="Базовое упражнение",
+        )
+    ]
+    assert draft.suggestions.weight_repetitions_modes == {
+        1: TrainingExerciseModeSuggestion(
+            max_exercise_order=1,
+            sets_modes={
+                1: TrainingSetModeSuggestion(weight_mode=100.0, repetitions_mode=5)
+            },
+        )
+    }
+    assert restored_data["suggestions"]["weight_repetitions_modes"] == {
+        "1": {
+            "max_exercise_order": 1,
+            "sets_modes": {
+                "1": {"weight_mode": 100.0, "repetitions_mode": 5}
+            },
+        }
+    }
 
 
 def test_bot_training_dto_converts_to_training_draft() -> None:
@@ -241,20 +276,17 @@ def test_check_accept_addition_for_draft_compares_edited_set() -> None:
     assert check_accept_addition_for_draft(draft)
 
 
-def test_weight_repetitions_modes_values_from_draft_uses_string_keys() -> None:
-    """Проверяет получение подсказок из JSON-friendly dict со строковыми ключами."""
+def test_weight_repetitions_modes_values_from_draft_uses_typed_suggestions() -> None:
+    """Проверяет получение подсказок из типизированных моделей draft."""
     draft = _build_training_draft()
     draft.selection.exercise_id = 1
     draft.suggestions.weight_repetitions_modes = {
-        "1": {
-            "max_exercise_order": 1,
-            "sets_modes": {
-                "1": {
-                    "weight_mode": 82.5,
-                    "repetitions_mode": 6,
-                }
+        1: TrainingExerciseModeSuggestion(
+            max_exercise_order=1,
+            sets_modes={
+                1: TrainingSetModeSuggestion(weight_mode=82.5, repetitions_mode=6)
             },
-        }
+        )
     }
 
     assert get_weight_repetitions_modes_values_from_draft(
@@ -269,15 +301,12 @@ def test_weight_repetitions_modes_values_from_draft_uses_ui_fallback() -> None:
     draft = _build_training_draft()
     draft.ui.current_exercise_id = 1
     draft.suggestions.weight_repetitions_modes = {
-        "1": {
-            "max_exercise_order": 1,
-            "sets_modes": {
-                "1": {
-                    "weight_mode": 80.0,
-                    "repetitions_mode": 8,
-                }
+        1: TrainingExerciseModeSuggestion(
+            max_exercise_order=1,
+            sets_modes={
+                1: TrainingSetModeSuggestion(weight_mode=80.0, repetitions_mode=8)
             },
-        }
+        )
     }
 
     assert get_weight_repetitions_modes_values_from_draft(draft, is_weight=True) == "80.0"

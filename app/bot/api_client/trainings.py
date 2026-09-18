@@ -9,8 +9,10 @@ from app.bot.api_client.schemas.trainings import (
     BotTraining,
     BotTrainingByDateResult,
     BotTrainingExercise,
+    BotTrainingExerciseMode,
     BotTrainingSaveResult,
     BotTrainingSet,
+    BotTrainingSetMode,
     BotTrainingStartContext,
 )
 
@@ -233,22 +235,25 @@ def _parse_datetime_or_none(value: str | None) -> datetime | None:
 
 def _restore_weight_repetitions_modes(
     weight_repetitions_modes: dict[str, Any],
-) -> dict[int, dict[str, Any]]:
+) -> dict[int, BotTrainingExerciseMode]:
     """Восстанавливает числовые ключи подсказок после JSON.
 
     Args:
         weight_repetitions_modes: JSON-словарь подсказок с ключами-строками.
 
     Returns:
-        словарь с `int` ключами упражнений и подходов для старых FSM-утилит.
+        типизированные подсказки с `int` ключами упражнений и подходов.
     """
-    restored = {}
-    for exercise_id, exercise_mode in weight_repetitions_modes.items():
-        restored[int(exercise_id)] = {
-            **exercise_mode,
-            "sets_modes": {
-                int(set_id): set_mode
+    return {
+        int(exercise_id): BotTrainingExerciseMode(
+            max_exercise_order=exercise_mode["max_exercise_order"],
+            sets_modes={
+                int(set_id): BotTrainingSetMode(
+                    weight_mode=set_mode["weight_mode"],
+                    repetitions_mode=set_mode["repetitions_mode"],
+                )
                 for set_id, set_mode in exercise_mode.get("sets_modes", {}).items()
             },
-        }
-    return restored
+        )
+        for exercise_id, exercise_mode in weight_repetitions_modes.items()
+    }

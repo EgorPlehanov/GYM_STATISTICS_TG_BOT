@@ -309,6 +309,10 @@ async def test_bot_api_client_get_training_start_context_restores_modes(monkeypa
     """Проверяет получение стартового контекста `/training` через internal API."""
     _set_required_env(monkeypatch)
 
+    from app.bot.api_client.schemas.trainings import (
+        BotTrainingExerciseMode,
+        BotTrainingSetMode,
+    )
     from app.bot.client import BotApiClient
 
     captured_request = {}
@@ -362,15 +366,12 @@ async def test_bot_api_client_get_training_start_context_restores_modes(monkeypa
     assert result.most_frequent_exercises[0].id == 1
     assert result.most_frequent_exercises[0].name == "Жим лежа"
     assert result.weight_repetitions_modes == {
-        1: {
-            "max_exercise_order": 1,
-            "sets_modes": {
-                1: {
-                    "weight_mode": 100.0,
-                    "repetitions_mode": 5,
-                }
+        1: BotTrainingExerciseMode(
+            max_exercise_order=1,
+            sets_modes={
+                1: BotTrainingSetMode(weight_mode=100.0, repetitions_mode=5)
             },
-        }
+        )
     }
     assert captured_request == {
         "method": "GET",

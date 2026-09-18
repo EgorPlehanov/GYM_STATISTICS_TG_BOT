@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Any
 
 from app.bot.api_client.schemas.exercises import BotExercise
 
@@ -72,6 +71,32 @@ class BotTrainingByDateResult:
 
 
 @dataclass(frozen=True)
+class BotTrainingSetMode:
+    """Подсказка веса и повторений для одного порядкового подхода.
+
+    Attributes:
+        weight_mode: наиболее частый вес подхода.
+        repetitions_mode: наиболее частое количество повторений.
+    """
+
+    weight_mode: float
+    repetitions_mode: int
+
+
+@dataclass(frozen=True)
+class BotTrainingExerciseMode:
+    """Подсказки подходов для одного упражнения.
+
+    Attributes:
+        max_exercise_order: наибольший номер подхода с рассчитанной подсказкой.
+        sets_modes: подсказки по номеру подхода.
+    """
+
+    max_exercise_order: int
+    sets_modes: dict[int, BotTrainingSetMode]
+
+
+@dataclass(frozen=True)
 class BotTrainingStartContext:
     """Стартовые данные для сценария добавления тренировки.
 
@@ -81,7 +106,7 @@ class BotTrainingStartContext:
     """
 
     most_frequent_exercises: list[BotExercise]
-    weight_repetitions_modes: dict[int, dict[str, Any]]
+    weight_repetitions_modes: dict[int, BotTrainingExerciseMode]
 
 
 @dataclass(frozen=True)

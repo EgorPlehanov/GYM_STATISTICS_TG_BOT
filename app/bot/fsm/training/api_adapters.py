@@ -5,7 +5,9 @@ from datetime import date, datetime
 from app.bot.api_client.schemas.trainings import (
     BotTraining,
     BotTrainingExercise,
+    BotTrainingExerciseMode,
     BotTrainingSet,
+    BotTrainingStartContext,
 )
 
 from .draft import (
@@ -13,6 +15,10 @@ from .draft import (
     TrainingDraftData,
     TrainingDraftExercise,
     TrainingDraftSet,
+    TrainingExerciseModeSuggestion,
+    TrainingSetModeSuggestion,
+    TrainingSuggestedExercise,
+    TrainingSuggestions,
 )
 
 
@@ -85,6 +91,49 @@ def draft_to_bot_training(draft: TrainingDraft) -> BotTraining:
             )
             for exercise in draft.training.exercises
         ],
+    )
+
+
+def bot_training_start_context_to_suggestions(
+    context: BotTrainingStartContext,
+) -> TrainingSuggestions:
+    """Преобразует стартовый API-контекст в подсказки FSM draft.
+
+    Args:
+        context: типизированные стартовые данные от internal API.
+
+    Returns:
+        Подсказки, пригодные для хранения в JSON-friendly FSM draft.
+    """
+    return TrainingSuggestions(
+        most_frequent_exercises=[
+            TrainingSuggestedExercise(
+                id=exercise.id,
+                name=exercise.name,
+                description=exercise.description,
+            )
+            for exercise in context.most_frequent_exercises
+        ],
+        weight_repetitions_modes={
+            exercise_id: _bot_exercise_mode_to_suggestion(exercise_mode)
+            for exercise_id, exercise_mode in context.weight_repetitions_modes.items()
+        },
+    )
+
+
+def _bot_exercise_mode_to_suggestion(
+    mode: BotTrainingExerciseMode,
+) -> TrainingExerciseModeSuggestion:
+    """Преобразует API-подсказку упражнения в модель FSM draft."""
+    return TrainingExerciseModeSuggestion(
+        max_exercise_order=mode.max_exercise_order,
+        sets_modes={
+            set_id: TrainingSetModeSuggestion(
+                weight_mode=set_mode.weight_mode,
+                repetitions_mode=set_mode.repetitions_mode,
+            )
+            for set_id, set_mode in mode.sets_modes.items()
+        },
     )
 
 

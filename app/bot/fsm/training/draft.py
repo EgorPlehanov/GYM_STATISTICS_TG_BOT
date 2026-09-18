@@ -144,6 +144,47 @@ class TrainingUiContext:
 
 
 @dataclass(slots=True)
+class TrainingSuggestedExercise:
+    """Упражнение для первичного списка выбора в сценарии тренировки.
+
+    Attributes:
+        id: внутренний id упражнения.
+        name: название упражнения.
+        description: описание для результата inline-поиска.
+    """
+
+    id: int
+    name: str
+    description: str | None
+
+
+@dataclass(slots=True)
+class TrainingSetModeSuggestion:
+    """Подсказка веса и повторений для одного порядкового подхода.
+
+    Attributes:
+        weight_mode: наиболее частый вес подхода.
+        repetitions_mode: наиболее частое количество повторений.
+    """
+
+    weight_mode: float
+    repetitions_mode: int
+
+
+@dataclass(slots=True)
+class TrainingExerciseModeSuggestion:
+    """Подсказки подходов для одного упражнения.
+
+    Attributes:
+        max_exercise_order: наибольший номер подхода с рассчитанной подсказкой.
+        sets_modes: подсказки по номеру подхода.
+    """
+
+    max_exercise_order: int
+    sets_modes: dict[int, TrainingSetModeSuggestion]
+
+
+@dataclass(slots=True)
 class TrainingSuggestions:
     """Подсказки, загруженные из backend для Telegram-сценария.
 
@@ -153,8 +194,12 @@ class TrainingSuggestions:
         training_dates: даты существующих тренировок в формате YYYY-MM-DD.
     """
 
-    most_frequent_exercises: list[dict[str, Any]] = field(default_factory=list)
-    weight_repetitions_modes: dict[str, Any] = field(default_factory=dict)
+    most_frequent_exercises: list[TrainingSuggestedExercise] = field(
+        default_factory=list
+    )
+    weight_repetitions_modes: dict[int, TrainingExerciseModeSuggestion] = field(
+        default_factory=dict
+    )
     training_dates: list[str] = field(default_factory=list)
 
 
@@ -203,7 +248,7 @@ def draft_from_json(data: dict[str, Any]) -> TrainingDraft:
         selection=TrainingSelection(**data.get("selection", {})),
         edit=TrainingEditContext(**data.get("edit", {})),
         ui=_ui_context_from_json(data.get("ui", {})),
-        suggestions=TrainingSuggestions(**data.get("suggestions", {})),
+        suggestions=_suggestions_from_json(data.get("suggestions", {})),
     )
 
 
@@ -327,6 +372,36 @@ def _ui_context_from_json(data: dict[str, Any]) -> TrainingUiContext:
         )
 
     return TrainingUiContext(**context_data)
+
+
+def _suggestions_from_json(data: dict[str, Any]) -> TrainingSuggestions:
+    """Восстанавливает типизированные подсказки из JSON-friendly FSM-словаря."""
+    return TrainingSuggestions(
+        most_frequent_exercises=[
+            TrainingSuggestedExercise(
+                id=exercise["id"],
+                name=exercise["name"],
+                description=exercise.get("description"),
+            )
+            for exercise in data.get("most_frequent_exercises", [])
+        ],
+        weight_repetitions_modes={
+            int(exercise_id): TrainingExerciseModeSuggestion(
+                max_exercise_order=exercise_mode["max_exercise_order"],
+                sets_modes={
+                    int(set_id): TrainingSetModeSuggestion(
+                        weight_mode=set_mode["weight_mode"],
+                        repetitions_mode=set_mode["repetitions_mode"],
+                    )
+                    for set_id, set_mode in exercise_mode.get("sets_modes", {}).items()
+                },
+            )
+            for exercise_id, exercise_mode in data.get(
+                "weight_repetitions_modes", {}
+            ).items()
+        },
+        training_dates=list(data.get("training_dates", [])),
+    )
 
 
 

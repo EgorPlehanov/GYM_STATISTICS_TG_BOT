@@ -1,6 +1,10 @@
 """FSM-сценарий добавления и редактирования тренировки."""
 
-from .api_adapters import bot_training_to_draft, draft_to_bot_training
+from .api_adapters import (
+    bot_training_start_context_to_suggestions,
+    bot_training_to_draft,
+    draft_to_bot_training,
+)
 from .draft import (
     TrainingDateConflict,
     TrainingDraft,
@@ -8,7 +12,10 @@ from .draft import (
     TrainingDraftExercise,
     TrainingDraftSet,
     TrainingEditContext,
+    TrainingExerciseModeSuggestion,
     TrainingSelection,
+    TrainingSetModeSuggestion,
+    TrainingSuggestedExercise,
     TrainingSuggestions,
     TrainingUiContext,
     draft_from_json,
@@ -60,10 +67,13 @@ __all__ = [
     "TrainingDraftExercise",
     "TrainingDraftSet",
     "TrainingEditContext",
+    "TrainingExerciseModeSuggestion",
     "TrainingData",
     "TrainingMode",
     "TrainingFlowStep",
     "TrainingSelection",
+    "TrainingSetModeSuggestion",
+    "TrainingSuggestedExercise",
     "TrainingStates",
     "TrainingSuggestions",
     "TrainingUiContext",
@@ -71,6 +81,7 @@ __all__ = [
     "add_exercise_to_draft",
     "add_set_to_draft",
     "bot_training_to_draft",
+    "bot_training_start_context_to_suggestions",
     "check_accept_addition",
     "check_accept_addition_for_draft",
     "delete_all_exercise_sets_from_draft",

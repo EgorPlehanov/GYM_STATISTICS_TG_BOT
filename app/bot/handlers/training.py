@@ -13,6 +13,7 @@ from app.bot.fsm.training import (
     TrainingDraftData,
     TrainingFlowStep,
     TrainingStates,
+    bot_training_start_context_to_suggestions,
     flow_step_from_state,
     get_training_draft,
 )
@@ -200,15 +201,7 @@ async def _start_new_training(message: Message, state: FSMContext) -> None:
         )
 
     draft = TrainingDraft(training=TrainingDraftData(training_id=None, training_date=None))
-    draft.suggestions.most_frequent_exercises = [
-        {
-            "id": exercise.id,
-            "name": exercise.name,
-            "description": exercise.description,
-        }
-        for exercise in start_context.most_frequent_exercises
-    ]
-    draft.suggestions.weight_repetitions_modes = start_context.weight_repetitions_modes
+    draft.suggestions = bot_training_start_context_to_suggestions(start_context)
     try:
         await start_training_screen(
             bot=message.bot,
