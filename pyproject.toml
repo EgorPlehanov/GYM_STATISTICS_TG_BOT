@@ -3,9 +3,9 @@ name = "gym-statistics"
 version = "0.1.0"
 description = "Telegram bot, web app and API for training statistics."
 readme = "README.md"
-requires-python = ">=3.10,<3.11"
+requires-python = ">=3.10,<3.15"
 dependencies = [
-    "aiogram==3.4.1",
+    "aiogram==3.31.0",
     "alembic==1.13.1",
     "asyncpg==0.29.0",
     "cachetools==5.3.3",
