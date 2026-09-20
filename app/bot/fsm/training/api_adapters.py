@@ -118,6 +118,7 @@ def bot_training_start_context_to_suggestions(
             exercise_id: _bot_exercise_mode_to_suggestion(exercise_mode)
             for exercise_id, exercise_mode in context.weight_repetitions_modes.items()
         },
+        training_dates=[item.isoformat() for item in context.training_dates],
     )
 
 

@@ -56,12 +56,17 @@ async def get_bot_training_start_context(
         user_id=telegram_id,
         last_training_count=last_training_count,
     )
+    training_dates = await get_training_date_by_user_id(
+        session=session,
+        user_id=telegram_id,
+    )
     return InternalBotTrainingStartContextResponse(
         most_frequent_exercises=most_frequent_exercises,
         weight_repetitions_modes={
             exercise_id: InternalBotTrainingExerciseMode.model_validate(exercise_mode)
             for exercise_id, exercise_mode in weight_repetitions_modes.items()
         },
+        training_dates=training_dates,
     )
 
 

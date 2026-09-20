@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from datetime import date
 
-from aiogram.types import InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from app.bot.formatters.training import format_training_step
 from app.bot.fsm.training import (
@@ -28,11 +28,12 @@ from app.bot.keyboards.training_kb import (
     get_ikb_edit_select_set_fab,
     get_ikb_finish_add_comment,
     get_ikb_open_inline_search,
-    get_ikb_select_date,
     get_ikb_select_exercise_fab,
     get_ikb_training_menu,
     ikb_edit_accept_delete,
 )
+
+from .calendar import render_training_calendar
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,7 +58,7 @@ def _render_keyboard(
 ) -> InlineKeyboardMarkup | None:
     """Возвращает клавиатуру конкретного шага без изменения draft."""
     if step is TrainingFlowStep.SELECT_DATE:
-        return get_ikb_select_date(is_back_to_menu=draft.training.training_date is not None)
+        return _calendar_keyboard(draft)
     if step is TrainingFlowStep.CHANGE_DATE_ACCEPT:
         conflict = draft.ui.date_conflict
         if conflict is None or conflict.training.training_date is None:
@@ -122,6 +123,29 @@ def _menu_keyboard(draft: TrainingDraft) -> InlineKeyboardMarkup:
         is_add_edit_button=has_draft_exercises(draft),
         is_add_add_set_button=draft.ui.current_exercise_id is not None,
         repeat_set_button_text=f"{last_weight}×{last_repetitions}",
+    )
+
+
+def _calendar_keyboard(draft: TrainingDraft) -> InlineKeyboardMarkup:
+    """Строит календарь с кнопкой выхода для текущего режима тренировки."""
+    year = draft.ui.calendar_year
+    month = draft.ui.calendar_month
+    if year is None or month is None:
+        raise ValueError("Для календаря должны быть сохранены год и месяц")
+
+    if draft.selection.mode is TrainingMode.EDIT_DATE.value:
+        back_button = InlineKeyboardButton(
+            text="← К редактированию",
+            callback_data="to_edit_menu",
+        )
+    else:
+        back_button = InlineKeyboardButton(text="❌ Отменить", callback_data="cancel")
+
+    return render_training_calendar(
+        year=year,
+        month=month,
+        training_dates=[date.fromisoformat(item) for item in draft.suggestions.training_dates],
+        back_button=back_button,
     )
 
 

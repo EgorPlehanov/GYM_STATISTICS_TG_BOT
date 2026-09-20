@@ -28,9 +28,12 @@ async def open_edit_menu(callback: CallbackQuery, state: FSMContext) -> None:
     draft = await get_training_draft(state)
     if not await is_current_training_callback(callback, draft):
         return
+    next_draft = deepcopy(draft)
+    next_draft.ui.calendar_year = None
+    next_draft.ui.calendar_month = None
     await transition_training_screen(
         bot=callback.bot, chat_id=callback.message.chat.id, state=state,
-        current_draft=draft, next_draft=deepcopy(draft),
+        current_draft=draft, next_draft=next_draft,
         next_step=TrainingFlowStep.EDIT_MENU,
     )
 

@@ -266,6 +266,8 @@ def _shift_month(year: int, month: int, *, offset: int) -> tuple[int, int]:
 
 def _validate_visible_month(*, year: int, month: int, today: date) -> None:
     """Проверяет корректность и доступность месяца для просмотра."""
+    if year < 1:
+        raise ValueError("Год должен быть положительным числом")
     if not 1 <= month <= 12:
         raise ValueError("Номер месяца должен быть в диапазоне от 1 до 12")
     if (year, month) > (today.year, today.month):

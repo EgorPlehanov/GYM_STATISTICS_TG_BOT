@@ -1,5 +1,6 @@
 """Единые операции с главным Telegram-сообщением тренировки."""
 
+from datetime import date
 from enum import Enum
 
 from aiogram import Bot
@@ -53,6 +54,7 @@ async def start_training_screen(
     draft: TrainingDraft,
 ) -> None:
     """Отправляет первый экран и только затем сохраняет новый сценарий."""
+    _ensure_calendar_month(draft)
     view = render_training_view(draft, TrainingFlowStep.SELECT_DATE)
     message = await bot.send_message(
         chat_id=chat_id,
@@ -80,6 +82,7 @@ async def transition_training_screen(
     пользовательское действие не применяется.
     """
     current_step = flow_step_from_state(await state.get_state())
+    _ensure_calendar_month(next_draft, step=next_step)
     next_view = render_training_view(next_draft, next_step)
     message_id = current_draft.ui.message_id
 
@@ -156,6 +159,7 @@ async def show_or_recover_target(
     сообщения уже не видит. Поэтому этот путь всегда отправляет новый экран и
     затем удаляет прежний экземпляр на стороне Telegram.
     """
+    _ensure_calendar_month(draft, step=step)
     previous_message_id = draft.ui.message_id
     view = render_training_view(draft, step)
     message = await bot.send_message(
@@ -256,6 +260,22 @@ async def _recover_current_screen(
     step: TrainingFlowStep,
 ) -> None:
     """Отправляет новый экземпляр текущего экрана и сохраняет его id."""
+    _ensure_calendar_month(draft, step=step)
     draft.ui.message_id = None
     await _replace_or_send(bot=bot, chat_id=chat_id, draft=draft, step=step)
     await set_training_draft(state, draft)
+
+
+def _ensure_calendar_month(
+    draft: TrainingDraft,
+    *,
+    step: TrainingFlowStep = TrainingFlowStep.SELECT_DATE,
+) -> None:
+    """Инициализирует открытый месяц перед показом календаря."""
+    if step is not TrainingFlowStep.SELECT_DATE:
+        return
+    if draft.ui.calendar_year is not None and draft.ui.calendar_month is not None:
+        return
+    today = date.today()
+    draft.ui.calendar_year = today.year
+    draft.ui.calendar_month = today.month

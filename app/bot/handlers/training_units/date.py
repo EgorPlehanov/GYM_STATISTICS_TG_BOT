@@ -1,30 +1,32 @@
 """Выбор и изменение даты тренировки."""
 
 from copy import deepcopy
-from datetime import date, datetime
+from datetime import date
 
 from aiogram import F, Router
-from aiogram.filters.callback_data import CallbackData
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
 from app.bot.client import BotApiClient
 from app.bot.fsm.training import (
     TrainingDateConflict,
+    TrainingDraft,
     TrainingFlowStep,
     TrainingMode,
     TrainingStates,
     bot_training_to_draft,
     draft_to_bot_training,
     get_training_draft,
-    set_training_draft,
 )
-from app.bot.keyboards.training_kb import DialogCalendar, DialogCalendarCallback
 from app.bot.ui.training import (
     is_current_training_callback,
     replace_after_backend,
-    replace_training_markup,
     transition_training_screen,
+)
+from app.bot.ui.training.calendar import (
+    TrainingCalendarAction,
+    TrainingCalendarCallback,
+    resolve_training_calendar_interaction,
 )
 
 router = Router()
@@ -46,6 +48,7 @@ async def _select_date(
             return
         next_draft = deepcopy(current_draft)
         next_draft.ui.date_conflict = TrainingDateConflict(training=loaded_draft.training)
+        _clear_calendar_month(next_draft)
         await transition_training_screen(
             bot=callback.bot, chat_id=callback.message.chat.id, state=state,
             current_draft=current_draft, next_draft=next_draft,
@@ -61,6 +64,7 @@ async def _select_date(
     if next_draft.training.training_date is not None:
         next_draft.selection.mode = None
     next_draft.ui.date_conflict = None
+    _clear_calendar_month(next_draft)
     await transition_training_screen(
         bot=callback.bot, chat_id=callback.message.chat.id, state=state,
         current_draft=current_draft, next_draft=next_draft,
@@ -68,76 +72,47 @@ async def _select_date(
     )
 
 
-@router.callback_query(F.data == "today", TrainingStates.select_date)
-async def selected_date_today(callback: CallbackQuery, state: FSMContext) -> None:
-    """Выбирает текущую дату для тренировки."""
+@router.callback_query(TrainingCalendarCallback.filter(), TrainingStates.select_date)
+async def process_training_calendar(
+    callback: CallbackQuery,
+    callback_data: TrainingCalendarCallback,
+    state: FSMContext,
+) -> None:
+    """Обрабатывает навигацию нового календаря или выбор даты."""
     draft = await get_training_draft(state)
     if not await is_current_training_callback(callback, draft):
         return
-    await _select_date(callback, state, datetime.now().date())
-
-
-@router.callback_query(F.data == "other_date", TrainingStates.select_date)
-async def selected_date_other(callback: CallbackQuery, state: FSMContext) -> None:
-    """Открывает календарь выбора даты.
-
-    Календарь пока использует собственный callback-протокол. Его полный перевод
-    на renderer выделен отдельной задачей рефакторинга календаря.
-    """
-    draft = await get_training_draft(state)
-    if not await is_current_training_callback(callback, draft):
+    await callback.answer()
+    if callback_data.action is TrainingCalendarAction.IGNORE:
         return
-    if not draft.suggestions.training_dates:
-        async with BotApiClient() as api_client:
-            dates = await api_client.get_training_dates(callback.from_user.id)
-        draft.suggestions.training_dates = [item.isoformat() for item in dates]
-        await set_training_draft(state, draft)
-    calendar_markup = await DialogCalendar(
-        training_date=[date.fromisoformat(item) for item in draft.suggestions.training_dates]
-    ).start_calendar()
-    await replace_training_markup(
+
+    interaction = resolve_training_calendar_interaction(callback_data)
+    if interaction.selected_date is not None:
+        await _select_date(callback, state, interaction.selected_date)
+        return
+
+    next_draft = deepcopy(draft)
+    next_draft.ui.calendar_year = interaction.year
+    next_draft.ui.calendar_month = interaction.month
+    await transition_training_screen(
         bot=callback.bot,
         chat_id=callback.message.chat.id,
         state=state,
-        draft=draft,
-        step=TrainingFlowStep.SELECT_DATE,
-        reply_markup=calendar_markup,
+        current_draft=draft,
+        next_draft=next_draft,
+        next_step=TrainingFlowStep.SELECT_DATE,
     )
 
 
-@router.callback_query(DialogCalendarCallback.filter())
-async def process_dialog_calendar(
-    callback: CallbackQuery, callback_data: CallbackData, state: FSMContext
-) -> None:
-    """Обрабатывает календарь и применяет выбранную дату."""
-    draft = await get_training_draft(state)
-    if not await is_current_training_callback(callback, draft):
-        return
-    selected, selected_date, markup = await DialogCalendar(
-        training_date=[date.fromisoformat(item) for item in draft.suggestions.training_dates]
-    ).get_selection_view(callback_data)
-    if selected:
-        await _select_date(callback, state, selected_date)
-    elif markup is not None:
-        await replace_training_markup(
-            bot=callback.bot,
-            chat_id=callback.message.chat.id,
-            state=state,
-            draft=draft,
-            step=TrainingFlowStep.SELECT_DATE,
-            reply_markup=markup,
-        )
-
-
-@router.callback_query(F.data == "to_date_menu", TrainingStates.select_date)
 @router.callback_query(F.data == "to_date_menu", TrainingStates.change_date_accept)
 async def back_to_date_menu(callback: CallbackQuery, state: FSMContext) -> None:
-    """Возвращает в меню выбора даты."""
+    """Возвращает к календарю после отмены разрешения конфликта дат."""
     draft = await get_training_draft(state)
     if not await is_current_training_callback(callback, draft):
         return
     next_draft = deepcopy(draft)
     next_draft.ui.date_conflict = None
+    _clear_calendar_month(next_draft)
     await transition_training_screen(
         bot=callback.bot, chat_id=callback.message.chat.id, state=state,
         current_draft=draft, next_draft=next_draft,
@@ -153,6 +128,7 @@ async def open_edit_date(callback: CallbackQuery, state: FSMContext) -> None:
         return
     next_draft = deepcopy(draft)
     next_draft.selection.mode = TrainingMode.EDIT_DATE.value
+    _clear_calendar_month(next_draft)
     await transition_training_screen(
         bot=callback.bot, chat_id=callback.message.chat.id, state=state,
         current_draft=draft, next_draft=next_draft,
@@ -182,6 +158,7 @@ async def save_current_training_and_open_selected_date(
     next_draft.selection.exercise_id = None
     next_draft.selection.exercise_name = None
     next_draft.ui.date_conflict = None
+    _clear_calendar_month(next_draft)
     await replace_after_backend(
         bot=callback.bot, chat_id=callback.message.chat.id, state=state,
         draft=next_draft, step=TrainingFlowStep.MENU,
@@ -204,7 +181,14 @@ async def changed_to_current_date(callback: CallbackQuery, state: FSMContext) ->
     next_draft.training.training_date = conflict.training.training_date
     next_draft.training.training_id = None
     next_draft.ui.date_conflict = None
+    _clear_calendar_month(next_draft)
     await replace_after_backend(
         bot=callback.bot, chat_id=callback.message.chat.id, state=state,
         draft=next_draft, step=TrainingFlowStep.MENU,
     )
+
+
+def _clear_calendar_month(draft: TrainingDraft) -> None:
+    """Очищает UI-параметры месяца после завершения работы с календарем."""
+    draft.ui.calendar_year = None
+    draft.ui.calendar_month = None

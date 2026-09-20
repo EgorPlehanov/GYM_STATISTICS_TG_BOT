@@ -343,6 +343,7 @@ async def test_bot_api_client_get_training_start_context_restores_modes(monkeypa
                         },
                     }
                 },
+                "training_dates": ["2026-09-01", "2026-09-09"],
             },
         )
 
@@ -373,6 +374,7 @@ async def test_bot_api_client_get_training_start_context_restores_modes(monkeypa
             },
         )
     }
+    assert result.training_dates == [date(2026, 9, 1), date(2026, 9, 9)]
     assert captured_request == {
         "method": "GET",
         "url": (

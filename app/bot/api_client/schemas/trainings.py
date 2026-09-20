@@ -104,10 +104,12 @@ class BotTrainingStartContext:
     Attributes:
         most_frequent_exercises: упражнения для первичной клавиатуры выбора.
         weight_repetitions_modes: подсказки веса и повторений по прошлым тренировкам.
+        training_dates: даты существующих тренировок для календаря.
     """
 
     most_frequent_exercises: list[BotExercise]
     weight_repetitions_modes: dict[int, BotTrainingExerciseMode]
+    training_dates: list[date]
 
 
 class BotTrainingSaveOutcome(str, Enum):

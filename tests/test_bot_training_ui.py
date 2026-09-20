@@ -11,6 +11,7 @@ from app.bot.fsm.training import (
     TrainingDraft,
     TrainingDraftData,
     TrainingFlowStep,
+    TrainingMode,
     TrainingStates,
     draft_to_json,
 )
@@ -64,6 +65,29 @@ def test_renderer_builds_resume_prompt_from_draft() -> None:
 
     assert "незавершённая тренировка" in view.text
     assert view.reply_markup is not None
+
+
+def test_renderer_builds_calendar_with_contextual_back_button() -> None:
+    """Проверяет календарь и кнопку выхода для создания и редактирования."""
+    draft = _draft()
+    draft.ui.calendar_year = 2026
+    draft.ui.calendar_month = 9
+    draft.suggestions.training_dates = ["2026-09-18"]
+
+    creation_view = render_training_view(draft, TrainingFlowStep.SELECT_DATE)
+    creation_labels = [
+        button.text for row in creation_view.reply_markup.inline_keyboard for button in row
+    ]
+
+    draft.selection.mode = TrainingMode.EDIT_DATE.value
+    editing_view = render_training_view(draft, TrainingFlowStep.SELECT_DATE)
+    editing_labels = [
+        button.text for row in editing_view.reply_markup.inline_keyboard for button in row
+    ]
+
+    assert "✓18" in creation_labels
+    assert "❌ Отменить" in creation_labels
+    assert "← К редактированию" in editing_labels
 
 
 async def test_transition_recovers_current_screen_without_applying_change() -> None:

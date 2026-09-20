@@ -28,10 +28,12 @@ class InternalBotTrainingStartContextResponse(BaseModel):
     Attributes:
         most_frequent_exercises: упражнения, отсортированные под пользователя.
         weight_repetitions_modes: подсказки веса и повторений по прошлым тренировкам.
+        training_dates: даты существующих тренировок для отметок в календаре.
     """
 
     most_frequent_exercises: list[InternalBotExerciseResponse]
     weight_repetitions_modes: dict[int, InternalBotTrainingExerciseMode]
+    training_dates: list[date]
 
 
 class InternalBotTrainingSet(BaseModel):

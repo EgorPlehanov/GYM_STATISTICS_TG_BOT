@@ -533,6 +533,11 @@ def test_internal_bot_training_start_context_calls_domain_service(monkeypatch):
             }
         }
 
+    async def fake_get_training_date_by_user_id(session, user_id):
+        """Фиксирует параметры получения дат тренировок для календаря."""
+        calls.append(("dates", session, user_id))
+        return [date(2026, 9, 1), date(2026, 9, 9)]
+
     async def fake_db_session():
         """Возвращает тестовую заглушку DB-сессии."""
         yield object()
@@ -546,6 +551,11 @@ def test_internal_bot_training_start_context_calls_domain_service(monkeypatch):
         internal_trainings,
         "get_exercises_weight_repetitions_modes",
         fake_get_exercises_weight_repetitions_modes,
+    )
+    monkeypatch.setattr(
+        internal_trainings,
+        "get_training_date_by_user_id",
+        fake_get_training_date_by_user_id,
     )
     app.dependency_overrides[get_db_session] = fake_db_session
 
@@ -582,10 +592,12 @@ def test_internal_bot_training_start_context_calls_domain_service(monkeypatch):
                 },
             }
         },
+        "training_dates": ["2026-09-01", "2026-09-09"],
     }
     assert calls == [
         ("exercises", calls[0][1], 123456789, 15),
         ("modes", calls[0][1], 123456789, 12),
+        ("dates", calls[0][1], 123456789),
     ]
 
 

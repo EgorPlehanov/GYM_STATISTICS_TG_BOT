@@ -77,6 +77,7 @@ class BotTrainingsApiClientMixin(BotApiClientBase):
             weight_repetitions_modes=_restore_weight_repetitions_modes(
                 payload["weight_repetitions_modes"]
             ),
+            training_dates=[date.fromisoformat(item) for item in payload["training_dates"]],
         )
 
     async def get_training_by_date(
