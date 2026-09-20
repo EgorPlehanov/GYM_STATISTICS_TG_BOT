@@ -68,30 +68,30 @@ async def cmd_training(message: Message, state: FSMContext) -> None:
         draft = await get_training_draft(state)
     except KeyError:
         await _start_new_training(message, state)
-        return
+    else:
+        current_step = flow_step_from_state(await state.get_state())
+        if current_step is TrainingFlowStep.RESULT:
+            await show_or_recover_target(
+                bot=message.bot,
+                chat_id=message.chat.id,
+                state=state,
+                draft=draft,
+                step=TrainingFlowStep.RESULT,
+            )
+            await state.clear()
+        else:
+            if current_step is not TrainingFlowStep.RESUME_PROMPT:
+                draft.ui.suspended_step = current_step
 
-    current_step = flow_step_from_state(await state.get_state())
-    if current_step is TrainingFlowStep.RESULT:
-        await show_or_recover_target(
-            bot=message.bot,
-            chat_id=message.chat.id,
-            state=state,
-            draft=draft,
-            step=TrainingFlowStep.RESULT,
-        )
-        await state.clear()
-        return
+            await show_or_recover_target(
+                bot=message.bot,
+                chat_id=message.chat.id,
+                state=state,
+                draft=draft,
+                step=TrainingFlowStep.RESUME_PROMPT,
+            )
 
-    if current_step is not TrainingFlowStep.RESUME_PROMPT:
-        draft.ui.suspended_step = current_step
-
-    await show_or_recover_target(
-        bot=message.bot,
-        chat_id=message.chat.id,
-        state=state,
-        draft=draft,
-        step=TrainingFlowStep.RESUME_PROMPT,
-    )
+    await message.delete()
 
 
 @router.message(Command("cancel"), StateFilter(TrainingStates))
@@ -105,6 +105,7 @@ async def cancel_training_by_command(message: Message, state: FSMContext) -> Non
         message_id=draft.ui.message_id,
     )
     await message.answer("Тренировка отменена.")
+    await message.delete()
 
 
 @router.callback_query(F.data == "cancel", StateFilter(TrainingStates))
