@@ -6,7 +6,6 @@ readme = "README.md"
 requires-python = ">=3.10,<3.11"
 dependencies = [
     "aiogram==3.4.1",
-    "aiogram3-calendar==0.1.2",
     "alembic==1.13.1",
     "asyncpg==0.29.0",
     "cachetools==5.3.3",

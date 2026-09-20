@@ -21,25 +21,6 @@ from app.bot.api_client.schemas.trainings import (
 class BotTrainingsApiClientMixin(BotApiClientBase):
     """Методы internal API для работы Telegram-бота с тренировками."""
 
-    async def get_training_dates(self, telegram_id: int) -> list[date]:
-        """Возвращает даты тренировок пользователя для календаря бота.
-
-        Args:
-            telegram_id: Telegram user id пользователя.
-
-        Returns:
-            список дат тренировок, преобразованный из JSON-строк в `date`.
-        """
-        client = self._get_client()
-
-        response = await client.get(
-            "/internal/bot/trainings/dates",
-            headers={"X-Internal-Api-Key": self.internal_api_token},
-            params={"telegram_id": telegram_id},
-        )
-        response.raise_for_status()
-        return [date.fromisoformat(item) for item in response.json()]
-
     async def get_training_start_context(
         self,
         telegram_id: int,

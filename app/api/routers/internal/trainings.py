@@ -70,22 +70,6 @@ async def get_bot_training_start_context(
     )
 
 
-@router.get("/bot/trainings/dates", response_model=list[date])
-async def get_bot_training_dates(
-    session: DbSession,
-    telegram_id: int,
-) -> list[date]:
-    """Возвращает даты тренировок пользователя для календаря Telegram-бота.
-
-    Args:
-        telegram_id: Telegram user id, для которого нужно получить даты.
-
-    Returns:
-        список дат тренировок пользователя.
-    """
-    return await get_training_date_by_user_id(session=session, user_id=telegram_id)
-
-
 @router.get("/bot/trainings/by-date", response_model=InternalBotTrainingByDateResponse)
 async def get_bot_training_by_date(
     session: DbSession,

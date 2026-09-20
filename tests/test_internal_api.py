@@ -437,52 +437,6 @@ def test_internal_bot_exercise_returns_404_when_not_found(monkeypatch):
     assert response.json() == {"detail": "Упражнение не найдено"}
 
 
-def test_internal_bot_training_dates_calls_domain_service(monkeypatch):
-    """Проверяет, что даты тренировок для бота берутся через domain service."""
-    _set_required_env(monkeypatch)
-
-    from app.api.deps import config, get_db_session
-    from app.api.main import app
-    from app.api.routers.internal import trainings as internal_trainings
-
-    monkeypatch.setattr(
-        config,
-        "INTERNAL_API_TOKEN",
-        SecretStr("test-internal-token-with-at-least-32-bytes"),
-    )
-
-    calls = []
-
-    async def fake_get_training_date_by_user_id(session, user_id):
-        """Фиксирует параметры запроса дат тренировок."""
-        calls.append({"session": session, "user_id": user_id})
-        return [date(2026, 9, 1), date(2026, 9, 9)]
-
-    async def fake_db_session():
-        """Возвращает тестовую заглушку DB-сессии."""
-        yield object()
-
-    monkeypatch.setattr(
-        internal_trainings,
-        "get_training_date_by_user_id",
-        fake_get_training_date_by_user_id,
-    )
-    app.dependency_overrides[get_db_session] = fake_db_session
-
-    client = TestClient(app)
-    response = client.get(
-        "/internal/bot/trainings/dates",
-        headers={"X-Internal-Api-Key": "test-internal-token-with-at-least-32-bytes"},
-        params={"telegram_id": 123456789},
-    )
-
-    app.dependency_overrides.clear()
-
-    assert response.status_code == 200
-    assert response.json() == ["2026-09-01", "2026-09-09"]
-    assert calls == [{"session": calls[0]["session"], "user_id": 123456789}]
-
-
 def test_internal_bot_training_start_context_calls_domain_service(monkeypatch):
     """Проверяет получение стартового контекста тренировки через domain service."""
     _set_required_env(monkeypatch)
