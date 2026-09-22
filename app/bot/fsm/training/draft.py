@@ -99,12 +99,15 @@ class TrainingEditContext:
         exercise_name: имя редактируемого упражнения.
         set_id: id редактируемого подхода внутри упражнения.
         set_number: номер редактируемого подхода в тренировке.
+        replace_training_id: id тренировки, которую нужно атомарно заменить
+            при финальном сохранении изменения даты.
     """
 
     exercise_id: int | None = None
     exercise_name: str | None = None
     set_id: int | None = None
     set_number: int | None = None
+    replace_training_id: int | None = None
 
 
 @dataclass(slots=True)
@@ -295,6 +298,19 @@ async def set_training_draft(
         None. JSON-friendly draft записывается в ключ `training_draft`.
     """
     await state.update_data(training_draft=draft_to_json(draft))
+
+
+def set_draft_training_dates(
+    draft: TrainingDraft,
+    training_dates: list[date],
+) -> None:
+    """Обновляет снимок дат сохраненных тренировок после backend-операции.
+
+    Args:
+        draft: текущий FSM-черновик тренировки.
+        training_dates: актуальные даты, возвращенные backend API.
+    """
+    draft.suggestions.training_dates = sorted({item.isoformat() for item in training_dates})
 
 
 def _normalize_json_value(value: Any) -> Any:

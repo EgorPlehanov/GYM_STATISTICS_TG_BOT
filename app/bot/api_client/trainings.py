@@ -97,12 +97,14 @@ class BotTrainingsApiClientMixin(BotApiClientBase):
         self,
         telegram_id: int,
         training: BotTraining,
+        replace_training_id: int | None = None,
     ) -> BotTrainingSaveResult:
         """Сохраняет тренировку через internal API.
 
         Args:
             telegram_id: Telegram user id владельца тренировки.
             training: strict DTO тренировки.
+            replace_training_id: id конфликтующей тренировки для атомарной замены.
 
         Returns:
             результат сохранения тренировки в backend API.
@@ -115,6 +117,7 @@ class BotTrainingsApiClientMixin(BotApiClientBase):
             json={
                 "telegram_id": telegram_id,
                 "training": _serialize_training(training),
+                "replace_training_id": replace_training_id,
             },
         )
         response.raise_for_status()
@@ -122,6 +125,7 @@ class BotTrainingsApiClientMixin(BotApiClientBase):
         return BotTrainingSaveResult(
             training_id=payload["training_id"],
             outcome=BotTrainingSaveOutcome(payload["outcome"]),
+            training_dates=[date.fromisoformat(item) for item in payload["training_dates"]],
         )
 
     async def delete_training(self, training_id: int) -> None:

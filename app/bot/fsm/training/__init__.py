@@ -22,6 +22,7 @@ from .draft import (
     draft_from_json,
     draft_to_json,
     get_training_draft,
+    set_draft_training_dates,
     set_training_draft,
 )
 from .operations import (
@@ -104,6 +105,7 @@ __all__ = [
     "has_draft_exercises",
     "recalculate_draft_set_numbers",
     "set_training_draft",
+    "set_draft_training_dates",
     "state_from_flow_step",
     "update_set_in_draft",
     "weight_back_button_by_mode",

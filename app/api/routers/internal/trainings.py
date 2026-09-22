@@ -130,10 +130,16 @@ async def save_bot_training(
             payload.training,
             telegram_id=payload.telegram_id,
         ),
+        replace_training_id=payload.replace_training_id,
+    )
+    training_dates = await get_training_date_by_user_id(
+        session=session,
+        user_id=payload.telegram_id,
     )
     return InternalBotTrainingSaveResponse(
         training_id=training_id,
         outcome=InternalBotTrainingSaveOutcome(outcome.value),
+        training_dates=training_dates,
     )
 
 

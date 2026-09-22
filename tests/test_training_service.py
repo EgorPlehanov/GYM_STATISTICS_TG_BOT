@@ -22,8 +22,9 @@ async def test_save_training_maps_repository_flags_to_semantic_outcome(
 ) -> None:
     """Проверяет приоритет создания тренировки над изменениями ее подходов."""
 
-    async def fake_save_training_data(session, training_data):
+    async def fake_save_training_data(session, training_data, replace_training_id=None):
         """Возвращает технический результат репозитория без обращения к БД."""
+        assert replace_training_id is None
         return 42, updated, created
 
     monkeypatch.setattr(

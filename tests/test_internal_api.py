@@ -701,10 +701,21 @@ def test_internal_bot_training_save_calls_domain_service(monkeypatch):
 
     calls = []
 
-    async def fake_save_training(session, training_data):
+    async def fake_save_training(session, training_data, replace_training_id=None):
         """Фиксирует восстановленную FSM-структуру перед сохранением."""
-        calls.append({"session": session, "training_data": training_data})
+        calls.append(
+            {
+                "session": session,
+                "training_data": training_data,
+                "replace_training_id": replace_training_id,
+            }
+        )
         return 10, TrainingSaveOutcome.CREATED
+
+    async def fake_get_training_date_by_user_id(session, user_id):
+        """Возвращает актуальные даты после сохранения тренировки."""
+        assert user_id == 123456789
+        return [date(2026, 9, 9)]
 
     async def fake_db_session():
         """Возвращает тестовую заглушку DB-сессии."""
@@ -714,6 +725,11 @@ def test_internal_bot_training_save_calls_domain_service(monkeypatch):
         internal_trainings,
         "save_training",
         fake_save_training,
+    )
+    monkeypatch.setattr(
+        internal_trainings,
+        "get_training_date_by_user_id",
+        fake_get_training_date_by_user_id,
     )
     app.dependency_overrides[get_db_session] = fake_db_session
 
@@ -752,10 +768,12 @@ def test_internal_bot_training_save_calls_domain_service(monkeypatch):
     assert response.json() == {
         "training_id": 10,
         "outcome": "created",
+        "training_dates": ["2026-09-09"],
     }
     assert calls == [
         {
             "session": calls[0]["session"],
+            "replace_training_id": None,
             "training_data": {
                 "id": None,
                 "user_id": 123456789,

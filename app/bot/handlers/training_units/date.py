@@ -17,6 +17,7 @@ from app.bot.fsm.training import (
     bot_training_to_draft,
     draft_to_bot_training,
     get_training_draft,
+    set_draft_training_dates,
 )
 from app.bot.ui.training import (
     is_current_training_callback,
@@ -64,6 +65,7 @@ async def _select_date(
     if next_draft.training.training_date is not None:
         next_draft.selection.mode = None
     next_draft.ui.date_conflict = None
+    next_draft.edit.replace_training_id = None
     _clear_calendar_month(next_draft)
     await transition_training_screen(
         bot=callback.bot, chat_id=callback.message.chat.id, state=state,
@@ -149,9 +151,10 @@ async def save_current_training_and_open_selected_date(
     if conflict is None:
         raise ValueError("Для смены даты нужен date_conflict")
     async with BotApiClient() as api_client:
-        await api_client.save_training(
+        save_result = await api_client.save_training(
             telegram_id=callback.from_user.id,
             training=draft_to_bot_training(draft),
+            replace_training_id=draft.edit.replace_training_id,
         )
     next_draft = deepcopy(draft)
     next_draft.training = deepcopy(conflict.training)
@@ -159,6 +162,8 @@ async def save_current_training_and_open_selected_date(
     next_draft.selection.exercise_id = None
     next_draft.selection.exercise_name = None
     next_draft.ui.date_conflict = None
+    next_draft.edit.replace_training_id = None
+    set_draft_training_dates(next_draft, save_result.training_dates)
     _clear_calendar_month(next_draft)
     await replace_after_backend(
         bot=callback.bot, chat_id=callback.message.chat.id, state=state,
@@ -168,19 +173,23 @@ async def save_current_training_and_open_selected_date(
 
 @router.callback_query(F.data == "changed_to_current_date", TrainingStates.change_date_accept)
 async def changed_to_current_date(callback: CallbackQuery, state: FSMContext) -> None:
-    """Удаляет конфликтующую тренировку и переносит туда текущий draft."""
+    """Готовит атомарную замену конфликтующей тренировки при финальном сохранении.
+
+    В БД ничего не меняется до нажатия пользователем финальной кнопки сохранения:
+    текущий draft сохраняет свой id и данные, а id конфликтующей тренировки
+    записывается как отложенная операция.
+    """
     draft = await get_training_draft(state)
     if not await is_current_training_callback(callback, draft):
         return
     conflict = draft.ui.date_conflict
     if conflict is None:
         raise ValueError("Для замены даты нужен date_conflict")
-    if conflict.training.training_id is not None:
-        async with BotApiClient() as api_client:
-            await api_client.delete_training(conflict.training.training_id)
+    if conflict.training.training_id is None:
+        raise ValueError("Для замены даты нужен id конфликтующей тренировки")
     next_draft = deepcopy(draft)
     next_draft.training.training_date = conflict.training.training_date
-    next_draft.training.training_id = None
+    next_draft.edit.replace_training_id = conflict.training.training_id
     next_draft.ui.date_conflict = None
     _clear_calendar_month(next_draft)
     await replace_after_backend(

@@ -452,6 +452,7 @@ async def test_bot_api_client_save_training_serializes_training_dto(monkeypatch)
             json={
                 "training_id": 10,
                 "outcome": "created",
+                "training_dates": ["2026-09-09"],
             },
         )
 
@@ -468,6 +469,7 @@ async def test_bot_api_client_save_training_serializes_training_dto(monkeypatch)
         async with api_client:
             result = await api_client.save_training(
                 telegram_id=123456789,
+                replace_training_id=17,
                 training=BotTraining(
                     training_id=None,
                     training_date=date(2026, 9, 9),
@@ -492,12 +494,14 @@ async def test_bot_api_client_save_training_serializes_training_dto(monkeypatch)
 
     assert result.training_id == 10
     assert result.outcome is BotTrainingSaveOutcome.CREATED
+    assert result.training_dates == [date(2026, 9, 9)]
     assert captured_request == {
         "method": "POST",
         "url": "http://api:8000/internal/bot/trainings",
         "token": "internal-test-token",
         "payload": {
             "telegram_id": 123456789,
+            "replace_training_id": 17,
             "training": {
                 "training_id": None,
                 "training_date": "2026-09-09",

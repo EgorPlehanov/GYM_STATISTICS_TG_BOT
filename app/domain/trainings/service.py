@@ -80,12 +80,14 @@ async def get_exercise_by_id(session: AsyncSession, exercise_id: int) -> Exercis
 async def save_training(
     session: AsyncSession,
     training_data: TrainingData,
+    replace_training_id: int | None = None,
 ) -> tuple[int, TrainingSaveOutcome]:
     """Сохраняет тренировку и возвращает единый бизнес-результат операции.
 
     Args:
         session: активная сессия базы данных.
         training_data: данные тренировки в текущем формате репозитория.
+        replace_training_id: id конфликтующей тренировки для атомарной замены.
 
     Returns:
         пару из id тренировки и семантического результата сохранения.
@@ -95,6 +97,7 @@ async def save_training(
     training_id, updated, created = await training_repository.save_training_data(
         session,
         training_data,
+        replace_training_id=replace_training_id,
     )
     if created:
         return training_id, TrainingSaveOutcome.CREATED

@@ -21,6 +21,7 @@ from app.bot.fsm.training import (
     TrainingStates,
     draft_to_bot_training,
     get_training_draft,
+    set_draft_training_dates,
 )
 from app.bot.ui.training import (
     TrainingTransitionResult,
@@ -94,10 +95,13 @@ async def finish(callback: CallbackQuery, state: FSMContext) -> None:
         save_result = await api_client.save_training(
             telegram_id=callback.from_user.id,
             training=draft_to_bot_training(draft),
+            replace_training_id=draft.edit.replace_training_id,
         )
 
     result_draft = deepcopy(draft)
     result_draft.training.training_id = save_result.training_id
+    result_draft.edit.replace_training_id = None
+    set_draft_training_dates(result_draft, save_result.training_dates)
     try:
         await replace_after_backend(
             bot=callback.bot,

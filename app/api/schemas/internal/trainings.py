@@ -102,10 +102,13 @@ class InternalBotTrainingSaveRequest(BaseModel):
     Attributes:
         telegram_id: Telegram user id владельца тренировки.
         training: структура тренировки в строгом internal API-формате.
+        replace_training_id: id конфликтующей тренировки, которую нужно удалить
+            при атомарной замене даты.
     """
 
     telegram_id: int
     training: InternalBotTrainingData
+    replace_training_id: int | None = None
 
 
 class InternalBotTrainingSaveOutcome(str, Enum):
@@ -122,7 +125,9 @@ class InternalBotTrainingSaveResponse(BaseModel):
     Attributes:
         training_id: id сохраненной тренировки.
         outcome: единый семантический результат сохранения.
+        training_dates: актуальные даты тренировок пользователя.
     """
 
     training_id: int
     outcome: InternalBotTrainingSaveOutcome
+    training_dates: list[date]

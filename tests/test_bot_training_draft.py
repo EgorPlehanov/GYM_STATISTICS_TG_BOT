@@ -35,6 +35,7 @@ from app.bot.fsm.training import (
     get_weight_repetitions_modes_values_from_draft,
     has_draft_exercises,
     recalculate_draft_set_numbers,
+    set_draft_training_dates,
     set_training_draft,
     update_set_in_draft,
 )
@@ -524,6 +525,19 @@ async def test_set_training_draft_writes_training_draft_fsm_context() -> None:
     assert state.data["training_draft"]["selection"]["mode"] == "add_set"
     assert state.data["training_draft"]["ui"]["message_id"] == 501
     assert state.data["training_draft"]["ui"]["last_repetitions"] == 8
+
+
+def test_set_draft_training_dates_replaces_snapshot_and_removes_duplicates() -> None:
+    """Актуальные даты backend API заменяют прежний снимок календаря."""
+    draft = _build_training_draft()
+    draft.suggestions.training_dates = ["2026-09-01"]
+
+    set_draft_training_dates(
+        draft,
+        [date(2026, 9, 9), date(2026, 9, 1), date(2026, 9, 9)],
+    )
+
+    assert draft.suggestions.training_dates == ["2026-09-01", "2026-09-09"]
 
 
 def _build_training_draft() -> TrainingDraft:

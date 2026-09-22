@@ -230,51 +230,100 @@ async def update_training_data(
 async def save_training_data(
     session: AsyncSession,
     training_data: TrainingData,
+    replace_training_id: int | None = None,
 ) -> tuple[int, bool, bool]:
     """Сохраняет тренировку и подходы.
 
     Returns:
         `(training_id, update_flag, create_flag)`, где `update_flag` показывает,
         были ли изменены данные, а `create_flag` - создана ли новая тренировка.
+        Если передан `replace_training_id`, конфликтующая тренировка удаляется
+        в той же транзакции перед обновлением исходной.
     """
-    update_flag = False
-    create_flag = False
+    try:
+        update_flag = False
+        create_flag = False
 
-    training_id = training_data.get("id")
-    if training_id is None:
-        training_id = await save_new_training_data(session, training_data)
-        create_flag = True
-    else:
-        is_updated = await update_training_data(session, training_data)
+        training_id = training_data.get("id")
+        if replace_training_id is not None:
+            if training_id is None:
+                raise ValueError(
+                    "Заменить конфликтующую тренировку может только сохраненная тренировка"
+                )
+            if replace_training_id == training_id:
+                raise ValueError("Нельзя заменить тренировку самой собой")
+            await _delete_training_for_user(
+                session=session,
+                training_id=replace_training_id,
+                telegram_id=training_data["user_id"],
+            )
+
+        if training_id is None:
+            training_id = await save_new_training_data(session, training_data)
+            create_flag = True
+        else:
+            is_updated = await update_training_data(session, training_data)
+            update_flag = is_updated if is_updated else update_flag
+
+        sets_id = []
+        exercises = training_data.get("exercises")
+        for exercise_id, exercise_data in exercises.items():
+            sets = exercise_data["sets"]
+
+            for local_number, set_data in sets.items():
+                set_id = set_data.get("id")
+                if set_id is None:
+                    set_id = await save_new_set_data(
+                        session,
+                        training_id,
+                        exercise_id,
+                        local_number,
+                        set_data,
+                    )
+                    update_flag = True
+                else:
+                    is_updated = await update_set_data(session, local_number, set_data)
+                    update_flag = is_updated if is_updated else update_flag
+
+                sets_id.append(set_id)
+
+        is_updated = await delete_old_sets(session, training_id, sets_id)
         update_flag = is_updated if is_updated else update_flag
 
-    sets_id = []
-    exercises = training_data.get("exercises")
-    for exercise_id, exercise_data in exercises.items():
-        sets = exercise_data["sets"]
+        await session.commit()
+        return training_id, update_flag, create_flag
+    except Exception:
+        await session.rollback()
+        raise
 
-        for local_number, set_data in sets.items():
-            set_id = set_data.get("id")
-            if set_id is None:
-                set_id = await save_new_set_data(
-                    session,
-                    training_id,
-                    exercise_id,
-                    local_number,
-                    set_data,
-                )
-                update_flag = True
-            else:
-                is_updated = await update_set_data(session, local_number, set_data)
-                update_flag = is_updated if is_updated else update_flag
 
-            sets_id.append(set_id)
+async def _delete_training_for_user(
+    *,
+    session: AsyncSession,
+    training_id: int,
+    telegram_id: int,
+) -> None:
+    """Удаляет тренировку пользователя без отдельного commit.
 
-    is_updated = await delete_old_sets(session, training_id, sets_id)
-    update_flag = is_updated if is_updated else update_flag
+    Args:
+        session: активная сессия транзакции сохранения.
+        training_id: id тренировки, которую нужно заменить.
+        telegram_id: Telegram user id владельца обеих тренировок.
 
-    await session.commit()
-    return training_id, update_flag, create_flag
+    Raises:
+        ValueError: если пользователь или его тренировка не найдены.
+    """
+    internal_user_id = await get_internal_user_id_by_telegram_id(session, telegram_id)
+    if internal_user_id is None:
+        raise ValueError("Пользователь для замены тренировки не найден")
+
+    result = await session.execute(
+        delete(Training)
+        .where(Training.id == training_id, Training.user_id == internal_user_id)
+        .returning(Training.id)
+    )
+    if result.scalar_one_or_none() is None:
+        raise ValueError("Конфликтующая тренировка не найдена или принадлежит другому пользователю")
 
 
 async def check_training_exists_for_user_and_date(

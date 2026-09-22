@@ -127,7 +127,9 @@ class BotTrainingSaveResult:
     Attributes:
         training_id: внутренний id сохраненной тренировки.
         outcome: единый семантический результат сохранения.
+        training_dates: актуальные даты тренировок пользователя.
     """
 
     training_id: int
     outcome: BotTrainingSaveOutcome
+    training_dates: list[date]
