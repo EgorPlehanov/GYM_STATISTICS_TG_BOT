@@ -8,6 +8,7 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.methods import EditMessageText
 
 from app.bot.fsm.training import (
+    TrainingCalendarView,
     TrainingDraft,
     TrainingDraftData,
     TrainingFlowStep,
@@ -87,7 +88,31 @@ def test_renderer_builds_calendar_with_contextual_back_button() -> None:
 
     assert "✓18" in creation_labels
     assert "❌ Отменить" in creation_labels
+    assert "✎18" in editing_labels
     assert "← К редактированию" in editing_labels
+
+
+def test_renderer_builds_months_and_years_calendar_views() -> None:
+    """Renderer допускает представления календаря, для которых месяц не нужен."""
+    draft = _draft()
+    draft.ui.calendar_year = 2026
+    draft.ui.calendar_month = None
+
+    draft.ui.calendar_view = TrainingCalendarView.MONTHS
+    months_view = render_training_view(draft, TrainingFlowStep.SELECT_DATE)
+    months_labels = [
+        button.text for row in months_view.reply_markup.inline_keyboard for button in row
+    ]
+
+    draft.ui.calendar_view = TrainingCalendarView.YEARS
+    draft.ui.calendar_year = 2025
+    years_view = render_training_view(draft, TrainingFlowStep.SELECT_DATE)
+    years_labels = [
+        button.text for row in years_view.reply_markup.inline_keyboard for button in row
+    ]
+
+    assert "Янв" in months_labels
+    assert "2025" in years_labels
 
 
 async def test_transition_recovers_current_screen_without_applying_change() -> None:

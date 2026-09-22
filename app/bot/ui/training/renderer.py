@@ -1,7 +1,7 @@
 """Построение Telegram-экранов тренировки без побочных эффектов."""
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
@@ -131,8 +131,9 @@ def _calendar_keyboard(draft: TrainingDraft) -> InlineKeyboardMarkup:
     """Строит календарь с кнопкой выхода для текущего режима тренировки."""
     year = draft.ui.calendar_year
     month = draft.ui.calendar_month
-    if year is None or month is None:
-        raise ValueError("Для календаря должны быть сохранены год и месяц")
+    calendar_view = draft.ui.calendar_view or TrainingCalendarView.DAYS
+    if year is None or (calendar_view is TrainingCalendarView.DAYS and month is None):
+        raise ValueError("Для календаря должны быть сохранены параметры текущего представления")
 
     if draft.selection.mode is TrainingMode.EDIT_DATE.value:
         back_button = InlineKeyboardButton(
@@ -143,12 +144,28 @@ def _calendar_keyboard(draft: TrainingDraft) -> InlineKeyboardMarkup:
         back_button = InlineKeyboardButton(text="❌ Отменить", callback_data="cancel")
 
     return render_training_calendar(
-        view=draft.ui.calendar_view or TrainingCalendarView.DAYS,
+        view=calendar_view,
         year=year,
         month=month,
         training_dates=[date.fromisoformat(item) for item in draft.suggestions.training_dates],
+        editing_date=_editing_date(draft),
         back_button=back_button,
     )
+
+
+def _editing_date(draft: TrainingDraft) -> date | None:
+    """Возвращает текущую дату тренировки только для режима ее редактирования."""
+    if draft.selection.mode is not TrainingMode.EDIT_DATE.value:
+        return None
+
+    training_date = draft.training.training_date
+    if training_date is None:
+        return None
+    if isinstance(training_date, datetime):
+        return training_date.date()
+    if isinstance(training_date, date):
+        return training_date
+    return date.fromisoformat(training_date)
 
 
 def _value_keyboard(draft: TrainingDraft, *, is_weight: bool) -> InlineKeyboardMarkup:

@@ -84,6 +84,7 @@ def render_training_calendar(
     year: int,
     month: int | None,
     training_dates: Iterable[date],
+    editing_date: date | None = None,
     back_button: InlineKeyboardButton,
     limits: TrainingDateSelectionLimits = DEFAULT_TRAINING_DATE_SELECTION_LIMITS,
     today: date | None = None,
@@ -95,6 +96,7 @@ def render_training_calendar(
         year: год месяца либо начало страницы лет.
         month: номер месяца для экрана дней; для остальных экранов не нужен.
         training_dates: даты уже сохраненных тренировок пользователя.
+        editing_date: текущая дата редактируемой тренировки или `None`.
         back_button: кнопка выхода в контекст, из которого открыт календарь.
         limits: ограничения диапазона и навигации по календарю.
         today: текущая дата; параметр нужен для предсказуемого тестирования.
@@ -110,7 +112,8 @@ def render_training_calendar(
         if month is None:
             raise ValueError("Для отображения дней необходимо указать месяц")
         return _render_days(
-            year=year, month=month, saved_dates=saved_dates, back_button=back_button,
+            year=year, month=month, saved_dates=saved_dates, editing_date=editing_date,
+            back_button=back_button,
             date_from=date_from, date_to=date_to, today=current_date,
         )
     if view is TrainingCalendarView.MONTHS:
@@ -151,8 +154,10 @@ def resolve_training_calendar_interaction(
         _validate_year_available(callback_data.year, date_from=date_from, date_to=date_to)
         return TrainingCalendarInteraction(
             view=TrainingCalendarView.YEARS,
-            year=_year_page_start(
-                year=callback_data.year, first_year=date_from.year,
+            year=_center_year_window(
+                year=callback_data.year,
+                first_year=date_from.year,
+                last_year=date_to.year,
                 years_per_row=limits.years_per_row,
             ),
         )
@@ -179,16 +184,25 @@ def resolve_training_calendar_interaction(
         TrainingCalendarAction.PREVIOUS_YEARS,
         TrainingCalendarAction.NEXT_YEARS,
     }:
-        current_page = _year_page_start(
-            year=callback_data.year, first_year=date_from.year,
+        current_page = _normalize_year_window_start(
+            page_start=callback_data.year,
+            first_year=date_from.year,
+            last_year=date_to.year,
             years_per_row=limits.years_per_row,
         )
-        offset = -limits.years_per_row
-        if callback_data.action is TrainingCalendarAction.NEXT_YEARS:
-            offset = limits.years_per_row
-        target_page = current_page + offset
-        if not date_from.year <= target_page <= date_to.year:
-            raise ValueError("Нельзя открыть запрошенную страницу лет")
+        if callback_data.action is TrainingCalendarAction.PREVIOUS_YEARS:
+            if current_page == date_from.year:
+                raise ValueError("Нельзя открыть предыдущую страницу лет")
+            target_page = max(date_from.year, current_page - limits.years_per_row)
+        else:
+            if current_page + limits.years_per_row > date_to.year:
+                raise ValueError("Нельзя открыть следующую страницу лет")
+            target_page = _normalize_year_window_start(
+                page_start=current_page + limits.years_per_row,
+                first_year=date_from.year,
+                last_year=date_to.year,
+                years_per_row=limits.years_per_row,
+            )
         return TrainingCalendarInteraction(view=TrainingCalendarView.YEARS, year=target_page)
     if callback_data.action is TrainingCalendarAction.SELECT_DAY:
         selected_date = date(callback_data.year, callback_data.month, callback_data.day)
@@ -204,8 +218,8 @@ def resolve_training_calendar_interaction(
 
 
 def _render_days(
-    *, year: int, month: int, saved_dates: set[date], back_button: InlineKeyboardButton,
-    date_from: date, date_to: date, today: date,
+    *, year: int, month: int, saved_dates: set[date], editing_date: date | None,
+    back_button: InlineKeyboardButton, date_from: date, date_to: date, today: date,
 ) -> InlineKeyboardMarkup:
     """Строит экран дней с выравниванием по названиям дней недели."""
     _validate_month_available(year=year, month=month, date_from=date_from, date_to=date_to)
@@ -234,6 +248,7 @@ def _render_days(
         builder.row(*[
             _day_button(
                 year=year, month=month, day=day, saved_dates=saved_dates,
+                editing_date=editing_date,
                 date_from=date_from, date_to=date_to, today=today,
             )
             for day in week
@@ -275,8 +290,11 @@ def _render_years(
     date_to: date, years_per_row: int,
 ) -> InlineKeyboardMarkup:
     """Строит страницу доступных лет и только доступные стрелки навигации."""
-    current_page = _year_page_start(
-        year=page_start, first_year=date_from.year, years_per_row=years_per_row,
+    current_page = _normalize_year_window_start(
+        page_start=page_start,
+        first_year=date_from.year,
+        last_year=date_to.year,
+        years_per_row=years_per_row,
     )
     _validate_year_available(current_page, date_from=date_from, date_to=date_to)
     builder = InlineKeyboardBuilder()
@@ -313,8 +331,8 @@ def _callback_button(
 
 
 def _day_button(
-    *, year: int, month: int, day: int, saved_dates: set[date], date_from: date,
-    date_to: date, today: date,
+    *, year: int, month: int, day: int, saved_dates: set[date], editing_date: date | None,
+    date_from: date, date_to: date, today: date,
 ) -> InlineKeyboardButton:
     """Создает кнопку дня или заглушку для сохранения колонок недели."""
     if day == 0:
@@ -326,7 +344,9 @@ def _day_button(
         return _callback_button(
             text=" ", action=TrainingCalendarAction.IGNORE, year=year, month=month,
         )
-    if day_date in saved_dates:
+    if day_date == editing_date:
+        text = f"✎{day}"
+    elif day_date in saved_dates:
         text = f"✓{day}"
     elif day_date == today:
         text = f"📍{day}"
@@ -375,9 +395,32 @@ def _is_month_available(*, year: int, month: int, date_from: date, date_to: date
     return month_start <= date_to and month_end >= date_from
 
 
-def _year_page_start(*, year: int, first_year: int, years_per_row: int) -> int:
-    """Возвращает начало страницы лет, в которую входит указанный год."""
-    return first_year + ((year - first_year) // years_per_row) * years_per_row
+def _center_year_window(
+    *,
+    year: int,
+    first_year: int,
+    last_year: int,
+    years_per_row: int,
+) -> int:
+    """Возвращает начало окна лет, центрированного на выбранном году."""
+    return _normalize_year_window_start(
+        page_start=year - years_per_row // 2,
+        first_year=first_year,
+        last_year=last_year,
+        years_per_row=years_per_row,
+    )
+
+
+def _normalize_year_window_start(
+    *,
+    page_start: int,
+    first_year: int,
+    last_year: int,
+    years_per_row: int,
+) -> int:
+    """Сдвигает окно лет к границе, сохраняя максимально возможную ширину."""
+    last_possible_start = max(first_year, last_year - years_per_row + 1)
+    return min(max(page_start, first_year), last_possible_start)
 
 
 def _split_rows(

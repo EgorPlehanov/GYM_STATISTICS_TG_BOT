@@ -32,6 +32,7 @@ def test_days_view_aligns_available_dates_by_weekday_and_marks_training() -> Non
         year=2026,
         month=9,
         training_dates=[date(2026, 9, 3), date(2026, 9, 20)],
+        editing_date=date(2026, 9, 20),
         back_button=_back_button(),
         limits=TrainingDateSelectionLimits(date_from=date(2026, 9, 3)),
         today=date(2026, 9, 20),
@@ -42,7 +43,8 @@ def test_days_view_aligns_available_dates_by_weekday_and_marks_training() -> Non
     assert rows[1] == ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
     assert rows[2] == [" ", " ", " ", "✓3", "4", "5", "6"]
     assert all(len(row) == 7 for row in rows[1:-1])
-    assert "✓20" in [label for row in rows for label in row]
+    assert "✎20" in [label for row in rows for label in row]
+    assert "✓20" not in [label for row in rows for label in row]
     assert "21" not in [label for row in rows for label in row]
 
 
@@ -102,7 +104,9 @@ def test_years_view_shows_navigation_only_when_page_exists() -> None:
     assert _labels(middle_page) == [
         ["2007", "2008", "2009", "2010", "2011"], ["←", "→"], ["Отмена"]
     ]
-    assert _labels(last_page) == [["2012"], ["←"], ["Отмена"]]
+    assert _labels(last_page) == [
+        ["2008", "2009", "2010", "2011", "2012"], ["←"], ["Отмена"]
+    ]
 
 
 def test_resolve_calendar_follows_year_month_day_flow() -> None:
@@ -137,10 +141,34 @@ def test_resolve_calendar_follows_year_month_day_flow() -> None:
         today=date(2026, 9, 20),
     )
 
-    assert (years.view, years.year, years.month) == (TrainingCalendarView.YEARS, 2025, None)
+    assert (years.view, years.year, years.month) == (TrainingCalendarView.YEARS, 2022, None)
     assert (months.view, months.year, months.month) == (TrainingCalendarView.MONTHS, 2025, None)
     assert (days.view, days.year, days.month) == (TrainingCalendarView.DAYS, 2025, 8)
     assert selected.selected_date == date(2025, 8, 18)
+
+
+def test_years_navigation_uses_window_width_and_normalizes_at_lower_bound() -> None:
+    """Переход стрелками равен ширине окна и добирает годы у нижней границы."""
+    limits = TrainingDateSelectionLimits(
+        date_from=date(2000, 1, 1), date_to=date(2026, 9, 20), years_per_row=5
+    )
+    previous = resolve_training_calendar_interaction(
+        TrainingCalendarCallback(
+            action=TrainingCalendarAction.PREVIOUS_YEARS, year=2003, month=0, day=0
+        ),
+        limits=limits,
+        today=date(2026, 9, 20),
+    )
+    following = resolve_training_calendar_interaction(
+        TrainingCalendarCallback(
+            action=TrainingCalendarAction.NEXT_YEARS, year=2003, month=0, day=0
+        ),
+        limits=limits,
+        today=date(2026, 9, 20),
+    )
+
+    assert previous.year == 2000
+    assert following.year == 2008
 
 
 def test_future_dates_require_explicit_permission() -> None:
