@@ -6,6 +6,7 @@ from .api_adapters import (
     draft_to_bot_training,
 )
 from .draft import (
+    TrainingCalendarView,
     TrainingDateConflict,
     TrainingDraft,
     TrainingDraftData,
@@ -59,6 +60,7 @@ from .validation import check_accept_addition, check_accept_addition_for_draft
 
 __all__ = [
     "Button",
+    "TrainingCalendarView",
     "ExerciseData",
     "SetData",
     "TrainingDraft",

@@ -11,6 +11,7 @@ from app.bot.api_client.schemas.trainings import (
     BotTrainingSet,
 )
 from app.bot.fsm.training import (
+    TrainingCalendarView,
     TrainingDraft,
     TrainingDraftData,
     TrainingDraftExercise,
@@ -126,6 +127,9 @@ def test_training_draft_round_trip_from_json() -> None:
         "edit": {},
         "ui": {
             "message_id": 123,
+            "calendar_view": "months",
+            "calendar_year": 2026,
+            "calendar_month": None,
             "current_exercise_id": 1,
             "current_exercise_name": "Присед",
             "last_weight": 100.0,
@@ -154,6 +158,8 @@ def test_training_draft_round_trip_from_json() -> None:
     assert draft.training.exercises[0].sets[0].execution_time == "2026-09-12T19:00:00"
     assert restored_data["ui"]["current_exercise_name"] == "Присед"
     assert restored_data["ui"]["last_weight"] == 100.0
+    assert draft.ui.calendar_view is TrainingCalendarView.MONTHS
+    assert restored_data["ui"]["calendar_view"] == "months"
     assert draft.suggestions.most_frequent_exercises == [
         TrainingSuggestedExercise(
             id=1,

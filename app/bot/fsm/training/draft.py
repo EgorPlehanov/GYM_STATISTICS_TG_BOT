@@ -10,6 +10,14 @@ from aiogram.fsm.context import FSMContext
 from .states import TrainingFlowStep
 
 
+class TrainingCalendarView(str, Enum):
+    """Представления inline-календаря внутри шага выбора даты."""
+
+    DAYS = "days"
+    MONTHS = "months"
+    YEARS = "years"
+
+
 @dataclass(slots=True)
 class TrainingDraftSet:
     """JSON-friendly данные подхода внутри FSM draft.
@@ -121,8 +129,9 @@ class TrainingUiContext:
         exercise_page: страница списка частых упражнений.
         edit_exercise_page: страница списка упражнений в режиме редактирования.
         edit_set_page: страница списка подходов в режиме редактирования.
+        calendar_view: сохраненное представление календаря для восстановления UI.
         calendar_year: открытый год календаря.
-        calendar_month: открытый месяц календаря.
+        calendar_month: открытый месяц календаря на представлении дней.
         current_exercise_id: последнее выбранное упражнение для быстрого добавления подхода.
         current_exercise_name: имя последнего выбранного упражнения.
         last_weight: последний сохраненный вес для кнопки повтора.
@@ -135,6 +144,7 @@ class TrainingUiContext:
     exercise_page: int = 0
     edit_exercise_page: int = 0
     edit_set_page: int = 0
+    calendar_view: TrainingCalendarView | None = None
     calendar_year: int | None = None
     calendar_month: int | None = None
     current_exercise_id: int | None = None
@@ -364,6 +374,10 @@ def _ui_context_from_json(data: dict[str, Any]) -> TrainingUiContext:
     suspended_step = context_data.get("suspended_step")
     if suspended_step is not None:
         context_data["suspended_step"] = TrainingFlowStep(suspended_step)
+
+    calendar_view = context_data.get("calendar_view")
+    if calendar_view is not None:
+        context_data["calendar_view"] = TrainingCalendarView(calendar_view)
 
     date_conflict = context_data.get("date_conflict")
     if date_conflict is not None:

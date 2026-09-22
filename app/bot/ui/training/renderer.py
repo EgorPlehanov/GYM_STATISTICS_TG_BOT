@@ -7,6 +7,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from app.bot.formatters.training import format_training_step
 from app.bot.fsm.training import (
+    TrainingCalendarView,
     TrainingDraft,
     TrainingFlowStep,
     TrainingMode,
@@ -142,6 +143,7 @@ def _calendar_keyboard(draft: TrainingDraft) -> InlineKeyboardMarkup:
         back_button = InlineKeyboardButton(text="❌ Отменить", callback_data="cancel")
 
     return render_training_calendar(
+        view=draft.ui.calendar_view or TrainingCalendarView.DAYS,
         year=year,
         month=month,
         training_dates=[date.fromisoformat(item) for item in draft.suggestions.training_dates],

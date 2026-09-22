@@ -92,6 +92,7 @@ async def process_training_calendar(
         return
 
     next_draft = deepcopy(draft)
+    next_draft.ui.calendar_view = interaction.view
     next_draft.ui.calendar_year = interaction.year
     next_draft.ui.calendar_month = interaction.month
     await transition_training_screen(
@@ -190,5 +191,6 @@ async def changed_to_current_date(callback: CallbackQuery, state: FSMContext) ->
 
 def _clear_calendar_month(draft: TrainingDraft) -> None:
     """Очищает UI-параметры месяца после завершения работы с календарем."""
+    draft.ui.calendar_view = None
     draft.ui.calendar_year = None
     draft.ui.calendar_month = None

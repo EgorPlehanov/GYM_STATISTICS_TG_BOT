@@ -8,6 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup
 
 from app.bot.fsm.training import (
+    TrainingCalendarView,
     TrainingDraft,
     TrainingFlowStep,
     flow_step_from_state,
@@ -274,8 +275,16 @@ def _ensure_calendar_month(
     """Инициализирует открытый месяц перед показом календаря."""
     if step is not TrainingFlowStep.SELECT_DATE:
         return
-    if draft.ui.calendar_year is not None and draft.ui.calendar_month is not None:
+    if (
+        draft.ui.calendar_view is not None
+        and draft.ui.calendar_year is not None
+        and (
+            draft.ui.calendar_view is not TrainingCalendarView.DAYS
+            or draft.ui.calendar_month is not None
+        )
+    ):
         return
     today = date.today()
+    draft.ui.calendar_view = TrainingCalendarView.DAYS
     draft.ui.calendar_year = today.year
     draft.ui.calendar_month = today.month
