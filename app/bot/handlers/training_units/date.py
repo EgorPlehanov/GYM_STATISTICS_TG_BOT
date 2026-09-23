@@ -200,6 +200,7 @@ async def changed_to_current_date(callback: CallbackQuery, state: FSMContext) ->
         raise ValueError("Для замены даты нужен id конфликтующей тренировки")
     next_draft = deepcopy(draft)
     _set_draft_training_date(next_draft, conflict.training.training_date)
+    next_draft.selection.mode = None
     next_draft.edit.replace_training_id = conflict.training.training_id
     next_draft.ui.date_conflict = None
     _clear_calendar_month(next_draft)

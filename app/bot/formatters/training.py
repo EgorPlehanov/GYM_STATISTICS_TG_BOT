@@ -180,7 +180,9 @@ def get_training_values_from_draft(
         return None
 
     date_edit_flag = (
-        "✏️ " if _mode_from_value(draft.selection.mode) == TrainingMode.EDIT_DATE else ""
+        "✏️ "
+        if not is_result and _mode_from_value(draft.selection.mode) == TrainingMode.EDIT_DATE
+        else ""
     )
     date_formatted = training_date.strftime("%d.%m.%Y")
     weekday_name = WEEKDAYS[training_date.weekday()]

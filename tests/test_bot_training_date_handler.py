@@ -17,6 +17,7 @@ from app.bot.fsm.training import (
     TrainingDraft,
     TrainingDraftData,
     TrainingFlowStep,
+    TrainingMode,
     draft_to_json,
 )
 from app.bot.handlers.training_units import date as date_handlers
@@ -153,6 +154,7 @@ async def test_replace_conflict_keeps_database_unchanged_until_finish(monkeypatc
         )
     )
     draft.ui.message_id = 42
+    draft.selection.mode = TrainingMode.EDIT_DATE.value
     draft.ui.date_conflict = TrainingDateConflict(
         training=TrainingDraftData(
             training_id=conflict_training_id,
@@ -178,6 +180,7 @@ async def test_replace_conflict_keeps_database_unchanged_until_finish(monkeypatc
     next_draft = captured["draft"]
     assert next_draft.training.training_id == source_training_id
     assert next_draft.training.training_date == "2026-09-02"
+    assert next_draft.selection.mode is None
     assert next_draft.edit.replace_training_id == conflict_training_id
     assert next_draft.edit.original_training_date == "2026-09-01"
     assert next_draft.ui.date_conflict is None

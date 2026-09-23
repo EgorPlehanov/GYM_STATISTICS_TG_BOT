@@ -53,6 +53,17 @@ def test_training_values_from_draft_marks_delete_target() -> None:
     assert "<s>1) 18:30 - 80 × 8</s>" in text
 
 
+def test_training_result_does_not_include_date_edit_marker() -> None:
+    """Итог тренировки не содержит UI-метку несохраненного изменения даты."""
+    draft = _build_training_draft()
+    draft.selection.mode = TrainingMode.EDIT_DATE.value
+
+    text = get_training_values_from_draft(draft, is_result=True)
+
+    assert "✏️" not in text
+    assert "<b>Вс</b> <b>13.09.2026</b>" in text
+
+
 def test_current_values_from_draft_formats_selection() -> None:
     """Проверяет текущий ввод из selection/edit draft."""
     draft = _build_training_draft()

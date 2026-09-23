@@ -1,5 +1,4 @@
-from aiogram import F, Router, html
-from aiogram.enums import ParseMode
+from aiogram import Router, html
 from aiogram.exceptions import TelegramAPIError
 from aiogram.filters import Command
 from aiogram.types import InputRichMessage, Message
@@ -20,32 +19,35 @@ async def admin_cmd(message: Message):
         text=(
             f"{html.bold('Минимальная admin-панель')}\n\n"
             "/admin_status - проверить доступность backend API\n"
-            "/training_designs - посмотреть макеты сообщений тренировки в личке\n"
+            "/training_designs - отправить варианты Rich HTML в чаты редиректа\n"
         )
     )
 
 
-@router.message(Command("training_designs"), F.chat.type == "private")
+@router.message(Command("training_designs"))
 async def training_designs(message: Message) -> None:
-    """Показывает админу все ParseMode и структурные Rich Messages."""
-    for preview in build_training_previews():
-        if preview.rich_format is None:
-            await message.answer(text=preview.text, parse_mode=preview.parse_mode)
-            continue
+    """Отправляет админу варианты Rich HTML в его чаты редиректа."""
+    async with BotApiClient() as api_client:
+        redirect_group_ids = await api_client.get_redirect_group_ids(message.from_user.id)
 
-        try:
-            await message.bot.send_rich_message(
-                chat_id=message.chat.id,
-                rich_message=InputRichMessage(**{preview.rich_format.value: preview.text}),
-            )
-        except TelegramAPIError as error:
-            await message.answer(
-                text=(
-                    f"⚠️ {html.quote(preview.title)}: "
-                    f"Rich Message не отправлено ({html.quote(error.message)})."
-                ),
-                parse_mode=ParseMode.HTML,
-            )
+    if not redirect_group_ids:
+        await message.answer("⚠️ Нет групп с включенным редиректом.")
+        return
+
+    for preview in build_training_previews():
+        for group_id in redirect_group_ids:
+            try:
+                await message.bot.send_rich_message(
+                    chat_id=group_id,
+                    rich_message=InputRichMessage(**{preview.rich_format.value: preview.text}),
+                )
+            except TelegramAPIError as error:
+                await message.answer(
+                    text=(
+                        f"⚠️ {html.quote(preview.title)}: "
+                        f"Rich Message не отправлено ({html.quote(error.message)})."
+                    ),
+                )
 
 
 @router.message(Command("admin_status"))
