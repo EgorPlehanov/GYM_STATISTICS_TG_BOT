@@ -121,6 +121,19 @@ class BotTrainingSaveOutcome(str, Enum):
 
 
 @dataclass(frozen=True)
+class BotDeletedRedirectMessage:
+    """Ссылка на redirect-сообщение удаленной тренировки.
+
+    Attributes:
+        group_id: Telegram chat id redirect-группы.
+        message_id: id сообщения результата в этой группе.
+    """
+
+    group_id: int
+    message_id: int
+
+
+@dataclass(frozen=True)
 class BotTrainingSaveResult:
     """Результат сохранения тренировки через backend API.
 
@@ -128,8 +141,10 @@ class BotTrainingSaveResult:
         training_id: внутренний id сохраненной тренировки.
         outcome: единый семантический результат сохранения.
         training_dates: актуальные даты тренировок пользователя.
+        deleted_redirect_messages: сообщения, которые нужно удалить из Telegram.
     """
 
     training_id: int
     outcome: BotTrainingSaveOutcome
     training_dates: list[date]
+    deleted_redirect_messages: list[BotDeletedRedirectMessage]

@@ -17,6 +17,9 @@ async def test_new_draft_replaces_conflict_only_at_save(monkeypatch) -> None:
     async def fake_delete_training_for_user(**kwargs) -> None:
         calls.append(("delete", kwargs))
 
+    async def fake_get_training_result_messages(**_kwargs) -> list[tuple[int, int]]:
+        return [(-1001, 42)]
+
     async def fake_get_internal_user_id_or_raise(**_kwargs) -> int:
         return 1
 
@@ -36,6 +39,11 @@ async def test_new_draft_replaces_conflict_only_at_save(monkeypatch) -> None:
         fake_get_internal_user_id_or_raise,
     )
     monkeypatch.setattr(
+        training_repository,
+        "_get_training_result_messages",
+        fake_get_training_result_messages,
+    )
+    monkeypatch.setattr(
         training_repository, "save_new_training_data", fake_save_new_training_data
     )
     monkeypatch.setattr(training_repository, "delete_old_sets", fake_delete_old_sets)
@@ -46,7 +54,7 @@ async def test_new_draft_replaces_conflict_only_at_save(monkeypatch) -> None:
         replace_training_id=20,
     )
 
-    assert result == (42, False, True)
+    assert result == (42, False, True, [(-1001, 42)])
     assert calls == [
         (
             "delete",
@@ -77,6 +85,9 @@ async def test_saved_draft_checks_owner_then_replaces_conflict(monkeypatch) -> N
     async def fake_delete_training_for_user(**kwargs) -> None:
         calls.append(("delete_conflict", kwargs))
 
+    async def fake_get_training_result_messages(**_kwargs) -> list[tuple[int, int]]:
+        return []
+
     async def fake_update_training_data(*_args) -> bool:
         calls.append(("update_source", None))
         return True
@@ -101,6 +112,11 @@ async def test_saved_draft_checks_owner_then_replaces_conflict(monkeypatch) -> N
     )
     monkeypatch.setattr(
         training_repository,
+        "_get_training_result_messages",
+        fake_get_training_result_messages,
+    )
+    monkeypatch.setattr(
+        training_repository,
         "update_training_data",
         fake_update_training_data,
     )
@@ -112,7 +128,7 @@ async def test_saved_draft_checks_owner_then_replaces_conflict(monkeypatch) -> N
         replace_training_id=20,
     )
 
-    assert result == (10, True, False)
+    assert result == (10, True, False, [])
     assert [name for name, _ in calls] == [
         "ensure_source",
         "delete_conflict",
@@ -133,6 +149,9 @@ async def test_failed_replacement_rolls_back_conflict_deletion(monkeypatch) -> N
     async def fake_delete_training_for_user(**_kwargs) -> None:
         calls.append("delete")
 
+    async def fake_get_training_result_messages(**_kwargs) -> list[tuple[int, int]]:
+        return []
+
     async def failed_save_new_training_data(_session, _training_data) -> int:
         raise RuntimeError("Ошибка вставки тренировки")
 
@@ -145,6 +164,11 @@ async def test_failed_replacement_rolls_back_conflict_deletion(monkeypatch) -> N
         training_repository,
         "_delete_training_for_user",
         fake_delete_training_for_user,
+    )
+    monkeypatch.setattr(
+        training_repository,
+        "_get_training_result_messages",
+        fake_get_training_result_messages,
     )
     monkeypatch.setattr(
         training_repository,

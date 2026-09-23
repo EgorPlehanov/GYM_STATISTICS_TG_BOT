@@ -20,11 +20,13 @@ from app.bot.handlers import (
     training,
     user_member,
 )
+from app.bot.readiness import clear_bot_readiness, notify_admin_and_mark_bot_ready
 from app.core.config import config
 
 
 async def main() -> None:
     """Запускает Telegram-бота в режиме polling."""
+    clear_bot_readiness()
     bot = Bot(
         token=config.TG_BOT_TOKEN.get_secret_value(),
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
@@ -47,6 +49,11 @@ async def main() -> None:
     )
 
     await bot.delete_webhook(drop_pending_updates=True)
+    await notify_admin_and_mark_bot_ready(
+        bot,
+        admin_chat_id=int(config.MAIN_ADMIN_ID.get_secret_value()),
+        app_env=config.APP_ENV,
+    )
     await dp.start_polling(bot)
 
 

@@ -453,6 +453,7 @@ async def test_bot_api_client_save_training_serializes_training_dto(monkeypatch)
                 "training_id": 10,
                 "outcome": "created",
                 "training_dates": ["2026-09-09"],
+                "deleted_redirect_messages": [{"group_id": -1001, "message_id": 42}],
             },
         )
 
@@ -495,6 +496,9 @@ async def test_bot_api_client_save_training_serializes_training_dto(monkeypatch)
     assert result.training_id == 10
     assert result.outcome is BotTrainingSaveOutcome.CREATED
     assert result.training_dates == [date(2026, 9, 9)]
+    assert [(item.group_id, item.message_id) for item in result.deleted_redirect_messages] == [
+        (-1001, 42)
+    ]
     assert captured_request == {
         "method": "POST",
         "url": "http://api:8000/internal/bot/trainings",

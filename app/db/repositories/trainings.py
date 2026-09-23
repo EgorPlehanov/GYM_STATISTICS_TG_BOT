@@ -5,7 +5,7 @@ from datetime import date, datetime
 from sqlalchemy import and_, delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Exercise, Set, Training, User
+from app.db.models import Exercise, GroupTrainingResultMessage, Set, Training, User
 from app.db.repositories.users import get_internal_user_id_by_telegram_id
 
 
@@ -237,14 +237,18 @@ async def save_training_data(
     """Сохраняет тренировку и подходы.
 
     Returns:
-        `(training_id, update_flag, create_flag)`, где `update_flag` показывает,
-        были ли изменены данные, а `create_flag` - создана ли новая тренировка.
-        Если передан `replace_training_id`, конфликтующая тренировка удаляется
-        в той же транзакции перед созданием или обновлением текущей.
+        `(training_id, update_flag, create_flag, deleted_redirect_messages)`, где
+        `update_flag` показывает, были ли изменены данные, а `create_flag` -
+        создана ли новая тренировка.
+        `deleted_redirect_messages` содержит group/message id сообщений удаленной
+        конфликтующей тренировки. Если передан `replace_training_id`, конфликтующая
+        тренировка удаляется в той же транзакции перед созданием или обновлением
+        текущей.
     """
     try:
         update_flag = False
         create_flag = False
+        deleted_redirect_messages: list[tuple[int, int]] = []
 
         training_id = training_data.get("id")
         internal_user_id = await _get_internal_user_id_or_raise(
@@ -261,6 +265,10 @@ async def save_training_data(
         if replace_training_id is not None:
             if replace_training_id == training_id:
                 raise ValueError("Нельзя заменить тренировку самой собой")
+            deleted_redirect_messages = await _get_training_result_messages(
+                session=session,
+                training_id=replace_training_id,
+            )
             await _delete_training_for_user(
                 session=session,
                 training_id=replace_training_id,
@@ -305,7 +313,7 @@ async def save_training_data(
         update_flag = is_updated if is_updated else update_flag
 
         await session.commit()
-        return training_id, update_flag, create_flag
+        return training_id, update_flag, create_flag, deleted_redirect_messages
     except Exception:
         await session.rollback()
         raise
@@ -340,6 +348,21 @@ async def _delete_training_for_user(
     )
     if result.scalar_one_or_none() is None:
         raise ValueError("Конфликтующая тренировка на выбранной дате не найдена")
+
+
+async def _get_training_result_messages(
+    *,
+    session: AsyncSession,
+    training_id: int,
+) -> list[tuple[int, int]]:
+    """Возвращает redirect-сообщения до каскадного удаления тренировки."""
+    result = await session.execute(
+        select(
+            GroupTrainingResultMessage.group_id,
+            GroupTrainingResultMessage.message_id,
+        ).where(GroupTrainingResultMessage.training_id == training_id)
+    )
+    return [(row.group_id, row.message_id) for row in result.all()]
 
 
 async def _get_internal_user_id_or_raise(

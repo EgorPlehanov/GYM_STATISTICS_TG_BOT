@@ -5,9 +5,12 @@ from unittest.mock import AsyncMock
 
 import pytest
 from aiogram.exceptions import TelegramForbiddenError
-from aiogram.methods import SendMessage
+from aiogram.methods import DeleteMessage, SendMessage
 
-from app.bot.api_client.schemas.trainings import BotTrainingSaveOutcome
+from app.bot.api_client.schemas.trainings import (
+    BotDeletedRedirectMessage,
+    BotTrainingSaveOutcome,
+)
 from app.bot.telegram.message_operations import ControlledMessageOperationResult
 
 
@@ -56,6 +59,68 @@ async def test_unchanged_training_skips_redirect_calls(monkeypatch) -> None:
 
     api_client.get_redirect_group_ids.assert_not_awaited()
     bot.send_message.assert_not_awaited()
+
+
+async def test_removed_training_deletes_redirect_message() -> None:
+    """После удаления тренировки удаляется связанное сообщение группы."""
+    from app.bot.handlers.training_units.redirect_result import (
+        delete_removed_training_redirect_messages,
+    )
+
+    bot = SimpleNamespace(delete_message=AsyncMock())
+
+    await delete_removed_training_redirect_messages(
+        bot=bot,
+        deleted_redirect_messages=[BotDeletedRedirectMessage(group_id=-1001, message_id=42)],
+    )
+
+    bot.delete_message.assert_awaited_once_with(chat_id=-1001, message_id=42)
+
+
+async def test_removed_training_ignores_already_missing_redirect_message(monkeypatch) -> None:
+    """Ручное удаление сообщения не мешает завершить очистку тренировки."""
+    from app.bot.handlers.training_units import redirect_result
+
+    delete_message = AsyncMock(
+        return_value=ControlledMessageOperationResult.MESSAGE_UNAVAILABLE
+    )
+    monkeypatch.setattr(redirect_result, "delete_controlled_message", delete_message)
+    bot = SimpleNamespace(delete_message=AsyncMock())
+
+    await redirect_result.delete_removed_training_redirect_messages(
+        bot=bot,
+        deleted_redirect_messages=[BotDeletedRedirectMessage(group_id=-1001, message_id=42)],
+    )
+
+    delete_message.assert_awaited_once_with(bot=bot, chat_id=-1001, message_id=42)
+
+
+async def test_removed_training_marks_forbidden_redirect_group(monkeypatch) -> None:
+    """Недоступная группа помечается, если удалить ее сообщение невозможно."""
+    from app.bot.handlers.training_units import redirect_result
+
+    api_client = FakeBotApiClient()
+    _patch_api_client(monkeypatch, api_client)
+    monkeypatch.setattr(
+        redirect_result,
+        "delete_controlled_message",
+        AsyncMock(
+            side_effect=TelegramForbiddenError(
+                method=DeleteMessage(chat_id=-1001, message_id=42),
+                message="Forbidden: bot was kicked from the group chat",
+            )
+        ),
+    )
+
+    await redirect_result.delete_removed_training_redirect_messages(
+        bot=SimpleNamespace(delete_message=AsyncMock()),
+        deleted_redirect_messages=[BotDeletedRedirectMessage(group_id=-1001, message_id=42)],
+    )
+
+    api_client.update_group_bot_banned.assert_awaited_once_with(
+        group_id=-1001,
+        is_bot_banned=True,
+    )
 
 
 async def test_created_training_sends_and_upserts_result(monkeypatch) -> None:

@@ -30,6 +30,8 @@ from app.bot.ui.training.calendar import (
     resolve_training_calendar_interaction,
 )
 
+from .redirect_result import delete_removed_training_redirect_messages
+
 router = Router()
 
 
@@ -173,6 +175,10 @@ async def save_current_training_and_open_selected_date(
     await replace_after_backend(
         bot=callback.bot, chat_id=callback.message.chat.id, state=state,
         draft=next_draft, step=TrainingFlowStep.MENU,
+    )
+    await delete_removed_training_redirect_messages(
+        bot=callback.bot,
+        deleted_redirect_messages=save_result.deleted_redirect_messages,
     )
 
 

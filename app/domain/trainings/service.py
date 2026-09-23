@@ -81,7 +81,7 @@ async def save_training(
     session: AsyncSession,
     training_data: TrainingData,
     replace_training_id: int | None = None,
-) -> tuple[int, TrainingSaveOutcome]:
+) -> tuple[int, TrainingSaveOutcome, list[tuple[int, int]]]:
     """Сохраняет тренировку и возвращает единый бизнес-результат операции.
 
     Args:
@@ -90,20 +90,26 @@ async def save_training(
         replace_training_id: id конфликтующей тренировки для атомарной замены.
 
     Returns:
-        пару из id тренировки и семантического результата сохранения.
+        id тренировки, семантический результат сохранения и redirect-сообщения
+        удаленной конфликтующей тренировки.
         Создание тренировки имеет приоритет над техническими изменениями
         созданных вместе с ней подходов.
     """
-    training_id, updated, created = await training_repository.save_training_data(
+    (
+        training_id,
+        updated,
+        created,
+        deleted_redirect_messages,
+    ) = await training_repository.save_training_data(
         session,
         training_data,
         replace_training_id=replace_training_id,
     )
     if created:
-        return training_id, TrainingSaveOutcome.CREATED
+        return training_id, TrainingSaveOutcome.CREATED, deleted_redirect_messages
     if updated:
-        return training_id, TrainingSaveOutcome.UPDATED
-    return training_id, TrainingSaveOutcome.UNCHANGED
+        return training_id, TrainingSaveOutcome.UPDATED, deleted_redirect_messages
+    return training_id, TrainingSaveOutcome.UNCHANGED, deleted_redirect_messages
 
 
 async def check_training_exists_for_user_and_date(

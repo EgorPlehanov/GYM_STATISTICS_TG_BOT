@@ -30,7 +30,10 @@ from app.bot.ui.training import (
     transition_training_screen,
 )
 
-from .redirect_result import send_training_result_to_redirect_groups
+from .redirect_result import (
+    delete_removed_training_redirect_messages,
+    send_training_result_to_redirect_groups,
+)
 
 router = Router()
 
@@ -129,6 +132,10 @@ async def _run_post_save_actions(
     from app.bot.formatters.training import format_training_step
 
     rendered_result = format_training_step(draft, TrainingFlowStep.RESULT)
+    await delete_removed_training_redirect_messages(
+        bot=callback.bot,
+        deleted_redirect_messages=save_result.deleted_redirect_messages,
+    )
     await send_training_result_to_redirect_groups(
         bot=callback.bot,
         result_text=f"@{callback.from_user.username}\n{rendered_result}",

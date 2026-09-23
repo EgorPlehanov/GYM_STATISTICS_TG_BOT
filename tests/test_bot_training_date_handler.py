@@ -4,6 +4,8 @@ from datetime import date
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
+import pytest
+
 from app.bot.api_client.schemas.trainings import (
     BotTraining,
     BotTrainingByDateResult,
@@ -276,6 +278,7 @@ async def test_save_and_go_keeps_pending_replacement(monkeypatch) -> None:
                 training_id=source_training_id,
                 outcome=BotTrainingSaveOutcome.UPDATED,
                 training_dates=[date(2026, 9, 2)],
+                deleted_redirect_messages=[],
             )
         )
     )
@@ -307,3 +310,66 @@ async def test_save_and_go_keeps_pending_replacement(monkeypatch) -> None:
     assert save_kwargs["training"].training_date == date(2026, 9, 2)
     assert captured["draft"].training.training_id == next_conflict_id
     assert captured["draft"].edit.original_training_date is None
+
+
+async def test_save_and_go_updates_fsm_before_redirect_cleanup(monkeypatch) -> None:
+    """Ошибка очистки redirect не оставляет в FSM уже выполненную замену."""
+    draft = TrainingDraft(
+        training=TrainingDraftData(training_id=10, training_date="2026-09-02")
+    )
+    draft.ui.message_id = 42
+    draft.edit.replace_training_id = 20
+    draft.ui.date_conflict = TrainingDateConflict(
+        training=TrainingDraftData(training_id=30, training_date="2026-09-03")
+    )
+    state = FakeFSMContext(draft)
+    callback = SimpleNamespace(
+        from_user=SimpleNamespace(id=1),
+        message=SimpleNamespace(message_id=42, chat=SimpleNamespace(id=1)),
+        bot=object(),
+        answer=AsyncMock(),
+    )
+    api_client = SimpleNamespace(
+        save_training=AsyncMock(
+            return_value=BotTrainingSaveResult(
+                training_id=10,
+                outcome=BotTrainingSaveOutcome.UPDATED,
+                training_dates=[date(2026, 9, 2)],
+                deleted_redirect_messages=[],
+            )
+        )
+    )
+    calls: list[str] = []
+
+    class FakeBotApiClient:
+        """Контекстный клиент API без сетевого запроса."""
+
+        async def __aenter__(self):
+            """Возвращает подготовленный клиент."""
+            return api_client
+
+        async def __aexit__(self, *_args):
+            """Не подавляет исключения теста."""
+            return False
+
+    async def fake_replace_after_backend(**_kwargs) -> None:
+        """Отмечает сохранение нового состояния FSM."""
+        calls.append("fsm")
+
+    async def fake_delete_redirect_messages(**_kwargs) -> None:
+        """Имитирует ошибку внешнего Telegram-вызова."""
+        calls.append("redirect")
+        raise RuntimeError("Telegram временно недоступен")
+
+    monkeypatch.setattr(date_handlers, "BotApiClient", FakeBotApiClient)
+    monkeypatch.setattr(date_handlers, "replace_after_backend", fake_replace_after_backend)
+    monkeypatch.setattr(
+        date_handlers,
+        "delete_removed_training_redirect_messages",
+        fake_delete_redirect_messages,
+    )
+
+    with pytest.raises(RuntimeError, match="Telegram временно недоступен"):
+        await date_handlers.save_current_training_and_open_selected_date(callback, state)
+
+    assert calls == ["fsm", "redirect"]

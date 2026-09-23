@@ -710,7 +710,7 @@ def test_internal_bot_training_save_calls_domain_service(monkeypatch):
                 "replace_training_id": replace_training_id,
             }
         )
-        return 10, TrainingSaveOutcome.CREATED
+        return 10, TrainingSaveOutcome.CREATED, [(1001, 77)]
 
     async def fake_get_training_date_by_user_id(session, user_id):
         """Возвращает актуальные даты после сохранения тренировки."""
@@ -769,6 +769,7 @@ def test_internal_bot_training_save_calls_domain_service(monkeypatch):
         "training_id": 10,
         "outcome": "created",
         "training_dates": ["2026-09-09"],
+        "deleted_redirect_messages": [{"group_id": 1001, "message_id": 77}],
     }
     assert calls == [
         {

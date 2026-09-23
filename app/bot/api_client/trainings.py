@@ -6,6 +6,7 @@ from typing import Any
 from app.bot.api_client.base import BotApiClientBase
 from app.bot.api_client.schemas.exercises import BotExercise
 from app.bot.api_client.schemas.trainings import (
+    BotDeletedRedirectMessage,
     BotTraining,
     BotTrainingByDateResult,
     BotTrainingExercise,
@@ -126,6 +127,13 @@ class BotTrainingsApiClientMixin(BotApiClientBase):
             training_id=payload["training_id"],
             outcome=BotTrainingSaveOutcome(payload["outcome"]),
             training_dates=[date.fromisoformat(item) for item in payload["training_dates"]],
+            deleted_redirect_messages=[
+                BotDeletedRedirectMessage(
+                    group_id=item["group_id"],
+                    message_id=item["message_id"],
+                )
+                for item in payload["deleted_redirect_messages"]
+            ],
         )
 
     async def delete_training(self, training_id: int) -> None:

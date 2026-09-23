@@ -27,6 +27,18 @@ services:
         condition: service_healthy
       api:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "from pathlib import Path; raise SystemExit(0 if Path('/tmp/gym-statistics-bot.ready').is_file() else 1)",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
 
   api:
     build: .

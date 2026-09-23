@@ -1,12 +1,41 @@
 from aiogram import Bot
 from aiogram.exceptions import TelegramForbiddenError
 
-from app.bot.api_client.schemas.trainings import BotTrainingSaveOutcome
+from app.bot.api_client.schemas.trainings import (
+    BotDeletedRedirectMessage,
+    BotTrainingSaveOutcome,
+)
 from app.bot.client import BotApiClient
 from app.bot.telegram.message_operations import (
     ControlledMessageOperationResult,
+    delete_controlled_message,
     edit_controlled_message_text,
 )
+
+
+async def delete_removed_training_redirect_messages(
+    *,
+    bot: Bot,
+    deleted_redirect_messages: list[BotDeletedRedirectMessage],
+) -> None:
+    """Удаляет redirect-сообщения тренировки после успешного commit в БД.
+
+    Отсутствующее сообщение считается уже удаленным. При запрете Telegram
+    группа помечается недоступной, как и при отправке результата.
+    """
+    for message in deleted_redirect_messages:
+        try:
+            await delete_controlled_message(
+                bot=bot,
+                chat_id=message.group_id,
+                message_id=message.message_id,
+            )
+        except TelegramForbiddenError:
+            async with BotApiClient() as api_client:
+                await api_client.update_group_bot_banned(
+                    group_id=message.group_id,
+                    is_bot_banned=True,
+                )
 
 
 async def send_training_result_to_redirect_groups(

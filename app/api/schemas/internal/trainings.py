@@ -119,6 +119,13 @@ class InternalBotTrainingSaveOutcome(str, Enum):
     UNCHANGED = "unchanged"
 
 
+class InternalBotDeletedRedirectMessage(BaseModel):
+    """Redirect-сообщение, которое нужно удалить после удаления тренировки."""
+
+    group_id: int
+    message_id: int
+
+
 class InternalBotTrainingSaveResponse(BaseModel):
     """Результат сохранения тренировки из Telegram-бота.
 
@@ -126,8 +133,10 @@ class InternalBotTrainingSaveResponse(BaseModel):
         training_id: id сохраненной тренировки.
         outcome: единый семантический результат сохранения.
         training_dates: актуальные даты тренировок пользователя.
+        deleted_redirect_messages: сообщения удаленной конфликтующей тренировки.
     """
 
     training_id: int
     outcome: InternalBotTrainingSaveOutcome
     training_dates: list[date]
+    deleted_redirect_messages: list[InternalBotDeletedRedirectMessage]

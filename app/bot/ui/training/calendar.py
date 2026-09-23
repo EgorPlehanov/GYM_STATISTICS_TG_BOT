@@ -356,7 +356,7 @@ def _day_button(
     elif day_date in saved_dates:
         text = f"✓{day}"
     elif day_date == today:
-        text = f"📍{day}"
+        text = f"●{day}"
     else:
         text = str(day)
     return _callback_button(

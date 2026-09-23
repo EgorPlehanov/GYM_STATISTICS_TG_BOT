@@ -25,7 +25,7 @@ async def test_save_training_maps_repository_flags_to_semantic_outcome(
     async def fake_save_training_data(session, training_data, replace_training_id=None):
         """Возвращает технический результат репозитория без обращения к БД."""
         assert replace_training_id is None
-        return 42, updated, created
+        return 42, updated, created, []
 
     monkeypatch.setattr(
         trainings_service.training_repository,
@@ -33,10 +33,11 @@ async def test_save_training_maps_repository_flags_to_semantic_outcome(
         fake_save_training_data,
     )
 
-    training_id, outcome = await trainings_service.save_training(
+    training_id, outcome, deleted_redirect_messages = await trainings_service.save_training(
         session=object(),
         training_data={},
     )
 
     assert training_id == 42
     assert outcome is expected_outcome
+    assert deleted_redirect_messages == []

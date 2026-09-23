@@ -6,6 +6,7 @@ from fastapi import APIRouter
 
 from app.api.deps import DbSession
 from app.api.schemas.internal.trainings import (
+    InternalBotDeletedRedirectMessage,
     InternalBotTrainingByDateResponse,
     InternalBotTrainingData,
     InternalBotTrainingExercise,
@@ -124,7 +125,7 @@ async def save_bot_training(
     Returns:
         результат сохранения из domain service.
     """
-    training_id, outcome = await save_training(
+    training_id, outcome, deleted_redirect_messages = await save_training(
         session=session,
         training_data=_dto_to_repository_training_data(
             payload.training,
@@ -140,6 +141,10 @@ async def save_bot_training(
         training_id=training_id,
         outcome=InternalBotTrainingSaveOutcome(outcome.value),
         training_dates=training_dates,
+        deleted_redirect_messages=[
+            InternalBotDeletedRedirectMessage(group_id=group_id, message_id=message_id)
+            for group_id, message_id in deleted_redirect_messages
+        ],
     )
 
 
