@@ -101,6 +101,7 @@ async def finish(callback: CallbackQuery, state: FSMContext) -> None:
     result_draft = deepcopy(draft)
     result_draft.training.training_id = save_result.training_id
     result_draft.edit.replace_training_id = None
+    result_draft.edit.original_training_date = None
     set_draft_training_dates(result_draft, save_result.training_dates)
     try:
         await replace_after_backend(

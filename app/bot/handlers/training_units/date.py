@@ -47,21 +47,25 @@ async def _select_date(
     if current_draft.training.training_date is not None and result.exists:
         if current_draft.training.training_date == training_date.isoformat():
             return
-        next_draft = deepcopy(current_draft)
-        next_draft.ui.date_conflict = TrainingDateConflict(training=loaded_draft.training)
-        _clear_calendar_month(next_draft)
-        await transition_training_screen(
-            bot=callback.bot, chat_id=callback.message.chat.id, state=state,
-            current_draft=current_draft, next_draft=next_draft,
-            next_step=TrainingFlowStep.CHANGE_DATE_ACCEPT,
-        )
-        return
+        if (
+            current_draft.training.training_id is None
+            or result.training.training_id != current_draft.training.training_id
+        ):
+            next_draft = deepcopy(current_draft)
+            next_draft.ui.date_conflict = TrainingDateConflict(training=loaded_draft.training)
+            _clear_calendar_month(next_draft)
+            await transition_training_screen(
+                bot=callback.bot, chat_id=callback.message.chat.id, state=state,
+                current_draft=current_draft, next_draft=next_draft,
+                next_step=TrainingFlowStep.CHANGE_DATE_ACCEPT,
+            )
+            return
 
     next_draft = deepcopy(current_draft)
     if current_draft.training.training_date is None:
         next_draft.training = loaded_draft.training
     else:
-        next_draft.training.training_date = training_date.isoformat()
+        _set_draft_training_date(next_draft, training_date.isoformat())
     if next_draft.training.training_date is not None:
         next_draft.selection.mode = None
     next_draft.ui.date_conflict = None
@@ -163,6 +167,7 @@ async def save_current_training_and_open_selected_date(
     next_draft.selection.exercise_name = None
     next_draft.ui.date_conflict = None
     next_draft.edit.replace_training_id = None
+    next_draft.edit.original_training_date = None
     set_draft_training_dates(next_draft, save_result.training_dates)
     _clear_calendar_month(next_draft)
     await replace_after_backend(
@@ -188,7 +193,7 @@ async def changed_to_current_date(callback: CallbackQuery, state: FSMContext) ->
     if conflict.training.training_id is None:
         raise ValueError("Для замены даты нужен id конфликтующей тренировки")
     next_draft = deepcopy(draft)
-    next_draft.training.training_date = conflict.training.training_date
+    _set_draft_training_date(next_draft, conflict.training.training_date)
     next_draft.edit.replace_training_id = conflict.training.training_id
     next_draft.ui.date_conflict = None
     _clear_calendar_month(next_draft)
@@ -203,3 +208,14 @@ def _clear_calendar_month(draft: TrainingDraft) -> None:
     draft.ui.calendar_view = None
     draft.ui.calendar_year = None
     draft.ui.calendar_month = None
+
+
+def _set_draft_training_date(draft: TrainingDraft, training_date: str) -> None:
+    """Запоминает дату в БД при первом переносе и сбрасывает ее при возврате."""
+    original_date = draft.edit.original_training_date
+    if original_date is None and draft.training.training_id is not None:
+        original_date = draft.training.training_date
+    draft.training.training_date = training_date
+    draft.edit.original_training_date = (
+        original_date if original_date != training_date else None
+    )

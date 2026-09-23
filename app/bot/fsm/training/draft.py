@@ -101,6 +101,8 @@ class TrainingEditContext:
         set_number: номер редактируемого подхода в тренировке.
         replace_training_id: id тренировки, которую нужно атомарно заменить
             при финальном сохранении изменения даты.
+        original_training_date: дата сохраненной тренировки до изменения draft;
+            освобождается после сохранения и отмечается в календаре.
     """
 
     exercise_id: int | None = None
@@ -108,6 +110,7 @@ class TrainingEditContext:
     set_id: int | None = None
     set_number: int | None = None
     replace_training_id: int | None = None
+    original_training_date: str | None = None
 
 
 @dataclass(slots=True)

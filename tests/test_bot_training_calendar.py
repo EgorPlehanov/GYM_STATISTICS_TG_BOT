@@ -5,7 +5,14 @@ from datetime import date
 import pytest
 from aiogram.types import InlineKeyboardButton
 
-from app.bot.fsm.training import TrainingCalendarView
+from app.bot.fsm.training import (
+    TrainingCalendarView,
+    TrainingDraft,
+    TrainingDraftData,
+    TrainingFlowStep,
+    TrainingMode,
+)
+from app.bot.ui.training import render_training_view
 from app.bot.ui.training.calendar import (
     TrainingCalendarAction,
     TrainingCalendarCallback,
@@ -46,6 +53,27 @@ def test_days_view_aligns_available_dates_by_weekday_and_marks_training() -> Non
     assert "✎20" in [label for row in rows for label in row]
     assert "✓20" not in [label for row in rows for label in row]
     assert "21" not in [label for row in rows for label in row]
+
+
+def test_calendar_marks_date_vacated_by_pending_move() -> None:
+    """Исходная дата переноса не выглядит как неизменённая сохранённая тренировка."""
+    draft = TrainingDraft(
+        training=TrainingDraftData(training_id=10, training_date="2026-09-02")
+    )
+    draft.selection.mode = TrainingMode.EDIT_DATE.value
+    draft.edit.original_training_date = "2026-09-01"
+    draft.suggestions.training_dates = ["2026-09-01", "2026-09-03"]
+    draft.ui.calendar_year = 2026
+    draft.ui.calendar_month = 9
+
+    view = render_training_view(draft, TrainingFlowStep.SELECT_DATE)
+    labels = [button.text for row in view.reply_markup.inline_keyboard for button in row]
+
+    assert "🗑1" in labels
+    assert "✓1" not in labels
+    assert "✎2" in labels
+    assert "✓3" in labels
+    assert "🗑 — дата освободится после сохранения" in view.text
 
 
 def test_months_view_shows_only_available_months_without_placeholders() -> None:

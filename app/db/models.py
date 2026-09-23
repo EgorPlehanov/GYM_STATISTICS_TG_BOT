@@ -286,6 +286,9 @@ class Training(Base):
     """
 
     __tablename__ = "training"
+    __table_args__ = (
+        UniqueConstraint("user_id", "date", name="uq_training_user_id_date"),
+    )
 
     id: Mapped[intpk]
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"))

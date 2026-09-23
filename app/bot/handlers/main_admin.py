@@ -1,9 +1,12 @@
-from aiogram import Router, html
+from aiogram import F, Router, html
+from aiogram.enums import ParseMode
+from aiogram.exceptions import TelegramAPIError
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import InputRichMessage, Message
 
 from app.bot.client import BotApiClient
 from app.bot.filters.main_admin import MainAdminFilter
+from app.bot.formatters.training_previews import build_training_previews
 from app.bot.middlewares import ChatActionMiddleware
 
 router = Router()
@@ -17,8 +20,32 @@ async def admin_cmd(message: Message):
         text=(
             f"{html.bold('Минимальная admin-панель')}\n\n"
             "/admin_status - проверить доступность backend API\n"
+            "/training_designs - посмотреть макеты сообщений тренировки в личке\n"
         )
     )
+
+
+@router.message(Command("training_designs"), F.chat.type == "private")
+async def training_designs(message: Message) -> None:
+    """Показывает админу все ParseMode и структурные Rich Messages."""
+    for preview in build_training_previews():
+        if preview.rich_format is None:
+            await message.answer(text=preview.text, parse_mode=preview.parse_mode)
+            continue
+
+        try:
+            await message.bot.send_rich_message(
+                chat_id=message.chat.id,
+                rich_message=InputRichMessage(**{preview.rich_format.value: preview.text}),
+            )
+        except TelegramAPIError as error:
+            await message.answer(
+                text=(
+                    f"⚠️ {html.quote(preview.title)}: "
+                    f"Rich Message не отправлено ({html.quote(error.message)})."
+                ),
+                parse_mode=ParseMode.HTML,
+            )
 
 
 @router.message(Command("admin_status"))

@@ -149,6 +149,11 @@ def _calendar_keyboard(draft: TrainingDraft) -> InlineKeyboardMarkup:
         month=month,
         training_dates=[date.fromisoformat(item) for item in draft.suggestions.training_dates],
         editing_date=_editing_date(draft),
+        vacated_date=(
+            date.fromisoformat(draft.edit.original_training_date)
+            if draft.edit.original_training_date is not None
+            else None
+        ),
         back_button=back_button,
     )
 

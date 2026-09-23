@@ -204,8 +204,9 @@ async def save_new_training_data(
 async def update_training_data(
     session: AsyncSession,
     training_data: TrainingData,
+    internal_user_id: int,
 ) -> bool:
-    """Обновляет тренировку и возвращает признак изменения строки."""
+    """Обновляет тренировку владельца и возвращает признак изменения строки."""
     result = await session.execute(
         update(Training)
         .values(
@@ -214,6 +215,7 @@ async def update_training_data(
         )
         .where(
             Training.id == training_data.get("id"),
+            Training.user_id == internal_user_id,
             or_(
                 Training.date != _coerce_training_date(training_data.get("date")),
                 Training.comment != training_data.get("comment"),
@@ -238,31 +240,43 @@ async def save_training_data(
         `(training_id, update_flag, create_flag)`, где `update_flag` показывает,
         были ли изменены данные, а `create_flag` - создана ли новая тренировка.
         Если передан `replace_training_id`, конфликтующая тренировка удаляется
-        в той же транзакции перед обновлением исходной.
+        в той же транзакции перед созданием или обновлением текущей.
     """
     try:
         update_flag = False
         create_flag = False
 
         training_id = training_data.get("id")
+        internal_user_id = await _get_internal_user_id_or_raise(
+            session=session,
+            telegram_id=training_data["user_id"],
+        )
+        if training_id is not None:
+            await _ensure_training_belongs_to_user(
+                session=session,
+                training_id=training_id,
+                internal_user_id=internal_user_id,
+            )
+
         if replace_training_id is not None:
-            if training_id is None:
-                raise ValueError(
-                    "Заменить конфликтующую тренировку может только сохраненная тренировка"
-                )
             if replace_training_id == training_id:
                 raise ValueError("Нельзя заменить тренировку самой собой")
             await _delete_training_for_user(
                 session=session,
                 training_id=replace_training_id,
-                telegram_id=training_data["user_id"],
+                internal_user_id=internal_user_id,
+                training_date=_coerce_training_date(training_data["date"]),
             )
 
         if training_id is None:
             training_id = await save_new_training_data(session, training_data)
             create_flag = True
         else:
-            is_updated = await update_training_data(session, training_data)
+            is_updated = await update_training_data(
+                session,
+                training_data,
+                internal_user_id,
+            )
             update_flag = is_updated if is_updated else update_flag
 
         sets_id = []
@@ -301,29 +315,64 @@ async def _delete_training_for_user(
     *,
     session: AsyncSession,
     training_id: int,
-    telegram_id: int,
+    internal_user_id: int,
+    training_date: date,
 ) -> None:
     """Удаляет тренировку пользователя без отдельного commit.
 
     Args:
         session: активная сессия транзакции сохранения.
         training_id: id тренировки, которую нужно заменить.
-        telegram_id: Telegram user id владельца обеих тренировок.
+        internal_user_id: внутренний id владельца обеих тренировок.
+        training_date: выбранная дата, на которой обнаружен конфликт.
 
     Raises:
         ValueError: если пользователь или его тренировка не найдены.
     """
-    internal_user_id = await get_internal_user_id_by_telegram_id(session, telegram_id)
-    if internal_user_id is None:
-        raise ValueError("Пользователь для замены тренировки не найден")
-
     result = await session.execute(
         delete(Training)
-        .where(Training.id == training_id, Training.user_id == internal_user_id)
+        .where(
+            Training.id == training_id,
+            Training.user_id == internal_user_id,
+            Training.date == training_date,
+        )
         .returning(Training.id)
     )
     if result.scalar_one_or_none() is None:
-        raise ValueError("Конфликтующая тренировка не найдена или принадлежит другому пользователю")
+        raise ValueError("Конфликтующая тренировка на выбранной дате не найдена")
+
+
+async def _get_internal_user_id_or_raise(
+    *,
+    session: AsyncSession,
+    telegram_id: int,
+) -> int:
+    """Возвращает внутренний id пользователя или прерывает сохранение."""
+    internal_user_id = await get_internal_user_id_by_telegram_id(session, telegram_id)
+    if internal_user_id is None:
+        raise ValueError("Пользователь для тренировки не найден")
+    return internal_user_id
+
+
+async def _ensure_training_belongs_to_user(
+    *,
+    session: AsyncSession,
+    training_id: int,
+    internal_user_id: int,
+) -> None:
+    """Проверяет принадлежность исходной тренировки пользователю.
+
+    Проверка выполняется до удаления конфликтующей тренировки, чтобы не
+    объединить данные разных пользователей даже при некорректном internal API-запросе.
+    """
+    result = await session.execute(
+        select(Training.id).where(
+            Training.id == training_id,
+            Training.user_id == internal_user_id,
+        )
+    )
+    if result.scalar_one_or_none() is None:
+        raise ValueError("Исходная тренировка не найдена или принадлежит другому пользователю")
 
 
 async def check_training_exists_for_user_and_date(

@@ -324,9 +324,13 @@ def _get_step_text(draft: TrainingDraft, step: TrainingFlowStep) -> str:
         additional_text = html.blockquote(
             f"\n❗❗❗\n{html.bold(additional_text)}\n❗❗❗"
         )
+    date_hint = ""
+    if step is TrainingFlowStep.SELECT_DATE and draft.edit.original_training_date:
+        date_hint = "\n🗑 — дата освободится после сохранения"
     return (
         f"⬇️ {html.bold(html.underline(step_to_text[step]))} ⬇️"
         f"{additional_text}"
+        f"{date_hint}"
     )
 
 

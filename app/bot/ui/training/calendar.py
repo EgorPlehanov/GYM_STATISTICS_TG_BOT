@@ -85,6 +85,7 @@ def render_training_calendar(
     month: int | None,
     training_dates: Iterable[date],
     editing_date: date | None = None,
+    vacated_date: date | None = None,
     back_button: InlineKeyboardButton,
     limits: TrainingDateSelectionLimits = DEFAULT_TRAINING_DATE_SELECTION_LIMITS,
     today: date | None = None,
@@ -97,6 +98,7 @@ def render_training_calendar(
         month: номер месяца для экрана дней; для остальных экранов не нужен.
         training_dates: даты уже сохраненных тренировок пользователя.
         editing_date: текущая дата редактируемой тренировки или `None`.
+        vacated_date: дата, которая освободится после сохранения изменений.
         back_button: кнопка выхода в контекст, из которого открыт календарь.
         limits: ограничения диапазона и навигации по календарю.
         today: текущая дата; параметр нужен для предсказуемого тестирования.
@@ -113,6 +115,7 @@ def render_training_calendar(
             raise ValueError("Для отображения дней необходимо указать месяц")
         return _render_days(
             year=year, month=month, saved_dates=saved_dates, editing_date=editing_date,
+            vacated_date=vacated_date,
             back_button=back_button,
             date_from=date_from, date_to=date_to, today=current_date,
         )
@@ -219,6 +222,7 @@ def resolve_training_calendar_interaction(
 
 def _render_days(
     *, year: int, month: int, saved_dates: set[date], editing_date: date | None,
+    vacated_date: date | None,
     back_button: InlineKeyboardButton, date_from: date, date_to: date, today: date,
 ) -> InlineKeyboardMarkup:
     """Строит экран дней с выравниванием по названиям дней недели."""
@@ -248,7 +252,7 @@ def _render_days(
         builder.row(*[
             _day_button(
                 year=year, month=month, day=day, saved_dates=saved_dates,
-                editing_date=editing_date,
+                editing_date=editing_date, vacated_date=vacated_date,
                 date_from=date_from, date_to=date_to, today=today,
             )
             for day in week
@@ -332,6 +336,7 @@ def _callback_button(
 
 def _day_button(
     *, year: int, month: int, day: int, saved_dates: set[date], editing_date: date | None,
+    vacated_date: date | None,
     date_from: date, date_to: date, today: date,
 ) -> InlineKeyboardButton:
     """Создает кнопку дня или заглушку для сохранения колонок недели."""
@@ -346,6 +351,8 @@ def _day_button(
         )
     if day_date == editing_date:
         text = f"✎{day}"
+    elif day_date == vacated_date:
+        text = f"🗑{day}"
     elif day_date in saved_dates:
         text = f"✓{day}"
     elif day_date == today:
