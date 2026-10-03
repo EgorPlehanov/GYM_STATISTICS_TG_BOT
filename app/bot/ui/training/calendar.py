@@ -47,6 +47,10 @@ class TrainingCalendarAction(str, Enum):
     OPEN_MONTHS = "open_months"
     PREVIOUS_YEARS = "previous_years"
     NEXT_YEARS = "next_years"
+    PREVIOUS_MONTHS_YEAR = "previous_months_year"
+    NEXT_MONTHS_YEAR = "next_months_year"
+    PREVIOUS_MONTH = "previous_month"
+    NEXT_MONTH = "next_month"
     SELECT_YEAR = "select_year"
     SELECT_MONTH = "select_month"
     SELECT_DAY = "select_day"
@@ -207,6 +211,48 @@ def resolve_training_calendar_interaction(
                 years_per_row=limits.years_per_row,
             )
         return TrainingCalendarInteraction(view=TrainingCalendarView.YEARS, year=target_page)
+    if callback_data.action in {
+        TrainingCalendarAction.PREVIOUS_MONTHS_YEAR,
+        TrainingCalendarAction.NEXT_MONTHS_YEAR,
+    }:
+        _validate_year_available(callback_data.year, date_from=date_from, date_to=date_to)
+        target_year = callback_data.year + (
+            -1
+            if callback_data.action is TrainingCalendarAction.PREVIOUS_MONTHS_YEAR
+            else 1
+        )
+        _validate_year_available(target_year, date_from=date_from, date_to=date_to)
+        return TrainingCalendarInteraction(view=TrainingCalendarView.MONTHS, year=target_year)
+    if callback_data.action in {
+        TrainingCalendarAction.PREVIOUS_MONTH,
+        TrainingCalendarAction.NEXT_MONTH,
+    }:
+        _validate_month_available(
+            year=callback_data.year,
+            month=callback_data.month,
+            date_from=date_from,
+            date_to=date_to,
+        )
+        target_year, target_month = _adjacent_month(
+            year=callback_data.year,
+            month=callback_data.month,
+            direction=(
+                -1
+                if callback_data.action is TrainingCalendarAction.PREVIOUS_MONTH
+                else 1
+            ),
+        )
+        _validate_month_available(
+            year=target_year,
+            month=target_month,
+            date_from=date_from,
+            date_to=date_to,
+        )
+        return TrainingCalendarInteraction(
+            view=TrainingCalendarView.DAYS,
+            year=target_year,
+            month=target_month,
+        )
     if callback_data.action is TrainingCalendarAction.SELECT_DAY:
         selected_date = date(callback_data.year, callback_data.month, callback_data.day)
         if not date_from <= selected_date <= date_to:
@@ -258,6 +304,37 @@ def _render_days(
             for day in week
         ])
 
+    previous_year, previous_month = _adjacent_month(
+        year=year,
+        month=month,
+        direction=-1,
+    )
+    next_year, next_month = _adjacent_month(
+        year=year,
+        month=month,
+        direction=1,
+    )
+    navigation_buttons = []
+    if _is_month_available(
+        year=previous_year,
+        month=previous_month,
+        date_from=date_from,
+        date_to=date_to,
+    ):
+        navigation_buttons.append(_callback_button(
+            text="←", action=TrainingCalendarAction.PREVIOUS_MONTH, year=year, month=month,
+        ))
+    if _is_month_available(
+        year=next_year,
+        month=next_month,
+        date_from=date_from,
+        date_to=date_to,
+    ):
+        navigation_buttons.append(_callback_button(
+            text="→", action=TrainingCalendarAction.NEXT_MONTH, year=year, month=month,
+        ))
+    if navigation_buttons:
+        builder.row(*navigation_buttons)
     builder.row(back_button)
     return builder.as_markup()
 
@@ -285,6 +362,17 @@ def _render_months(
     ]
     for row in _split_rows(month_buttons, size=6):
         builder.row(*row)
+    navigation_buttons = []
+    if year > date_from.year:
+        navigation_buttons.append(_callback_button(
+            text="←", action=TrainingCalendarAction.PREVIOUS_MONTHS_YEAR, year=year,
+        ))
+    if year < date_to.year:
+        navigation_buttons.append(_callback_button(
+            text="→", action=TrainingCalendarAction.NEXT_MONTHS_YEAR, year=year,
+        ))
+    if navigation_buttons:
+        builder.row(*navigation_buttons)
     builder.row(back_button)
     return builder.as_markup()
 
@@ -400,6 +488,15 @@ def _is_month_available(*, year: int, month: int, date_from: date, date_to: date
     month_start = date(year, month, 1)
     month_end = date(year, month, calendar.monthrange(year, month)[1])
     return month_start <= date_to and month_end >= date_from
+
+
+def _adjacent_month(*, year: int, month: int, direction: int) -> tuple[int, int]:
+    """Возвращает месяц до или после указанного с учетом смены года."""
+    if direction not in {-1, 1}:
+        raise ValueError("Направление перехода по месяцам должно быть -1 или 1")
+    if direction == -1:
+        return (year - 1, 12) if month == 1 else (year, month - 1)
+    return (year + 1, 1) if month == 12 else (year, month + 1)
 
 
 def _center_year_window(

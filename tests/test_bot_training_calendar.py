@@ -93,6 +93,86 @@ def test_months_view_shows_only_available_months_without_placeholders() -> None:
     assert _labels(markup) == [["2026"], ["Июн", "Июл", "Авг", "Сен"], ["Отмена"]]
 
 
+def test_months_view_shows_only_available_year_navigation() -> None:
+    """Экран месяцев выводит стрелки только к доступным годам."""
+    limits = TrainingDateSelectionLimits(
+        date_from=date(2025, 6, 15),
+        date_to=date(2027, 9, 20),
+        allow_future_dates=True,
+    )
+    first_year = render_training_calendar(
+        view=TrainingCalendarView.MONTHS,
+        year=2025,
+        month=None,
+        training_dates=[],
+        back_button=_back_button(),
+        limits=limits,
+        today=date(2026, 9, 20),
+    )
+    middle_year = render_training_calendar(
+        view=TrainingCalendarView.MONTHS,
+        year=2026,
+        month=None,
+        training_dates=[],
+        back_button=_back_button(),
+        limits=limits,
+        today=date(2026, 9, 20),
+    )
+    last_year = render_training_calendar(
+        view=TrainingCalendarView.MONTHS,
+        year=2027,
+        month=None,
+        training_dates=[],
+        back_button=_back_button(),
+        limits=limits,
+        today=date(2026, 9, 20),
+    )
+
+    assert _labels(first_year)[-2:] == [["→"], ["Отмена"]]
+    assert _labels(middle_year)[-2:] == [["←", "→"], ["Отмена"]]
+    assert _labels(last_year)[-2:] == [["←"], ["Отмена"]]
+
+
+def test_days_view_navigates_between_months_across_year_boundary() -> None:
+    """Экран дней показывает доступные соседние месяцы, включая смену года."""
+    limits = TrainingDateSelectionLimits(
+        date_from=date(2025, 12, 1),
+        date_to=date(2026, 2, 28),
+        allow_future_dates=True,
+    )
+    december = render_training_calendar(
+        view=TrainingCalendarView.DAYS,
+        year=2025,
+        month=12,
+        training_dates=[],
+        back_button=_back_button(),
+        limits=limits,
+        today=date(2026, 9, 20),
+    )
+    january = render_training_calendar(
+        view=TrainingCalendarView.DAYS,
+        year=2026,
+        month=1,
+        training_dates=[],
+        back_button=_back_button(),
+        limits=limits,
+        today=date(2026, 9, 20),
+    )
+    february = render_training_calendar(
+        view=TrainingCalendarView.DAYS,
+        year=2026,
+        month=2,
+        training_dates=[],
+        back_button=_back_button(),
+        limits=limits,
+        today=date(2026, 9, 20),
+    )
+
+    assert _labels(december)[-2:] == [["→"], ["Отмена"]]
+    assert _labels(january)[-2:] == [["←", "→"], ["Отмена"]]
+    assert _labels(february)[-2:] == [["←"], ["Отмена"]]
+
+
 def test_years_view_shows_navigation_only_when_page_exists() -> None:
     """Стрелки лет появляются лишь для реально доступных соседних страниц."""
     limits = TrainingDateSelectionLimits(
@@ -173,6 +253,61 @@ def test_resolve_calendar_follows_year_month_day_flow() -> None:
     assert (months.view, months.year, months.month) == (TrainingCalendarView.MONTHS, 2025, None)
     assert (days.view, days.year, days.month) == (TrainingCalendarView.DAYS, 2025, 8)
     assert selected.selected_date == date(2025, 8, 18)
+
+
+def test_resolve_calendar_navigates_months_and_month_years() -> None:
+    """Навигация возвращает актуальные параметры следующего экрана календаря."""
+    limits = TrainingDateSelectionLimits(
+        date_from=date(2025, 12, 1),
+        date_to=date(2027, 2, 28),
+        allow_future_dates=True,
+    )
+    previous_month = resolve_training_calendar_interaction(
+        TrainingCalendarCallback(
+            action=TrainingCalendarAction.PREVIOUS_MONTH,
+            year=2026,
+            month=1,
+            day=0,
+        ),
+        limits=limits,
+        today=date(2026, 9, 20),
+    )
+    next_month = resolve_training_calendar_interaction(
+        TrainingCalendarCallback(
+            action=TrainingCalendarAction.NEXT_MONTH,
+            year=2026,
+            month=12,
+            day=0,
+        ),
+        limits=limits,
+        today=date(2026, 9, 20),
+    )
+    next_year = resolve_training_calendar_interaction(
+        TrainingCalendarCallback(
+            action=TrainingCalendarAction.NEXT_MONTHS_YEAR,
+            year=2026,
+            month=0,
+            day=0,
+        ),
+        limits=limits,
+        today=date(2026, 9, 20),
+    )
+
+    assert (previous_month.view, previous_month.year, previous_month.month) == (
+        TrainingCalendarView.DAYS,
+        2025,
+        12,
+    )
+    assert (next_month.view, next_month.year, next_month.month) == (
+        TrainingCalendarView.DAYS,
+        2027,
+        1,
+    )
+    assert (next_year.view, next_year.year, next_year.month) == (
+        TrainingCalendarView.MONTHS,
+        2027,
+        None,
+    )
 
 
 def test_years_navigation_uses_window_width_and_normalizes_at_lower_bound() -> None:
