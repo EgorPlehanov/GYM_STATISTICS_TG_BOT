@@ -104,7 +104,7 @@ async def cancel_training_by_command(message: Message, state: FSMContext) -> Non
         chat_id=message.chat.id,
         message_id=draft.ui.message_id,
     )
-    await message.answer("Тренировка отменена.")
+    await message.answer("❌ Тренировка отменена.")
     await message.delete()
 
 
@@ -120,7 +120,7 @@ async def cancel_training_by_callback(callback: CallbackQuery, state: FSMContext
         chat_id=callback.message.chat.id,
         message_id=draft.ui.message_id,
     )
-    await callback.message.answer("Тренировка отменена.")
+    await callback.answer("❌ Тренировка отменена.")
 
 
 @router.callback_query(F.data == "to_menu", TrainingStates.select_date)
