@@ -359,6 +359,8 @@ def _format_number(value: float | int | None) -> str | None:
     """Форматирует число без лишних нулей после запятой."""
     if value is None:
         return None
+    if isinstance(value, int):
+        return str(value)
     return str(value).rstrip("0").rstrip(".")
 
 

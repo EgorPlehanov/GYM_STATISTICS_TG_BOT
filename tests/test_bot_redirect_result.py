@@ -5,13 +5,16 @@ from unittest.mock import AsyncMock
 
 import pytest
 from aiogram.exceptions import TelegramForbiddenError
-from aiogram.methods import DeleteMessage, SendMessage
+from aiogram.methods import DeleteMessage, SendRichMessage
+from aiogram.types import InputRichMessage
 
 from app.bot.api_client.schemas.trainings import (
     BotDeletedRedirectMessage,
     BotTrainingSaveOutcome,
 )
 from app.bot.telegram.message_operations import ControlledMessageOperationResult
+
+RICH_MESSAGE = InputRichMessage(html="<h6>Результат</h6>")
 
 
 class FakeBotApiClient:
@@ -47,18 +50,18 @@ async def test_unchanged_training_skips_redirect_calls(monkeypatch) -> None:
 
     api_client = FakeBotApiClient()
     _patch_api_client(monkeypatch, api_client)
-    bot = SimpleNamespace(send_message=AsyncMock())
+    bot = SimpleNamespace(send_rich_message=AsyncMock())
 
     await send_training_result_to_redirect_groups(
         bot=bot,
-        result_text="Результат",
+        rich_message=RICH_MESSAGE,
         telegram_id=1,
         training_id=10,
         outcome=BotTrainingSaveOutcome.UNCHANGED,
     )
 
     api_client.get_redirect_group_ids.assert_not_awaited()
-    bot.send_message.assert_not_awaited()
+    bot.send_rich_message.assert_not_awaited()
 
 
 async def test_removed_training_deletes_redirect_message() -> None:
@@ -77,12 +80,22 @@ async def test_removed_training_deletes_redirect_message() -> None:
     bot.delete_message.assert_awaited_once_with(chat_id=-1001, message_id=42)
 
 
-async def test_removed_training_ignores_already_missing_redirect_message(monkeypatch) -> None:
-    """Ручное удаление сообщения не мешает завершить очистку тренировки."""
+@pytest.mark.parametrize(
+    "operation_result",
+    [
+        ControlledMessageOperationResult.MESSAGE_UNAVAILABLE,
+        ControlledMessageOperationResult.NOT_DELETABLE,
+    ],
+)
+async def test_removed_training_ignores_unavailable_redirect_message(
+    monkeypatch,
+    operation_result: ControlledMessageOperationResult,
+) -> None:
+    """Недоступное для удаления сообщение не мешает завершить очистку тренировки."""
     from app.bot.handlers.training_units import redirect_result
 
     delete_message = AsyncMock(
-        return_value=ControlledMessageOperationResult.MESSAGE_UNAVAILABLE
+        return_value=operation_result
     )
     monkeypatch.setattr(redirect_result, "delete_controlled_message", delete_message)
     bot = SimpleNamespace(delete_message=AsyncMock())
@@ -131,17 +144,20 @@ async def test_created_training_sends_and_upserts_result(monkeypatch) -> None:
 
     api_client = FakeBotApiClient()
     _patch_api_client(monkeypatch, api_client)
-    bot = SimpleNamespace(send_message=AsyncMock(return_value=SimpleNamespace(message_id=77)))
+    bot = SimpleNamespace(send_rich_message=AsyncMock(return_value=SimpleNamespace(message_id=77)))
 
     await send_training_result_to_redirect_groups(
         bot=bot,
-        result_text="Результат",
+        rich_message=RICH_MESSAGE,
         telegram_id=1,
         training_id=10,
         outcome=BotTrainingSaveOutcome.CREATED,
     )
 
-    bot.send_message.assert_awaited_once_with(chat_id=-1001, text="Результат")
+    bot.send_rich_message.assert_awaited_once_with(
+        chat_id=-1001,
+        rich_message=RICH_MESSAGE,
+    )
     api_client.get_training_result_message_id.assert_not_awaited()
     api_client.upsert_training_result_message.assert_awaited_once_with(
         group_id=-1001,
@@ -158,17 +174,20 @@ async def test_updated_training_without_message_sends_and_upserts_result(monkeyp
 
     api_client = FakeBotApiClient(message_id=None)
     _patch_api_client(monkeypatch, api_client)
-    bot = SimpleNamespace(send_message=AsyncMock(return_value=SimpleNamespace(message_id=77)))
+    bot = SimpleNamespace(send_rich_message=AsyncMock(return_value=SimpleNamespace(message_id=77)))
 
     await send_training_result_to_redirect_groups(
         bot=bot,
-        result_text="Результат",
+        rich_message=RICH_MESSAGE,
         telegram_id=1,
         training_id=10,
         outcome=BotTrainingSaveOutcome.UPDATED,
     )
 
-    bot.send_message.assert_awaited_once_with(chat_id=-1001, text="Результат")
+    bot.send_rich_message.assert_awaited_once_with(
+        chat_id=-1001,
+        rich_message=RICH_MESSAGE,
+    )
     api_client.upsert_training_result_message.assert_awaited_once()
 
 
@@ -189,12 +208,12 @@ async def test_updated_training_keeps_existing_message_when_edit_is_safe(
     api_client = FakeBotApiClient(message_id=42)
     _patch_api_client(monkeypatch, api_client)
     edit_message = AsyncMock(return_value=operation_result)
-    monkeypatch.setattr(redirect_result, "edit_controlled_message_text", edit_message)
-    bot = SimpleNamespace(send_message=AsyncMock())
+    monkeypatch.setattr(redirect_result, "edit_controlled_rich_message", edit_message)
+    bot = SimpleNamespace(send_rich_message=AsyncMock())
 
     await redirect_result.send_training_result_to_redirect_groups(
         bot=bot,
-        result_text="Результат",
+        rich_message=RICH_MESSAGE,
         telegram_id=1,
         training_id=10,
         outcome=BotTrainingSaveOutcome.UPDATED,
@@ -204,9 +223,9 @@ async def test_updated_training_keeps_existing_message_when_edit_is_safe(
         bot=bot,
         chat_id=-1001,
         message_id=42,
-        text="Результат",
+        rich_message=RICH_MESSAGE,
     )
-    bot.send_message.assert_not_awaited()
+    bot.send_rich_message.assert_not_awaited()
     api_client.upsert_training_result_message.assert_not_awaited()
 
 
@@ -218,20 +237,23 @@ async def test_updated_training_restores_unavailable_message(monkeypatch) -> Non
     _patch_api_client(monkeypatch, api_client)
     monkeypatch.setattr(
         redirect_result,
-        "edit_controlled_message_text",
+        "edit_controlled_rich_message",
         AsyncMock(return_value=ControlledMessageOperationResult.MESSAGE_UNAVAILABLE),
     )
-    bot = SimpleNamespace(send_message=AsyncMock(return_value=SimpleNamespace(message_id=77)))
+    bot = SimpleNamespace(send_rich_message=AsyncMock(return_value=SimpleNamespace(message_id=77)))
 
     await redirect_result.send_training_result_to_redirect_groups(
         bot=bot,
-        result_text="Результат",
+        rich_message=RICH_MESSAGE,
         telegram_id=1,
         training_id=10,
         outcome=BotTrainingSaveOutcome.UPDATED,
     )
 
-    bot.send_message.assert_awaited_once_with(chat_id=-1001, text="Результат")
+    bot.send_rich_message.assert_awaited_once_with(
+        chat_id=-1001,
+        rich_message=RICH_MESSAGE,
+    )
     api_client.upsert_training_result_message.assert_awaited_once_with(
         group_id=-1001,
         training_id=10,
@@ -248,9 +270,9 @@ async def test_forbidden_group_is_marked_as_unavailable(monkeypatch) -> None:
     api_client = FakeBotApiClient()
     _patch_api_client(monkeypatch, api_client)
     bot = SimpleNamespace(
-        send_message=AsyncMock(
+        send_rich_message=AsyncMock(
             side_effect=TelegramForbiddenError(
-                method=SendMessage(chat_id=-1001, text="Результат"),
+                method=SendRichMessage(chat_id=-1001, rich_message=RICH_MESSAGE),
                 message="Forbidden: bot was kicked from the group chat",
             )
         )
@@ -258,7 +280,7 @@ async def test_forbidden_group_is_marked_as_unavailable(monkeypatch) -> None:
 
     await send_training_result_to_redirect_groups(
         bot=bot,
-        result_text="Результат",
+        rich_message=RICH_MESSAGE,
         telegram_id=1,
         training_id=10,
         outcome=BotTrainingSaveOutcome.CREATED,

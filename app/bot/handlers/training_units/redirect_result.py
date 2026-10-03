@@ -1,5 +1,6 @@
 from aiogram import Bot
 from aiogram.exceptions import TelegramForbiddenError
+from aiogram.types import InputRichMessage
 
 from app.bot.api_client.schemas.trainings import (
     BotDeletedRedirectMessage,
@@ -9,7 +10,7 @@ from app.bot.client import BotApiClient
 from app.bot.telegram.message_operations import (
     ControlledMessageOperationResult,
     delete_controlled_message,
-    edit_controlled_message_text,
+    edit_controlled_rich_message,
 )
 
 
@@ -40,7 +41,7 @@ async def delete_removed_training_redirect_messages(
 
 async def send_training_result_to_redirect_groups(
     bot: Bot,
-    result_text: str,
+    rich_message: InputRichMessage,
     telegram_id: int,
     training_id: int,
     outcome: BotTrainingSaveOutcome,
@@ -49,7 +50,7 @@ async def send_training_result_to_redirect_groups(
 
     Args:
         bot: экземпляр aiogram Bot для операций с Telegram-сообщениями.
-        result_text: отформатированный текст результата тренировки.
+        rich_message: отформатированный Rich Message результата тренировки.
         telegram_id: Telegram user id владельца тренировки.
         training_id: внутренний id сохраненной тренировки.
         outcome: семантический результат сохранения тренировки.
@@ -76,7 +77,7 @@ async def send_training_result_to_redirect_groups(
                         api_client=api_client,
                         group_id=group_id,
                         training_id=training_id,
-                        result_text=result_text,
+                        rich_message=rich_message,
                     )
                     continue
 
@@ -85,7 +86,7 @@ async def send_training_result_to_redirect_groups(
                     api_client=api_client,
                     group_id=group_id,
                     training_id=training_id,
-                    result_text=result_text,
+                    rich_message=rich_message,
                 )
             except TelegramForbiddenError:
                 await api_client.update_group_bot_banned(
@@ -100,7 +101,7 @@ async def _update_or_restore_training_result_message(
     api_client: BotApiClient,
     group_id: int,
     training_id: int,
-    result_text: str,
+    rich_message: InputRichMessage,
 ) -> None:
     """Редактирует известный результат или создает его новый экземпляр."""
     message_id = await api_client.get_training_result_message_id(
@@ -113,15 +114,15 @@ async def _update_or_restore_training_result_message(
             api_client=api_client,
             group_id=group_id,
             training_id=training_id,
-            result_text=result_text,
+            rich_message=rich_message,
         )
         return
 
-    operation_result = await edit_controlled_message_text(
+    operation_result = await edit_controlled_rich_message(
         bot=bot,
         chat_id=group_id,
         message_id=message_id,
-        text=result_text,
+        rich_message=rich_message,
     )
     if operation_result is ControlledMessageOperationResult.MESSAGE_UNAVAILABLE:
         await _send_and_upsert_training_result_message(
@@ -129,7 +130,7 @@ async def _update_or_restore_training_result_message(
             api_client=api_client,
             group_id=group_id,
             training_id=training_id,
-            result_text=result_text,
+            rich_message=rich_message,
         )
 
 
@@ -139,10 +140,10 @@ async def _send_and_upsert_training_result_message(
     api_client: BotApiClient,
     group_id: int,
     training_id: int,
-    result_text: str,
+    rich_message: InputRichMessage,
 ) -> None:
     """Отправляет результат и сохраняет id только после успешной отправки."""
-    message = await bot.send_message(chat_id=group_id, text=result_text)
+    message = await bot.send_rich_message(chat_id=group_id, rich_message=rich_message)
     await api_client.upsert_training_result_message(
         group_id=group_id,
         training_id=training_id,

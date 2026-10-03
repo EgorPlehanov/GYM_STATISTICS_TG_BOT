@@ -4,7 +4,7 @@ from enum import Enum
 
 from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest, TelegramNotFound
-from aiogram.types import InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardMarkup, InputRichMessage
 
 
 class ControlledMessageOperationResult(str, Enum):
@@ -13,6 +13,7 @@ class ControlledMessageOperationResult(str, Enum):
     APPLIED = "applied"
     NOT_MODIFIED = "not_modified"
     MESSAGE_UNAVAILABLE = "message_unavailable"
+    NOT_DELETABLE = "not_deletable"
 
 
 async def edit_controlled_message_text(
@@ -42,16 +43,39 @@ async def edit_controlled_message_text(
         TelegramNetworkError: при сетевой ошибке.
         TelegramServerError: при ошибке Telegram 5xx.
     """
-    try:
-        await bot.edit_message_text(
-            chat_id=chat_id,
-            message_id=message_id,
-            text=text,
-            reply_markup=reply_markup,
-        )
-    except (TelegramBadRequest, TelegramNotFound) as error:
-        return _classify_controlled_message_error(error)
-    return ControlledMessageOperationResult.APPLIED
+    return await _edit_controlled_message(
+        bot=bot,
+        chat_id=chat_id,
+        message_id=message_id,
+        text=text,
+        reply_markup=reply_markup,
+    )
+
+
+async def edit_controlled_rich_message(
+    *,
+    bot: Bot,
+    chat_id: int,
+    message_id: int,
+    rich_message: InputRichMessage,
+) -> ControlledMessageOperationResult:
+    """Изменяет Rich Message и классифицирует ожидаемые ответы Telegram.
+
+    Args:
+        bot: экземпляр aiogram Bot.
+        chat_id: Telegram chat id сообщения.
+        message_id: id сообщения, которое должно существовать в чате.
+        rich_message: новое структурированное содержимое сообщения.
+
+    Returns:
+        результат операции над контролируемым сообщением.
+    """
+    return await _edit_controlled_message(
+        bot=bot,
+        chat_id=chat_id,
+        message_id=message_id,
+        rich_message=rich_message,
+    )
 
 
 async def edit_controlled_message_reply_markup(
@@ -116,7 +140,7 @@ async def delete_controlled_message(
     try:
         await bot.delete_message(chat_id=chat_id, message_id=message_id)
     except (TelegramBadRequest, TelegramNotFound) as error:
-        return _classify_controlled_message_error(error)
+        return _classify_delete_message_error(error)
     return ControlledMessageOperationResult.APPLIED
 
 
@@ -136,3 +160,38 @@ def _classify_controlled_message_error(
     ):
         return ControlledMessageOperationResult.MESSAGE_UNAVAILABLE
     raise error
+
+
+def _classify_delete_message_error(
+    error: TelegramBadRequest | TelegramNotFound,
+) -> ControlledMessageOperationResult:
+    """Дополняет общую классификацию постоянным запретом Telegram на удаление."""
+    if (
+        isinstance(error, TelegramBadRequest)
+        and "message can't be deleted" in error.message.lower()
+    ):
+        return ControlledMessageOperationResult.NOT_DELETABLE
+    return _classify_controlled_message_error(error)
+
+
+async def _edit_controlled_message(
+    *,
+    bot: Bot,
+    chat_id: int,
+    message_id: int,
+    text: str | None = None,
+    rich_message: InputRichMessage | None = None,
+    reply_markup: InlineKeyboardMarkup | None = None,
+) -> ControlledMessageOperationResult:
+    """Вызывает общий editMessageText для обычного или Rich-содержимого."""
+    try:
+        await bot.edit_message_text(
+            chat_id=chat_id,
+            message_id=message_id,
+            text=text,
+            rich_message=rich_message,
+            reply_markup=reply_markup,
+        )
+    except (TelegramBadRequest, TelegramNotFound) as error:
+        return _classify_controlled_message_error(error)
+    return ControlledMessageOperationResult.APPLIED

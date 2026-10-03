@@ -15,6 +15,7 @@ from aiogram.types import (
 
 from app.bot.api_client.schemas.trainings import BotTrainingSaveResult
 from app.bot.client import BotApiClient
+from app.bot.formatters.redirect_training import format_redirect_training_result
 from app.bot.fsm.training import (
     TrainingDraft,
     TrainingFlowStep,
@@ -129,16 +130,17 @@ async def _run_post_save_actions(
     draft: TrainingDraft,
 ) -> None:
     """Отправляет побочные результаты после фактически сохраненной тренировки."""
-    from app.bot.formatters.training import format_training_step
-
-    rendered_result = format_training_step(draft, TrainingFlowStep.RESULT)
     await delete_removed_training_redirect_messages(
         bot=callback.bot,
         deleted_redirect_messages=save_result.deleted_redirect_messages,
     )
     await send_training_result_to_redirect_groups(
         bot=callback.bot,
-        result_text=f"@{callback.from_user.username}\n{rendered_result}",
+        rich_message=format_redirect_training_result(
+            draft,
+            telegram_id=callback.from_user.id,
+            user_full_name=callback.from_user.full_name,
+        ),
         telegram_id=callback.from_user.id,
         training_id=save_result.training_id,
         outcome=save_result.outcome,

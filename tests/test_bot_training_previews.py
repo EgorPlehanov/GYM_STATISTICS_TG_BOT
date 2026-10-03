@@ -39,57 +39,27 @@ class BalancedHtmlParser(HTMLParser):
         assert self.stack.pop() == tag
 
 
-def test_previews_cover_redirect_rich_html_variants() -> None:
+def test_preview_contains_selected_redirect_rich_html_layout() -> None:
+    """Админ-макет хранит один выбранный вариант оформления редиректа."""
     previews = build_training_previews()
 
-    assert len(previews) == 8
+    assert len(previews) == 1
     assert all(preview.rich_format == RichFormat.HTML for preview in previews)
     assert all("Редирект" in preview.title for preview in previews)
 
     for preview in previews:
         assert len(preview.text) < 4096
-        assert "<h4>" in preview.text
+        assert "<h6>" in preview.text
         assert "<h2>" not in preview.text
         assert "<h3>" not in preview.text
-        assert "<h5>" not in preview.text
+        assert "<h4>" not in preview.text
         assert 'href="tg://user?id=' in preview.text
         assert preview.text.index('href="tg://user?id=') < preview.text.index(" · ")
-        assert (
-            "<table bordered striped compact>" in preview.text
-            or "<ul>" in preview.text
-            or "<ol>" in preview.text
-        )
+        assert "<table bordered striped compact>" in preview.text
         assert "<footer>" in preview.text
-
-    assert any("<blockquote>" in preview.text for preview in previews)
-    assert any("<h4>" in preview.text for preview in previews)
-    assert any("<aside>" in preview.text for preview in previews)
-    assert any("<details>" in preview.text for preview in previews)
-    assert any("<mark>" in preview.text for preview in previews)
-    assert any("<ul>" in preview.text for preview in previews)
-    assert any("<ol>" in preview.text for preview in previews)
-    assert any("<sup>↑</sup>" in preview.text for preview in previews)
-    assert any("<sub>↓</sub>" in preview.text for preview in previews)
-    assert sum("<cite><a href=" in preview.text for preview in previews) == 2
-    assert any(
-        "<footer>2 упражнения · 5 подходов · @egor_plehanov</footer>" in preview.text
-        for preview in previews
-    )
-    assert any(
-        "<details><summary>Плечо немного тянет на жиме...</summary>"
-        "Поэтому снизила вес и работала без рывков. @egor_plehanov</details>" in preview.text
-        for preview in previews
-    )
-    assert sum(
-        preview.text.index("</table>") < preview.text.index("<blockquote>")
-        for preview in previews
-        if "</table>" in preview.text and "<blockquote>" in preview.text
-    ) == 1
-    assert sum(
-        preview.text.index("</table>") < preview.text.index("<details>")
-        for preview in previews
-        if "<details>" in preview.text
-    ) == 1
+        assert "<blockquote>" in preview.text
+        assert "↑" not in preview.text
+        assert "↓" not in preview.text
 
     for preview in previews:
         parser = BalancedHtmlParser()
@@ -112,7 +82,7 @@ async def test_training_designs_sends_each_message_to_each_redirect_group(monkey
 
     assert message.answer.await_count == 0
     api_client.get_redirect_group_ids.assert_awaited_once_with(409218520)
-    assert message.bot.send_rich_message.await_count == 16
+    assert message.bot.send_rich_message.await_count == 2
     for call in message.bot.send_rich_message.await_args_list:
         assert call.kwargs["chat_id"] in {-1001, -1002}
         rich_message = call.kwargs["rich_message"]
@@ -157,8 +127,8 @@ async def test_rich_api_failure_does_not_hide_other_examples(monkeypatch) -> Non
 
     await main_admin.training_designs(message)
 
-    assert message.bot.send_rich_message.await_count == 8
-    assert message.answer.await_count == 8
+    assert message.bot.send_rich_message.await_count == 1
+    assert message.answer.await_count == 1
     assert any(
         "Rich Message не отправлено" in call.kwargs["text"]
         for call in message.answer.await_args_list
