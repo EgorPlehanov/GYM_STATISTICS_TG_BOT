@@ -18,11 +18,7 @@ from app.bot.ui.training import is_current_training_callback, transition_trainin
 router = Router()
 
 
-@router.callback_query(F.data == "accept_addition", TrainingStates.select_exercise)
-@router.callback_query(F.data == "accept_addition", TrainingStates.select_weight)
-@router.callback_query(F.data == "accept_addition", TrainingStates.select_repetitions)
-@router.callback_query(F.data == "accept_addition", TrainingStates.select_sets_count)
-@router.callback_query(F.data == "accept_addition", TrainingStates.accept_addition)
+@router.callback_query(F.data == "accept_addition", TrainingStates.add_set_form)
 async def accept_addition(callback: CallbackQuery, state: FSMContext) -> None:
     """Подтверждает добавление только после проверки актуальности callback."""
     current_draft = await get_training_draft(state)

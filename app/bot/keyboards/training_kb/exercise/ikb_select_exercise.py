@@ -35,17 +35,14 @@ def get_ikb_select_exercise_fab(
     exercise_data: Sequence[ExerciseButtonItem],
     page: int = 0,
     page_size: int = 5,
-    has_next_button: bool = False,
-    has_accept_addition_button: bool = False,
-    selected_exercise_id: int | None = None
+    selected_exercise_id: int | None = None,
+    back_button_callback_data: str = "to_menu",
+    back_button_text: str = "← Меню",
 ) -> InlineKeyboardMarkup:
     """
     Фабрика для создания инлайн клавиатуры для выбора упражнения
     """
     builder = InlineKeyboardBuilder()
-    
-    if has_accept_addition_button:
-        builder.row(InlineKeyboardButton(text="✅ Добавить ✅", callback_data="accept_addition"))
     
     builder.row(InlineKeyboardButton(
         text = "🔎 Найти в поиске 🔎",
@@ -88,14 +85,10 @@ def get_ikb_select_exercise_fab(
     ] if page < math.ceil(len(exercise_data) / page_size) - 1 else []))
 
     builder.row(
-        *[
-            InlineKeyboardButton(
-                text=f"⬅️ Меню {'' if has_next_button else '⬅️'}",
-                callback_data="to_menu",
-            )
-        ] + ([
-            InlineKeyboardButton(text="Вес ➡️", callback_data="to_weight")
-        ] if has_next_button else [])
+        InlineKeyboardButton(
+            text=back_button_text,
+            callback_data=back_button_callback_data,
+        )
     )
 
     return builder.as_markup()

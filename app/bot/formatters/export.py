@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 from io import BytesIO
 from typing import Protocol
 
@@ -13,7 +14,7 @@ class ExportDataRow(Protocol):
     exercise_name: str
     overall_order: int
     exercise_order: int
-    weight: float
+    weight: Decimal
     repetitions: int
     training_exercise_weight_sum: float
     training_exercise_repetitions_sum: int

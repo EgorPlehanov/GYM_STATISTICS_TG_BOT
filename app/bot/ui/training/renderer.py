@@ -11,24 +11,17 @@ from app.bot.fsm.training import (
     TrainingDraft,
     TrainingFlowStep,
     TrainingMode,
-    check_accept_addition_for_draft,
+    can_submit_set_form_for_draft,
     get_draft_exercise,
-    get_weight_repetitions_modes_values_from_draft,
     has_draft_exercises,
 )
-from app.bot.fsm.training.states import (
-    accept_button_by_mode,
-    exercise_button_by_mode,
-    weight_back_button_by_mode,
-)
 from app.bot.keyboards.training_kb import (
-    get_ikb_accept_addition,
+    get_ikb_add_set_form,
     get_ikb_changed_date,
     get_ikb_edit_menu,
     get_ikb_edit_select_exercise_fab,
     get_ikb_edit_select_set_fab,
     get_ikb_finish_add_comment,
-    get_ikb_open_inline_search,
     get_ikb_select_exercise_fab,
     get_ikb_training_menu,
     ikb_edit_accept_delete,
@@ -68,31 +61,29 @@ def _render_keyboard(
     if step is TrainingFlowStep.MENU:
         return _menu_keyboard(draft)
     if step is TrainingFlowStep.SELECT_EXERCISE:
+        return_to_form = (
+            draft.ui.exercise_selection_return_step
+            is TrainingFlowStep.ADD_SET_FORM
+        )
         return get_ikb_select_exercise_fab(
             exercise_data=draft.suggestions.most_frequent_exercises,
             page=draft.ui.exercise_page,
-            has_next_button=draft.selection.exercise_id is not None,
-            has_accept_addition_button=check_accept_addition_for_draft(draft),
             selected_exercise_id=draft.selection.exercise_id or draft.ui.current_exercise_id,
+            back_button_callback_data=(
+                "form_cancel_exercise_selection" if return_to_form else "to_menu"
+            ),
+            back_button_text="⬅️ К форме" if return_to_form else "⬅️ Меню",
         )
-    if step is TrainingFlowStep.SELECT_WEIGHT:
-        return _value_keyboard(draft, is_weight=True)
-    if step is TrainingFlowStep.SELECT_REPETITIONS:
-        return _value_keyboard(draft, is_weight=False)
-    if step is TrainingFlowStep.SELECT_SETS_COUNT:
-        mode = _mode(draft)
-        accept_button = accept_button_by_mode[mode]
-        return get_ikb_open_inline_search(
-            entity_name="кол-во подходов",
-            back_button_text="Повторения",
-            back_button_callback_data="to_repetitions",
-            has_accept_button=check_accept_addition_for_draft(draft),
-            accept_button_text=accept_button.text,
-            accept_button_callback_data=accept_button.callback_data,
-            has_delete_set_button=mode is TrainingMode.EDIT_SET,
+    if step is TrainingFlowStep.ADD_SET_FORM:
+        is_editing = _mode(draft) is TrainingMode.EDIT_SET
+        return get_ikb_add_set_form(
+            exercise_name=draft.selection.exercise_name,
+            weight=draft.selection.weight,
+            repetitions=draft.selection.repetitions,
+            sets_count=draft.selection.sets_count,
+            can_submit=can_submit_set_form_for_draft(draft),
+            is_editing=is_editing,
         )
-    if step is TrainingFlowStep.ACCEPT_ADDITION:
-        return get_ikb_accept_addition(_mode(draft))
     if step is TrainingFlowStep.ADD_COMMENT:
         return get_ikb_finish_add_comment(current_comment=draft.training.comment)
     if step is TrainingFlowStep.EDIT_MENU:
@@ -118,7 +109,7 @@ def _render_keyboard(
 
 def _menu_keyboard(draft: TrainingDraft) -> InlineKeyboardMarkup:
     """Собирает клавиатуру главного меню тренировки."""
-    last_weight = str(draft.ui.last_weight or "").rstrip("0").rstrip(".")
+    last_weight = _format_weight(draft.ui.last_weight)
     last_repetitions = draft.ui.last_repetitions or ""
     return get_ikb_training_menu(
         is_add_edit_button=has_draft_exercises(draft),
@@ -137,7 +128,7 @@ def _calendar_keyboard(draft: TrainingDraft) -> InlineKeyboardMarkup:
 
     if draft.selection.mode is TrainingMode.EDIT_DATE.value:
         back_button = InlineKeyboardButton(
-            text="← К редактированию",
+            text="⬅️ К редактированию",
             callback_data="to_edit_menu",
         )
     else:
@@ -173,49 +164,17 @@ def _editing_date(draft: TrainingDraft) -> date | None:
     return date.fromisoformat(training_date)
 
 
-def _value_keyboard(draft: TrainingDraft, *, is_weight: bool) -> InlineKeyboardMarkup:
-    """Собирает клавиатуру ввода веса или повторений."""
-    mode = _mode(draft)
-    accept_button = accept_button_by_mode[mode]
-    if is_weight:
-        back_button = weight_back_button_by_mode[mode]
-        return get_ikb_open_inline_search(
-            entity_name="вес",
-            back_button_text=back_button.text,
-            back_button_callback_data=back_button.callback_data,
-            has_next_button=draft.selection.weight is not None,
-            next_button_text="Повторения",
-            next_button_callback_data="to_repetitions",
-            has_accept_button=check_accept_addition_for_draft(draft),
-            accept_button_text=accept_button.text,
-            accept_button_callback_data=accept_button.callback_data,
-            has_delete_set_button=mode is TrainingMode.EDIT_SET,
-            switch_inline_query=get_weight_repetitions_modes_values_from_draft(
-                draft, is_weight=True
-            ),
-        )
-    back_button = exercise_button_by_mode.get(mode)
-    return get_ikb_open_inline_search(
-        entity_name="повторения",
-        back_button_text="Вес",
-        back_button_callback_data="to_weight",
-        has_next_button=(
-            draft.selection.repetitions is not None and mode is not TrainingMode.EDIT_SET
-        ),
-        next_button_text="Кол-во подходов",
-        next_button_callback_data="to_sets_count",
-        has_accept_button=check_accept_addition_for_draft(draft),
-        accept_button_text=accept_button.text,
-        accept_button_callback_data=accept_button.callback_data,
-        has_delete_set_button=mode is TrainingMode.EDIT_SET,
-        switch_inline_query=get_weight_repetitions_modes_values_from_draft(
-            draft, is_repetitions=True
-        ),
-    )
-
-
 def _mode(draft: TrainingDraft) -> TrainingMode:
     """Возвращает режим ввода, обязательный для экранов выбора значения."""
     if draft.selection.mode is None:
         raise ValueError("Для экрана ввода не задан режим тренировки")
     return TrainingMode(draft.selection.mode)
+
+
+def _format_weight(weight: object | None) -> str:
+    """Форматирует последний вес для кнопки повтора без незначащих нулей."""
+    if weight is None:
+        return ""
+    from app.core.weights import format_weight
+
+    return format_weight(weight)

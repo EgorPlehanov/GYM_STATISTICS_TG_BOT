@@ -60,7 +60,10 @@ async def inline_comment(inline_query: InlineQuery) -> None:
         results.append(
             InlineQueryResultArticle(
                 id="comment", title=inline_query.query,
-                input_message_content=InputTextMessageContent(message_text=inline_query.query),
+                input_message_content=InputTextMessageContent(
+                    message_text=inline_query.query,
+                    parse_mode=None,
+                ),
             )
         )
     await inline_query.answer(results, cache_time=0, is_personal=True)

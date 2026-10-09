@@ -78,7 +78,7 @@ def test_current_values_from_draft_formats_selection() -> None:
 
     assert "Кол-во подходов" in text
     assert "<u>Жим лежа</u>" in text
-    assert "<u>82.5</u>" in text
+    assert "<u>82,5</u>" in text
     assert "<u>6</u>" in text
 
 
@@ -94,7 +94,7 @@ def test_result_format_exercise_data_from_draft_groups_equal_sets() -> None:
 
     text = result_format_exercise_data_from_draft(draft)
 
-    assert "80×8×2, 82.5×6" in text
+    assert "80×8×2, 82,5×6" in text
 
 
 def _build_training_draft(

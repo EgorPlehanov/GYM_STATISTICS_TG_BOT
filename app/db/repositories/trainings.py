@@ -1,6 +1,7 @@
 """Репозиторий тренировок."""
 
 from datetime import date, datetime
+from decimal import Decimal
 
 from sqlalchemy import and_, delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +14,7 @@ class TrainingRepository:
     """Доступ к данным тренировок и подходов."""
 
 
-SetData = dict[str, int | float | datetime | str]
+SetData = dict[str, int | Decimal | datetime | str]
 ExerciseData = dict[str, str | int | dict[int, SetData]]
 TrainingData = dict[str, int | date | str | dict[int, ExerciseData]]
 

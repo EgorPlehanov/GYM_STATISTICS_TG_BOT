@@ -347,7 +347,7 @@ training:
       sets:
         - set_id: int | null
           set_number: int
-          weight: float
+          weight: Decimal(10, 3)
           repetitions: int
           execution_time: ISO datetime | null
 
@@ -355,7 +355,7 @@ selection:
   mode: add_exercise | add_set | edit_set | edit_date | null
   exercise_id: int | null
   exercise_name: str | null
-  weight: float | null
+  weight: Decimal(10, 3) | null
   repetitions: int | null
   sets_count: int | null
 
@@ -371,7 +371,7 @@ ui:
   reply_markup_before_delete: JSON-compatible markup | null
   current_exercise_id: int | null
   current_exercise_name: str | null
-  last_weight: float | null
+  last_weight: Decimal(10, 3) | null
   last_repetitions: int | null
 
 suggestions:
@@ -412,7 +412,7 @@ training:
       sets:
         - set_id: int | null
           set_number: int
-          weight: float
+          weight: Decimal(10, 3)
           repetitions: int
           execution_time: ISO datetime | null
 ```
@@ -443,8 +443,8 @@ Telegram Bot API могут завершаться ошибкой. Сценар�
 Текущий экран определяется текущим `TrainingStates`. Для передачи шага в
 renderer или временного сохранения в JSON-friendly draft используется
 `TrainingFlowStep`: сериализуемый enum с теми же логическими значениями.
-Например, `TrainingStates.select_weight` соответствует
-`TrainingFlowStep.SELECT_WEIGHT`. Отдельное поле `current_screen` в draft не
+Например, `TrainingStates.add_set_form` соответствует
+`TrainingFlowStep.ADD_SET_FORM`. Отдельное поле `current_screen` в draft не
 нужно: оно дублировало бы FSM и могло бы рассинхронизироваться с ним.
 
 `TrainingUiContext` хранит только компактный JSON-friendly контекст:
@@ -461,8 +461,9 @@ ui:
   calendar_month: int | null
   current_exercise_id: int | null
   current_exercise_name: str | null
-  last_weight: float | null
+  last_weight: Decimal(10, 3) | null
   last_repetitions: int | null
+  exercise_selection_return_step: TrainingFlowStep | null
 ```
 
 `suspended_step` используется временными экранами, например подтверждением
@@ -478,6 +479,31 @@ ui:
 Telegram-объекты, текст экрана или последовательность diff-патчей. Снимок draft
 мал по размеру, а повторное построение экрана не требует обращения к БД или
 backend API.
+
+### Форма Добавления Подходов
+
+Добавление упражнения и нового подхода использует один экран
+`ADD_SET_FORM`. После выбора упражнения сценарий сразу открывает эту форму;
+смена упражнения из формы возвращает к ней же, а отмена выбора не теряет
+уже введенные значения. Для этого используется отдельное поле
+`exercise_selection_return_step`, а не `suspended_step`, который относится к
+восстановлению удаленного основного сообщения.
+
+Кнопки веса, повторений и числа подходов предзаполняют inline-ввод короткими
+префиксами `w`, `r`, `s`. Сообщение формы также принимает индексированный ввод
+в любом порядке (`w80r8s3`) и позиционный (`80×8×3`) с разделителями
+`×`, `x`, `х`, `*`, `/`, `:` или пробелами. Повтор одного индекса в одном
+сообщении — ошибка; форма не применяет часть такого сообщения. Индексированный
+ввод изменяет только указанные поля.
+
+Вес является `Decimal` в килограммах и при вводе нормализуется до трёх знаков
+по правилу `ROUND_HALF_UP`. В JSON internal API и FSM он передается строкой,
+чтобы не потерять точность; в Telegram отображается без незначащих нулей и с
+десятичной запятой. Кнопка «Добавить» появляется, когда заданы упражнение,
+вес и повторения; Telegram не предоставляет disabled-состояние для inline
+кнопок. При редактировании существующего подхода используется тот же экран,
+но без поля количества подходов: можно изменить только вес и повторения одного
+выбранного подхода.
 
 ### Контракт Календаря Тренировки
 

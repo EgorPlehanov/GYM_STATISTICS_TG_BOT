@@ -29,15 +29,13 @@ from app.bot.utils.user_access import ensure_bot_user
 
 from .training_units import (
     accept_router,
+    add_set_form_router,
     edit_menu_router,
     edit_select_exercise_router,
     edit_select_set_router,
     finish_add_comment_router,
     select_date_router,
     select_exercise_router,
-    select_repetitions_router,
-    select_sets_count_router,
-    select_weight_router,
 )
 
 router = Router()
@@ -49,9 +47,7 @@ router.callback_query.outer_middleware(training_flow_lock)
 router.include_routers(
     select_date_router,
     select_exercise_router,
-    select_weight_router,
-    select_repetitions_router,
-    select_sets_count_router,
+    add_set_form_router,
     accept_router,
     edit_menu_router,
     edit_select_exercise_router,
@@ -125,8 +121,7 @@ async def cancel_training_by_callback(callback: CallbackQuery, state: FSMContext
 
 @router.callback_query(F.data == "to_menu", TrainingStates.select_date)
 @router.callback_query(F.data == "to_menu", TrainingStates.select_exercise)
-@router.callback_query(F.data == "to_menu", TrainingStates.select_weight)
-@router.callback_query(F.data == "to_menu", TrainingStates.accept_addition)
+@router.callback_query(F.data == "to_menu", TrainingStates.add_set_form)
 @router.callback_query(F.data == "to_menu", TrainingStates.edit_menu)
 @router.callback_query(F.data == "to_menu", TrainingStates.add_comment)
 async def back_to_menu(callback: CallbackQuery, state: FSMContext) -> None:
@@ -141,6 +136,7 @@ async def back_to_menu(callback: CallbackQuery, state: FSMContext) -> None:
     next_draft.selection.weight = None
     next_draft.selection.repetitions = None
     next_draft.selection.sets_count = None
+    next_draft.ui.exercise_selection_return_step = None
     await transition_training_screen(
         bot=callback.bot,
         chat_id=callback.message.chat.id,

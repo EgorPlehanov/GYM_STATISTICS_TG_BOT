@@ -480,7 +480,7 @@ def test_internal_bot_training_start_context_calls_domain_service(monkeypatch):
                 "max_exercise_order": 1,
                 "sets_modes": {
                     1: {
-                        "weight_mode": 100.0,
+                            "weight_mode": "100.0",
                         "repetitions_mode": 5,
                     }
                 },
@@ -540,7 +540,7 @@ def test_internal_bot_training_start_context_calls_domain_service(monkeypatch):
                 "max_exercise_order": 1,
                 "sets_modes": {
                     "1": {
-                        "weight_mode": 100.0,
+                            "weight_mode": "100.000",
                         "repetitions_mode": 5,
                     }
                 },
@@ -1726,7 +1726,7 @@ def test_internal_bot_statistics_exercise_rating_calls_domain_service(monkeypatc
             "exercise_name": "Жим лежа",
             "rank_name": "Новичок",
             "rank_level": 2,
-            "rating_value": 100.0,
+                "rating_value": "100.0",
         }
     ]
     assert calls == [{"session": calls[0]["session"], "user_id": 123456789}]
@@ -1799,7 +1799,7 @@ def test_internal_bot_export_data_calls_domain_service(monkeypatch):
             "exercise_name": "Жим лежа",
             "overall_order": 1,
             "exercise_order": 1,
-            "weight": 100.0,
+                "weight": "100.0",
             "repetitions": 5,
             "training_exercise_weight_sum": 500.0,
             "training_exercise_repetitions_sum": 5,

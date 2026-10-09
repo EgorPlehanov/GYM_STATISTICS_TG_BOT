@@ -38,9 +38,7 @@ async def open_edit_menu(callback: CallbackQuery, state: FSMContext) -> None:
     )
 
 
-@router.callback_query(F.data == "accept_edit", TrainingStates.select_weight)
-@router.callback_query(F.data == "accept_edit", TrainingStates.select_repetitions)
-@router.callback_query(F.data == "accept_edit", TrainingStates.accept_addition)
+@router.callback_query(F.data == "accept_edit", TrainingStates.add_set_form)
 async def accept_edit(callback: CallbackQuery, state: FSMContext) -> None:
     """Применяет изменения выбранного подхода в draft."""
     current_draft = await get_training_draft(state)
@@ -55,6 +53,8 @@ async def accept_edit(callback: CallbackQuery, state: FSMContext) -> None:
     next_draft.selection.mode = None
     next_draft.selection.weight = None
     next_draft.selection.repetitions = None
+    next_draft.selection.exercise_id = None
+    next_draft.selection.exercise_name = None
     next_draft.edit.exercise_id = None
     next_draft.edit.exercise_name = None
     next_draft.edit.set_id = None
@@ -68,8 +68,7 @@ async def accept_edit(callback: CallbackQuery, state: FSMContext) -> None:
 
 @router.callback_query(F.data == "delete_all_exercises", TrainingStates.edit_select_exercise)
 @router.callback_query(F.data == "delete_all_sets", TrainingStates.edit_select_set)
-@router.callback_query(F.data == "delete_set", TrainingStates.select_weight)
-@router.callback_query(F.data == "delete_set", TrainingStates.select_repetitions)
+@router.callback_query(F.data == "delete_set", TrainingStates.add_set_form)
 async def delete_accept(callback: CallbackQuery, state: FSMContext) -> None:
     """Открывает typed-подтверждение удаления без сохранения клавиатуры."""
     current_draft = await get_training_draft(state)
@@ -128,6 +127,8 @@ async def delete_exercises_sets(callback: CallbackQuery, state: FSMContext) -> N
     next_draft.selection.mode = None
     next_draft.selection.weight = None
     next_draft.selection.repetitions = None
+    next_draft.selection.exercise_id = None
+    next_draft.selection.exercise_name = None
     next_draft.edit.exercise_id = None
     next_draft.edit.exercise_name = None
     next_draft.edit.set_id = None

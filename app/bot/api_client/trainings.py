@@ -17,6 +17,7 @@ from app.bot.api_client.schemas.trainings import (
     BotTrainingSetMode,
     BotTrainingStartContext,
 )
+from app.core.weights import normalize_weight
 
 
 class BotTrainingsApiClientMixin(BotApiClientBase):
@@ -180,7 +181,7 @@ def _serialize_training_set(set_data: BotTrainingSet) -> dict[str, Any]:
     return {
         "set_id": set_data.set_id,
         "set_number": set_data.set_number,
-        "weight": set_data.weight,
+        "weight": format(normalize_weight(set_data.weight), "f"),
         "repetitions": set_data.repetitions,
         "execution_time": (
             set_data.execution_time.isoformat()
@@ -211,7 +212,7 @@ def _deserialize_training(training_data: dict[str, Any]) -> BotTraining:
                     BotTrainingSet(
                         set_id=set_data.get("set_id"),
                         set_number=set_data["set_number"],
-                        weight=set_data["weight"],
+                        weight=normalize_weight(set_data["weight"]),
                         repetitions=set_data["repetitions"],
                         execution_time=_parse_datetime_or_none(
                             set_data.get("execution_time")
@@ -248,7 +249,7 @@ def _restore_weight_repetitions_modes(
             max_exercise_order=exercise_mode["max_exercise_order"],
             sets_modes={
                 int(set_id): BotTrainingSetMode(
-                    weight_mode=set_mode["weight_mode"],
+                    weight_mode=normalize_weight(set_mode["weight_mode"]),
                     repetitions_mode=set_mode["repetitions_mode"],
                 )
                 for set_id, set_mode in exercise_mode.get("sets_modes", {}).items()

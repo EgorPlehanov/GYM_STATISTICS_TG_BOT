@@ -2,7 +2,10 @@
 
 from dataclasses import dataclass
 from datetime import date
+from decimal import Decimal
 from typing import Any
+
+from app.core.weights import normalize_weight
 
 
 @dataclass(frozen=True)
@@ -36,7 +39,7 @@ class BotExportData:
     exercise_name: str
     overall_order: int
     exercise_order: int
-    weight: float
+    weight: Decimal
     repetitions: int
     training_exercise_weight_sum: float
     training_exercise_repetitions_sum: int
@@ -63,4 +66,5 @@ def deserialize_export_data(export_data: dict[str, Any]) -> BotExportData:
     """
     restored = dict(export_data)
     restored["date"] = date.fromisoformat(restored["date"])
+    restored["weight"] = normalize_weight(restored["weight"])
     return BotExportData(**restored)

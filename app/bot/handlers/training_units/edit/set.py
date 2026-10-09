@@ -62,16 +62,19 @@ async def selected_set(
     next_draft.edit.set_id = set_id
     next_draft.edit.set_number = set_data.set_number
     next_draft.selection.mode = TrainingMode.EDIT_SET.value
+    next_draft.selection.exercise_id = next_draft.edit.exercise_id
+    next_draft.selection.exercise_name = next_draft.edit.exercise_name
     next_draft.selection.weight = set_data.weight
     next_draft.selection.repetitions = set_data.repetitions
+    next_draft.selection.sets_count = None
     await transition_training_screen(
         bot=callback.bot, chat_id=callback.message.chat.id, state=state,
         current_draft=current_draft, next_draft=next_draft,
-        next_step=TrainingFlowStep.SELECT_WEIGHT,
+        next_step=TrainingFlowStep.ADD_SET_FORM,
     )
 
 
-@router.callback_query(F.data == "to_edit_menu_set", TrainingStates.select_weight)
+@router.callback_query(F.data == "to_edit_menu_set", TrainingStates.add_set_form)
 async def back_to_edit_set(callback: CallbackQuery, state: FSMContext) -> None:
     """Возвращает к выбору подхода для редактирования."""
     current_draft = await get_training_draft(state)
@@ -82,6 +85,8 @@ async def back_to_edit_set(callback: CallbackQuery, state: FSMContext) -> None:
     next_draft.edit.set_number = None
     next_draft.selection.weight = None
     next_draft.selection.repetitions = None
+    next_draft.selection.exercise_id = None
+    next_draft.selection.exercise_name = None
     await transition_training_screen(
         bot=callback.bot, chat_id=callback.message.chat.id, state=state,
         current_draft=current_draft, next_draft=next_draft,

@@ -70,7 +70,7 @@ def build_telegram_login_data_check_string(auth_data: dict[str, Any]) -> str:
         auth_data: данные, полученные от Telegram Login Widget.
 
     Returns:
-        строки `key=value`, отсортированные по ключу и разделенные `\n`.
+        строки `key=value`, отсортированные по ключу и разделенные `\\n`.
         Поле `hash` исключается, как требует Telegram.
     """
     return "\n".join(

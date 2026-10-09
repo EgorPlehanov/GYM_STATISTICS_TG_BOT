@@ -1,6 +1,7 @@
 """Операции изменения типизированного FSM draft тренировки."""
 
 from datetime import date, datetime
+from decimal import Decimal
 
 from .draft import TrainingDraft, TrainingDraftExercise, TrainingDraftSet
 
@@ -35,7 +36,7 @@ def add_set_to_draft(
     draft: TrainingDraft,
     exercise_id: int,
     *,
-    weight: float,
+    weight: Decimal,
     repetitions: int,
     execution_time: date | datetime | str | None = None,
 ) -> None:
@@ -72,7 +73,7 @@ def update_set_in_draft(
     exercise_id: int,
     set_id: int,
     *,
-    new_weight: float | None = None,
+    new_weight: Decimal | None = None,
     new_repetitions: int | None = None,
     new_time: date | datetime | str | None = None,
 ) -> bool:

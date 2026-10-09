@@ -1,6 +1,7 @@
 """DTO-схемы API-клиента Telegram-бота для статистики."""
 
 from dataclasses import dataclass
+from decimal import Decimal
 
 
 @dataclass(frozen=True)
@@ -19,4 +20,4 @@ class BotExerciseRating:
     exercise_name: str
     rank_name: str
     rank_level: int
-    rating_value: float
+    rating_value: Decimal

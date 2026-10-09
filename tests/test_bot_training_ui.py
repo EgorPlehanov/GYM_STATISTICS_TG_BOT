@@ -89,7 +89,7 @@ def test_renderer_builds_calendar_with_contextual_back_button() -> None:
     assert "✓18" in creation_labels
     assert "❌ Отменить" in creation_labels
     assert "✎18" in editing_labels
-    assert "← К редактированию" in editing_labels
+    assert "⬅️ К редактированию" in editing_labels
 
 
 def test_renderer_builds_months_and_years_calendar_views() -> None:

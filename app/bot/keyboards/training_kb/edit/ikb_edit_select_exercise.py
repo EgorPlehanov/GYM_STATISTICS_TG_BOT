@@ -53,7 +53,7 @@ def get_ikb_edit_select_exercise_fab(
         )
     builder.row(*([
         InlineKeyboardButton(
-            text='⬅️',
+            text='←',
             callback_data=EditTrainingExercisePagination(
                 action=PaginationAction.PREV,
                 page=page,
@@ -62,7 +62,7 @@ def get_ikb_edit_select_exercise_fab(
         )
     ] if page > 0 else []) + ([
         InlineKeyboardButton(
-            text='➡️',
+            text='→',
             callback_data=EditTrainingExercisePagination(
                 action=PaginationAction.NEXT,
                 page=page,

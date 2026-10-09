@@ -1,5 +1,7 @@
 """DTO-схемы internal API для статистики Telegram-бота."""
 
+from decimal import Decimal
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -18,6 +20,6 @@ class InternalBotExerciseRatingResponse(BaseModel):
     exercise_name: str
     rank_name: str
     rank_level: int
-    rating_value: float
+    rating_value: Decimal
 
     model_config = ConfigDict(from_attributes=True)

@@ -1,6 +1,7 @@
 """Форматирование текста Telegram-сценария тренировки."""
 
 from datetime import date, datetime
+from decimal import Decimal
 
 from aiogram import html
 
@@ -10,6 +11,7 @@ from app.bot.fsm.training import (
     TrainingFlowStep,
     TrainingMode,
 )
+from app.core.weights import format_weight
 
 WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
 
@@ -237,7 +239,7 @@ def get_current_values_from_draft(draft: TrainingDraft) -> str | None:
 
     if draft.selection.weight is not None:
         cur_values.append(
-            f"⚖️ Вес: {html.bold(html.underline(draft.selection.weight))} кг"
+            f"⚖️ Вес: {html.bold(html.underline(format_weight(draft.selection.weight)))} кг"
         )
 
     if draft.selection.repetitions is not None:
@@ -304,10 +306,7 @@ def _get_step_text(draft: TrainingDraft, step: TrainingFlowStep) -> str:
         TrainingFlowStep.SELECT_DATE: "Выберите дату",
         TrainingFlowStep.CHANGE_DATE_ACCEPT: "Что делать с этой тренировкой",
         TrainingFlowStep.SELECT_EXERCISE: "Выберите упражнение",
-        TrainingFlowStep.SELECT_WEIGHT: "Выберите доп. вес",
-        TrainingFlowStep.SELECT_REPETITIONS: "Выберите кол-во повторений",
-        TrainingFlowStep.ACCEPT_ADDITION: "Подтвердите добавление",
-        TrainingFlowStep.SELECT_SETS_COUNT: "Выберите кол-во добавляемых подходов",
+        TrainingFlowStep.ADD_SET_FORM: "Добавьте подход",
         TrainingFlowStep.MENU: "Что дальше",
         TrainingFlowStep.ADD_COMMENT: "Отправить комментарий или просто заверши",
         TrainingFlowStep.EDIT_MENU: "Что исправить",
@@ -316,6 +315,11 @@ def _get_step_text(draft: TrainingDraft, step: TrainingFlowStep) -> str:
         TrainingFlowStep.EDIT_DELETE: "Подтвердите удаление",
     }
     additional_text = ""
+    if (
+        step is TrainingFlowStep.ADD_SET_FORM
+        and draft.selection.mode == TrainingMode.EDIT_SET.value
+    ):
+        return "Измените подход"
     if step is TrainingFlowStep.EDIT_DELETE:
         additional_text = get_delete_object_text_from_draft(draft)
     elif step is TrainingFlowStep.CHANGE_DATE_ACCEPT and draft.ui.date_conflict:
@@ -355,13 +359,13 @@ def _format_result_set(weight: str | None, repetitions: int | None, factor: int)
     return f"{weight}×{repetitions}{f'×{factor}' if factor > 1 else ''}"
 
 
-def _format_number(value: float | int | None) -> str | None:
+def _format_number(value: Decimal | float | int | None) -> str | None:
     """Форматирует число без лишних нулей после запятой."""
     if value is None:
         return None
     if isinstance(value, int):
         return str(value)
-    return str(value).rstrip("0").rstrip(".")
+    return format_weight(value)
 
 
 def _format_time(value: str | datetime | None) -> str | None:

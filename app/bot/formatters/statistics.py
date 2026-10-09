@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from decimal import Decimal
 from typing import Protocol
 
 from aiogram import html
@@ -10,7 +11,7 @@ class ExerciseRatingData(Protocol):
     exercise_name: str
     rank_name: str
     rank_level: int
-    rating_value: float
+    rating_value: Decimal
 
 
 

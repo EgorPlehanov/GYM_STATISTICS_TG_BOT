@@ -1,9 +1,10 @@
 """DTO-схемы internal API для тренировок Telegram-бота."""
 
 from datetime import date, datetime
+from decimal import Decimal
 from enum import Enum
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from app.api.schemas.internal.exercises import InternalBotExerciseResponse
 
@@ -11,8 +12,16 @@ from app.api.schemas.internal.exercises import InternalBotExerciseResponse
 class InternalBotTrainingSetMode(BaseModel):
     """Модальные значения веса и повторений одного подхода."""
 
-    weight_mode: float
+    weight_mode: Decimal
     repetitions_mode: int
+
+    @field_validator("weight_mode", mode="before")
+    @classmethod
+    def normalize_weight_mode(cls, value: object) -> Decimal:
+        """Нормализует вес подсказки к канонической точности."""
+        from app.core.weights import normalize_weight
+
+        return normalize_weight(value)
 
 
 class InternalBotTrainingExerciseMode(BaseModel):
@@ -49,9 +58,17 @@ class InternalBotTrainingSet(BaseModel):
 
     set_id: int | None
     set_number: int
-    weight: float
+    weight: Decimal
     repetitions: int
     execution_time: datetime | None = None
+
+    @field_validator("weight", mode="before")
+    @classmethod
+    def normalize_set_weight(cls, value: object) -> Decimal:
+        """Нормализует вес подхода к канонической точности."""
+        from app.core.weights import normalize_weight
+
+        return normalize_weight(value)
 
 
 class InternalBotTrainingExercise(BaseModel):

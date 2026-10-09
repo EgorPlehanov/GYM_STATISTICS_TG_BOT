@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import date, datetime
+from decimal import Decimal
 from enum import Enum
 
 from app.bot.api_client.schemas.exercises import BotExercise
@@ -21,7 +22,7 @@ class BotTrainingSet:
 
     set_id: int | None
     set_number: int
-    weight: float
+    weight: Decimal
     repetitions: int
     execution_time: datetime | None = None
 
@@ -80,7 +81,7 @@ class BotTrainingSetMode:
         repetitions_mode: наиболее частое количество повторений.
     """
 
-    weight_mode: float
+    weight_mode: Decimal
     repetitions_mode: int
 
 

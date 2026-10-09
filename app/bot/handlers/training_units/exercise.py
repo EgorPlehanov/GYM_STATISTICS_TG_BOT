@@ -15,6 +15,7 @@ from cryptography.fernet import Fernet
 
 from app.bot.client import BotApiClient
 from app.bot.fsm.training import (
+    TrainingDraft,
     TrainingFlowStep,
     TrainingMode,
     TrainingStates,
@@ -45,7 +46,12 @@ async def add_exercise_handler(callback: CallbackQuery, state: FSMContext) -> No
         return
     next_draft = deepcopy(current_draft)
     next_draft.selection.mode = TrainingMode.ADD_EXERCISE.value
+    next_draft.selection.exercise_id = None
+    next_draft.selection.exercise_name = None
+    next_draft.selection.weight = None
+    next_draft.selection.repetitions = None
     next_draft.selection.sets_count = 1
+    next_draft.ui.exercise_selection_return_step = None
     next_draft.ui.exercise_page = 0
     await transition_training_screen(
         bot=callback.bot, chat_id=callback.message.chat.id, state=state,
@@ -86,7 +92,7 @@ async def selected_exercise_pagination(
 async def selected_exercise(
     callback: CallbackQuery, callback_data: TrainingExercisePagination, state: FSMContext
 ) -> None:
-    """Сохраняет выбранное упражнение и открывает ввод веса."""
+    """Сохраняет выбранное упражнение и открывает форму подхода."""
     current_draft = await get_training_draft(state)
     if not await is_current_training_callback(callback, current_draft):
         return
@@ -100,25 +106,56 @@ async def selected_exercise(
     next_draft.suggestions.most_frequent_exercises.insert(0, exercise)
     next_draft.selection.exercise_id = exercise_id
     next_draft.selection.exercise_name = exercise.name
+    _apply_exercise_suggestion(next_draft)
     next_draft.ui.exercise_page = 0
+    next_draft.ui.exercise_selection_return_step = None
     await transition_training_screen(
         bot=callback.bot, chat_id=callback.message.chat.id, state=state,
         current_draft=current_draft, next_draft=next_draft,
-        next_step=TrainingFlowStep.SELECT_WEIGHT,
+        next_step=TrainingFlowStep.ADD_SET_FORM,
     )
 
 
-@router.callback_query(F.data == "to_exercise", TrainingStates.select_weight)
-@router.callback_query(F.data == "to_exercise", TrainingStates.accept_addition)
-async def back_to_exercise(callback: CallbackQuery, state: FSMContext) -> None:
-    """Возвращает пользователя к выбору упражнения."""
-    draft = await get_training_draft(state)
-    if not await is_current_training_callback(callback, draft):
+@router.callback_query(F.data == "form_select_exercise", TrainingStates.add_set_form)
+async def select_exercise_from_form(callback: CallbackQuery, state: FSMContext) -> None:
+    """Открывает выбор упражнения с возможностью вернуться к заполненной форме."""
+    current_draft = await get_training_draft(state)
+    if not await is_current_training_callback(callback, current_draft):
         return
+    next_draft = deepcopy(current_draft)
+    next_draft.ui.exercise_page = 0
+    next_draft.ui.exercise_selection_return_step = TrainingFlowStep.ADD_SET_FORM
     await transition_training_screen(
-        bot=callback.bot, chat_id=callback.message.chat.id, state=state,
-        current_draft=draft, next_draft=deepcopy(draft),
+        bot=callback.bot,
+        chat_id=callback.message.chat.id,
+        state=state,
+        current_draft=current_draft,
+        next_draft=next_draft,
         next_step=TrainingFlowStep.SELECT_EXERCISE,
+    )
+
+
+@router.callback_query(
+    F.data == "form_cancel_exercise_selection",
+    TrainingStates.select_exercise,
+)
+async def cancel_exercise_selection_from_form(
+    callback: CallbackQuery,
+    state: FSMContext,
+) -> None:
+    """Возвращает к форме, не меняя ранее заполненные значения."""
+    current_draft = await get_training_draft(state)
+    if not await is_current_training_callback(callback, current_draft):
+        return
+    next_draft = deepcopy(current_draft)
+    next_draft.ui.exercise_selection_return_step = None
+    await transition_training_screen(
+        bot=callback.bot,
+        chat_id=callback.message.chat.id,
+        state=state,
+        current_draft=current_draft,
+        next_draft=next_draft,
+        next_step=TrainingFlowStep.ADD_SET_FORM,
     )
 
 
@@ -138,7 +175,8 @@ async def inline_exercise_search(inline_query: InlineQuery, state: FSMContext) -
         InlineQueryResultArticle(
             id=str(exercise.id), title=exercise.name, description=exercise.description,
             input_message_content=InputTextMessageContent(
-                message_text=cipher.encrypt(str(exercise.id).encode())
+                message_text=cipher.encrypt(str(exercise.id).encode()),
+                parse_mode=None,
             ),
         )
         for exercise in exercises
@@ -169,11 +207,32 @@ async def inline_selected_exercise(message: Message, state: FSMContext) -> None:
     )
     next_draft.selection.exercise_id = exercise.id
     next_draft.selection.exercise_name = exercise.name
+    _apply_exercise_suggestion(next_draft)
     next_draft.ui.exercise_page = 0
+    next_draft.ui.exercise_selection_return_step = None
     result = await transition_training_screen(
         bot=message.bot, chat_id=message.chat.id, state=state,
         current_draft=current_draft, next_draft=next_draft,
-        next_step=TrainingFlowStep.SELECT_WEIGHT,
+        next_step=TrainingFlowStep.ADD_SET_FORM,
     )
     if result is TrainingTransitionResult.APPLIED:
         await message.delete()
+
+
+def _apply_exercise_suggestion(draft: TrainingDraft) -> None:
+    """Применяет подсказку следующего подхода после выбора упражнения."""
+    from app.bot.fsm.training import get_weight_repetitions_modes_values_from_draft
+    from app.core.weights import normalize_weight
+
+    values = get_weight_repetitions_modes_values_from_draft(
+        draft,
+        is_weight=True,
+        is_repetitions=True,
+    )
+    if not isinstance(values, tuple):
+        draft.selection.weight = None
+        draft.selection.repetitions = None
+        return
+    weight, repetitions = values
+    draft.selection.weight = normalize_weight(weight) if weight else None
+    draft.selection.repetitions = int(repetitions) if repetitions else None

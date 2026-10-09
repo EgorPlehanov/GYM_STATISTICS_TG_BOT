@@ -57,7 +57,7 @@ def get_ikb_edit_select_set_fab(
         *(
             [
                 InlineKeyboardButton(
-                    text="⬅️",
+                    text="←",
                     callback_data=EditTrainingSetPagination(
                         action=PaginationAction.PREV,
                         page=page,
@@ -71,7 +71,7 @@ def get_ikb_edit_select_set_fab(
         + (
             [
                 InlineKeyboardButton(
-                    text="➡️",
+                    text="→",
                     callback_data=EditTrainingSetPagination(
                         action=PaginationAction.NEXT,
                         page=page,

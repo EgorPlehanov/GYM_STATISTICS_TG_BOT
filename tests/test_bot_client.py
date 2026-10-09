@@ -378,7 +378,7 @@ async def test_bot_api_client_get_training_by_date_restores_training_dto(monkeyp
                                 {
                                     "set_id": 20,
                                     "set_number": 1,
-                                    "weight": 100.0,
+                                    "weight": "100.000",
                                     "repetitions": 5,
                                     "execution_time": "2026-09-09T12:35:00",
                                 }
@@ -518,7 +518,7 @@ async def test_bot_api_client_save_training_serializes_training_dto(monkeypatch)
                             {
                                 "set_id": None,
                                 "set_number": 1,
-                                "weight": 100.0,
+                                "weight": "100.000",
                                 "repetitions": 5,
                                 "execution_time": "2026-09-09T12:35:00",
                             }

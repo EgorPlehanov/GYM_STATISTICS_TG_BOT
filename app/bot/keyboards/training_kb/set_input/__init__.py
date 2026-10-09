@@ -1,9 +1,7 @@
 """Клавиатуры ввода веса, повторений и количества подходов."""
 
-from .ikb_accept_addition import get_ikb_accept_addition
-from .ikb_open_inline_search import get_ikb_open_inline_search
+from .ikb_add_set_form import get_ikb_add_set_form
 
 __all__ = [
-    "get_ikb_accept_addition",
-    "get_ikb_open_inline_search",
+    "get_ikb_add_set_form",
 ]

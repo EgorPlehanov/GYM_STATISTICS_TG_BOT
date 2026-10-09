@@ -22,7 +22,7 @@ from app.bot.fsm.training import (
     add_exercise_to_draft,
     add_set_to_draft,
     bot_training_to_draft,
-    check_accept_addition_for_draft,
+    can_submit_set_form_for_draft,
     delete_all_exercise_sets_from_draft,
     delete_all_exercises_from_draft,
     delete_set_from_draft,
@@ -144,7 +144,7 @@ def test_training_draft_round_trip_from_json() -> None:
                 "1": {
                     "max_exercise_order": 1,
                     "sets_modes": {
-                        "1": {"weight_mode": 100.0, "repetitions_mode": 5}
+                    "1": {"weight_mode": "100.000", "repetitions_mode": 5}
                     },
                 }
             },
@@ -158,7 +158,7 @@ def test_training_draft_round_trip_from_json() -> None:
     assert draft.training.training_date == "2026-09-12"
     assert draft.training.exercises[0].sets[0].execution_time == "2026-09-12T19:00:00"
     assert restored_data["ui"]["current_exercise_name"] == "Присед"
-    assert restored_data["ui"]["last_weight"] == 100.0
+    assert restored_data["ui"]["last_weight"] == "100.000"
     assert draft.ui.calendar_view is TrainingCalendarView.MONTHS
     assert restored_data["ui"]["calendar_view"] == "months"
     assert draft.suggestions.most_frequent_exercises == [
@@ -180,7 +180,7 @@ def test_training_draft_round_trip_from_json() -> None:
         "1": {
             "max_exercise_order": 1,
             "sets_modes": {
-                "1": {"weight_mode": 100.0, "repetitions_mode": 5}
+                "1": {"weight_mode": "100.000", "repetitions_mode": 5}
             },
         }
     }
@@ -237,7 +237,7 @@ def test_training_draft_without_date_cannot_be_sent_to_api() -> None:
         draft_to_bot_training(draft)
 
 
-def test_check_accept_addition_for_draft_allows_complete_add_exercise() -> None:
+def test_can_submit_set_form_for_draft_allows_complete_add_exercise() -> None:
     """Проверяет подтверждение добавления упражнения по draft."""
     draft = TrainingDraft(
         training=TrainingDraftData(
@@ -250,10 +250,10 @@ def test_check_accept_addition_for_draft_allows_complete_add_exercise() -> None:
     draft.selection.weight = 80.0
     draft.selection.repetitions = 8
 
-    assert check_accept_addition_for_draft(draft)
+    assert can_submit_set_form_for_draft(draft)
 
 
-def test_check_accept_addition_for_draft_rejects_incomplete_add_set() -> None:
+def test_can_submit_set_form_for_draft_rejects_incomplete_add_set() -> None:
     """Проверяет запрет подтверждения подхода без повторений."""
     draft = TrainingDraft(
         training=TrainingDraftData(
@@ -264,10 +264,10 @@ def test_check_accept_addition_for_draft_rejects_incomplete_add_set() -> None:
     draft.selection.mode = TrainingMode.ADD_SET.value
     draft.selection.weight = 80.0
 
-    assert not check_accept_addition_for_draft(draft)
+    assert not can_submit_set_form_for_draft(draft)
 
 
-def test_check_accept_addition_for_draft_compares_edited_set() -> None:
+def test_can_submit_set_form_for_draft_compares_edited_set() -> None:
     """Проверяет подтверждение редактирования только при изменении подхода."""
     draft = _build_training_draft()
     draft.selection.mode = TrainingMode.EDIT_SET.value
@@ -276,11 +276,11 @@ def test_check_accept_addition_for_draft_compares_edited_set() -> None:
     draft.edit.exercise_id = 1
     draft.edit.set_id = 1
 
-    assert not check_accept_addition_for_draft(draft)
+    assert not can_submit_set_form_for_draft(draft)
 
     draft.selection.repetitions = 9
 
-    assert check_accept_addition_for_draft(draft)
+    assert can_submit_set_form_for_draft(draft)
 
 
 def test_weight_repetitions_modes_values_from_draft_uses_typed_suggestions() -> None:

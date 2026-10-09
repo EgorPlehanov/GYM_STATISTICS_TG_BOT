@@ -2,10 +2,13 @@
 
 from dataclasses import asdict, dataclass, field, is_dataclass
 from datetime import date, datetime
+from decimal import Decimal
 from enum import Enum
 from typing import Any
 
 from aiogram.fsm.context import FSMContext
+
+from app.core.weights import normalize_weight
 
 from .states import TrainingFlowStep
 
@@ -32,7 +35,7 @@ class TrainingDraftSet:
 
     set_id: int | None
     set_number: int
-    weight: float
+    weight: Decimal
     repetitions: int
     execution_time: str | None = None
 
@@ -85,9 +88,9 @@ class TrainingSelection:
     mode: str | None = None
     exercise_id: int | None = None
     exercise_name: str | None = None
-    weight: float | None = None
+    weight: Decimal | None = None
     repetitions: int | None = None
-    sets_count: int | None = None
+    sets_count: int | None = 1
 
 
 @dataclass(slots=True)
@@ -142,6 +145,8 @@ class TrainingUiContext:
         current_exercise_name: имя последнего выбранного упражнения.
         last_weight: последний сохраненный вес для кнопки повтора.
         last_repetitions: последнее сохраненное количество повторений.
+        exercise_selection_return_step: шаг, к которому нужно вернуться после
+            отмены выбора упражнения из формы добавления подходов.
     """
 
     message_id: int | None = None
@@ -155,8 +160,9 @@ class TrainingUiContext:
     calendar_month: int | None = None
     current_exercise_id: int | None = None
     current_exercise_name: str | None = None
-    last_weight: float | None = None
+    last_weight: Decimal | None = None
     last_repetitions: int | None = None
+    exercise_selection_return_step: TrainingFlowStep | None = None
 
 
 @dataclass(slots=True)
@@ -183,7 +189,7 @@ class TrainingSetModeSuggestion:
         repetitions_mode: наиболее частое количество повторений.
     """
 
-    weight_mode: float
+    weight_mode: Decimal
     repetitions_mode: int
 
 
@@ -261,7 +267,7 @@ def draft_from_json(data: dict[str, Any]) -> TrainingDraft:
     """
     return TrainingDraft(
         training=_training_data_from_json(data["training"]),
-        selection=TrainingSelection(**data.get("selection", {})),
+        selection=_selection_from_json(data.get("selection", {})),
         edit=TrainingEditContext(**data.get("edit", {})),
         ui=_ui_context_from_json(data.get("ui", {})),
         suggestions=_suggestions_from_json(data.get("suggestions", {})),
@@ -322,6 +328,8 @@ def _normalize_json_value(value: Any) -> Any:
         return value.isoformat()
     if isinstance(value, date):
         return value.isoformat()
+    if isinstance(value, Decimal):
+        return format(value, "f")
     if isinstance(value, Enum):
         return value.value
     if is_dataclass(value) and not isinstance(value, type):
@@ -373,7 +381,7 @@ def _training_data_from_json(data: dict[str, Any]) -> TrainingDraftData:
                     TrainingDraftSet(
                         set_id=set_data.get("set_id"),
                         set_number=set_data["set_number"],
-                        weight=set_data["weight"],
+                        weight=_weight_from_json(set_data["weight"]),
                         repetitions=set_data["repetitions"],
                         execution_time=_normalize_datetime_or_none(
                             set_data.get("execution_time")
@@ -394,6 +402,12 @@ def _ui_context_from_json(data: dict[str, Any]) -> TrainingUiContext:
     if suspended_step is not None:
         context_data["suspended_step"] = TrainingFlowStep(suspended_step)
 
+    exercise_selection_return_step = context_data.get("exercise_selection_return_step")
+    if exercise_selection_return_step is not None:
+        context_data["exercise_selection_return_step"] = TrainingFlowStep(
+            exercise_selection_return_step
+        )
+
     calendar_view = context_data.get("calendar_view")
     if calendar_view is not None:
         context_data["calendar_view"] = TrainingCalendarView(calendar_view)
@@ -403,6 +417,9 @@ def _ui_context_from_json(data: dict[str, Any]) -> TrainingUiContext:
         context_data["date_conflict"] = TrainingDateConflict(
             training=_training_data_from_json(date_conflict["training"])
         )
+
+    if context_data.get("last_weight") is not None:
+        context_data["last_weight"] = _weight_from_json(context_data["last_weight"])
 
     return TrainingUiContext(**context_data)
 
@@ -423,7 +440,7 @@ def _suggestions_from_json(data: dict[str, Any]) -> TrainingSuggestions:
                 max_exercise_order=exercise_mode["max_exercise_order"],
                 sets_modes={
                     int(set_id): TrainingSetModeSuggestion(
-                        weight_mode=set_mode["weight_mode"],
+                        weight_mode=_weight_from_json(set_mode["weight_mode"]),
                         repetitions_mode=set_mode["repetitions_mode"],
                     )
                     for set_id, set_mode in exercise_mode.get("sets_modes", {}).items()
@@ -435,6 +452,19 @@ def _suggestions_from_json(data: dict[str, Any]) -> TrainingSuggestions:
         },
         training_dates=list(data.get("training_dates", [])),
     )
+
+
+def _selection_from_json(data: dict[str, Any]) -> TrainingSelection:
+    """Восстанавливает временные значения формы из JSON-friendly словаря."""
+    selection_data = dict(data)
+    if selection_data.get("weight") is not None:
+        selection_data["weight"] = _weight_from_json(selection_data["weight"])
+    return TrainingSelection(**selection_data)
+
+
+def _weight_from_json(value: Any) -> Decimal:
+    """Восстанавливает Decimal-вес из строки или числового JSON-значения."""
+    return normalize_weight(value)
 
 
 

@@ -5,13 +5,13 @@ from .draft import TrainingDraft, TrainingDraftSet, get_training_draft
 from .states import TrainingMode
 
 
-async def check_accept_addition(state: FSMContext) -> bool:
-    """Проверяет, можно ли подтвердить добавление или изменение подхода."""
-    return check_accept_addition_for_draft(await get_training_draft(state))
+async def can_submit_set_form(state: FSMContext) -> bool:
+    """Проверяет, можно ли сохранить текущую форму подхода."""
+    return can_submit_set_form_for_draft(await get_training_draft(state))
 
 
-def check_accept_addition_for_draft(draft: TrainingDraft) -> bool:
-    """Проверяет возможность подтверждения по типизированному FSM draft.
+def can_submit_set_form_for_draft(draft: TrainingDraft) -> bool:
+    """Проверяет возможность сохранения по типизированному FSM draft.
 
     Args:
         draft: текущий draft сценария тренировки.
@@ -24,10 +24,14 @@ def check_accept_addition_for_draft(draft: TrainingDraft) -> bool:
     is_repetitions = draft.selection.repetitions is not None
 
     match _get_training_mode(draft.selection.mode):
-        case TrainingMode.ADD_EXERCISE:
-            return is_exercise and is_weight and is_repetitions
-        case TrainingMode.ADD_SET:
-            return is_weight and is_repetitions
+        case TrainingMode.ADD_EXERCISE | TrainingMode.ADD_SET:
+            return (
+                is_exercise
+                and is_weight
+                and is_repetitions
+                and draft.selection.sets_count is not None
+                and draft.selection.sets_count > 0
+            )
         case TrainingMode.EDIT_SET:
             set_data = _get_edit_set(draft)
             if set_data is None:

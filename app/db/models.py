@@ -1,10 +1,19 @@
 """SQLAlchemy-модели проекта."""
 
 from datetime import date, datetime
+from decimal import Decimal
 from enum import Enum, unique
 from typing import Annotated
 
-from sqlalchemy import BigInteger, CheckConstraint, Date, ForeignKey, UniqueConstraint, func
+from sqlalchemy import (
+    BigInteger,
+    CheckConstraint,
+    Date,
+    ForeignKey,
+    Numeric,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, str_256, str_2048
@@ -328,7 +337,7 @@ class Set(Base):
     exercise_id: Mapped[int] = mapped_column(ForeignKey("exercise.id"))
     overall_order: Mapped[int]
     exercise_order: Mapped[int]
-    weight: Mapped[float]
+    weight: Mapped[Decimal] = mapped_column(Numeric(10, 3))
     repetitions: Mapped[int]
     execution_time: Mapped[datetime | None]
 
@@ -374,7 +383,7 @@ class ExerciseRank(Base):
     exercise_id: Mapped[int | None] = mapped_column(ForeignKey("exercise.id"))
     rank_id: Mapped[int] = mapped_column(ForeignKey("rank.id"))
     level: Mapped[int]
-    grade_threshold: Mapped[float]
+    grade_threshold: Mapped[Decimal] = mapped_column(Numeric(10, 3))
     is_default: Mapped[bool] = mapped_column(default=False)
 
     exercise: Mapped["Exercise | None"] = relationship("Exercise")
@@ -404,7 +413,7 @@ class UserExerciseRating(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"))
     exercise_id: Mapped[int | None] = mapped_column(ForeignKey("exercise.id"))
     exercise_rank_id: Mapped[int] = mapped_column(ForeignKey("exercise_rank.id"))
-    rating_value: Mapped[float]
+    rating_value: Mapped[Decimal] = mapped_column(Numeric(10, 3))
     created_at: Mapped[created_at]
     updated_at: Mapped[updated_at]
 

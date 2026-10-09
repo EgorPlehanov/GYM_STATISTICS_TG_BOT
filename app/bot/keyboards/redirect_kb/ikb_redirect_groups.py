@@ -51,7 +51,7 @@ def get_ikb_redirect_groups(
 
     builder.row(*([
         InlineKeyboardButton(
-            text='⬅️',
+            text='←',
             callback_data=RedirectGroupPagination(
                 action=PaginationAction.PREV,
                 page=page,
@@ -60,7 +60,7 @@ def get_ikb_redirect_groups(
         )
     ] if page > 0 else []) + ([
         InlineKeyboardButton(
-            text='➡️',
+            text='→',
             callback_data=RedirectGroupPagination(
                 action=PaginationAction.NEXT,
                 page=page,

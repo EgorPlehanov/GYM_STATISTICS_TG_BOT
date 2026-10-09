@@ -1,6 +1,7 @@
 """DTO-схемы internal API для экспорта данных Telegram-бота."""
 
 from datetime import date
+from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -35,7 +36,7 @@ class InternalBotExportDataResponse(BaseModel):
     exercise_name: str
     overall_order: int
     exercise_order: int
-    weight: float
+    weight: Decimal
     repetitions: int
     training_exercise_weight_sum: float
     training_exercise_repetitions_sum: int

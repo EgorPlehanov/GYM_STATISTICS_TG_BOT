@@ -2,6 +2,7 @@
 
 from app.bot.api_client.base import BotApiClientBase
 from app.bot.api_client.schemas.statistics import BotExerciseRating
+from app.core.weights import normalize_weight
 
 
 class BotStatisticsApiClientMixin(BotApiClientBase):
@@ -24,4 +25,9 @@ class BotStatisticsApiClientMixin(BotApiClientBase):
             params={"telegram_id": telegram_id},
         )
         response.raise_for_status()
-        return [BotExerciseRating(**item) for item in response.json()]
+        return [
+            BotExerciseRating(
+                **{**item, "rating_value": normalize_weight(item["rating_value"])}
+            )
+            for item in response.json()
+        ]
