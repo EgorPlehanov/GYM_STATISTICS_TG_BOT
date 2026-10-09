@@ -48,11 +48,13 @@ def get_ikb_add_set_form(
     builder.row(
         InlineKeyboardButton(
             text=f"Вес: {format_weight(weight)} кг" if weight is not None else "Вес",
-            switch_inline_query_current_chat="w",
+            switch_inline_query_current_chat=(
+                f"w{format_weight(weight)}" if weight is not None else "w"
+            ),
         ),
         InlineKeyboardButton(
             text=f"Повторы: {repetitions}" if repetitions is not None else "Повторы",
-            switch_inline_query_current_chat="r",
+            switch_inline_query_current_chat=f"r{repetitions}" if repetitions is not None else "r",
         ),
     )
     if not is_editing:
@@ -63,7 +65,9 @@ def get_ikb_add_set_form(
                     if sets_count is not None
                     else "Подходов: 1"
                 ),
-                switch_inline_query_current_chat="s",
+                switch_inline_query_current_chat=(
+                    f"s{sets_count}" if sets_count is not None else "s"
+                ),
             )
         )
     actions = [

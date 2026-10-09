@@ -4,7 +4,10 @@ from decimal import Decimal
 
 import pytest
 
-from app.bot.handlers.training_units.set_input.form import parse_add_set_form_input
+from app.bot.handlers.training_units.set_input.form import (
+    _inline_results,
+    parse_add_set_form_input,
+)
 from app.bot.keyboards.training_kb.set_input.ikb_add_set_form import (
     get_ikb_add_set_form,
 )
@@ -63,11 +66,47 @@ def test_parse_positional_add_set_form_input(
     assert parsed.sets_count == sets_count
 
 
-@pytest.mark.parametrize("text", ["w80 w90", "w80r8r9", "80", "80-8", "w80q8", "s0"])
+@pytest.mark.parametrize(
+    "text",
+    [
+        "w80 w90",
+        "w80r8r9",
+        "80",
+        "80-8",
+        "w80q8",
+        "s0",
+        "w500,001",
+        "r1001",
+        "s101",
+    ],
+)
 def test_parse_add_set_form_input_rejects_ambiguous_or_invalid_values(text: str) -> None:
     """Повторы индекса, одиночные числа и неоднозначные разделители отвергаются."""
     with pytest.raises(ValueError):
         parse_add_set_form_input(text)
+
+
+@pytest.mark.parametrize("text", ["w0", "w500", "r0", "r1000", "s1", "s100"])
+def test_parse_add_set_form_input_accepts_range_boundaries(text: str) -> None:
+    """Граничные значения формы принимаются включительно."""
+    parse_add_set_form_input(text)
+
+
+def test_weight_inline_results_accept_comma_and_dot_and_offer_custom_value() -> None:
+    """Поиск веса не зависит от разделителя, а нестандартный шаг остаётся доступным."""
+    comma_results = _inline_results("w", "80,5")
+    dot_results = _inline_results("w", "80.5")
+    custom_results = _inline_results("w", "80.125")
+
+    assert comma_results[0].input_message_content.message_text == "w80.500"
+    assert dot_results[0].input_message_content.message_text == "w80.500"
+    assert custom_results[0].title == "80,125 кг"
+    assert custom_results[0].input_message_content.message_text == "w80.125"
+
+
+def test_weight_inline_results_do_not_offer_out_of_range_value() -> None:
+    """Inline-поиск не предлагает вес за допустимой границей."""
+    assert _inline_results("w", "500.001") == []
 
 
 def test_add_set_form_hides_submit_until_required_fields_are_set() -> None:
@@ -111,3 +150,22 @@ def test_edit_set_form_hides_sets_count_and_uses_save_action() -> None:
     assert all(not button.text.startswith("Подходов") for button in buttons)
     assert any(button.callback_data == "accept_edit" for button in buttons)
     assert any(button.callback_data == "delete_set" for button in buttons)
+
+
+def test_add_set_form_passes_current_values_to_inline_query() -> None:
+    """Кнопки формы открывают inline-ввод с уже выбранным значением."""
+    keyboard = get_ikb_add_set_form(
+        exercise_name="Жим лежа",
+        weight=Decimal("80.125"),
+        repetitions=8,
+        sets_count=3,
+        can_submit=True,
+        is_editing=False,
+    )
+
+    assert [
+        button.switch_inline_query_current_chat
+        for row in keyboard.inline_keyboard
+        for button in row
+        if button.switch_inline_query_current_chat is not None
+    ] == ["w80,125", "r8", "s3"]

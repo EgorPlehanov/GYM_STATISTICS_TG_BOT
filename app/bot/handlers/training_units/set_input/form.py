@@ -40,6 +40,14 @@ _POSITIONAL = re.compile(
     re.IGNORECASE,
 )
 
+_MIN_WEIGHT = Decimal("0")
+_MAX_WEIGHT = Decimal("500")
+_WEIGHT_STEP = Decimal("0.25")
+_MIN_REPETITIONS = 0
+_MAX_REPETITIONS = 1000
+_MIN_SETS_COUNT = 1
+_MAX_SETS_COUNT = 100
+
 
 @dataclass(frozen=True, slots=True)
 class AddSetFormInput:
@@ -126,9 +134,9 @@ def parse_add_set_form_input(text: str) -> AddSetFormInput:
     sets_count = match.group("sets_count")
     return AddSetFormInput(
         weight=_parse_weight(match.group("weight")),
-        repetitions=_parse_non_negative_integer(match.group("repetitions"), "Повторения"),
+        repetitions=_parse_repetitions(match.group("repetitions")),
         sets_count=(
-            _parse_positive_integer(sets_count, "Количество подходов")
+            _parse_sets_count(sets_count)
             if sets_count is not None
             else None
         ),
@@ -156,12 +164,12 @@ def _parse_indexed_input(text: str) -> AddSetFormInput:
     return AddSetFormInput(
         weight=_parse_weight(values["w"]) if "w" in values else None,
         repetitions=(
-            _parse_non_negative_integer(values["r"], "Повторения")
+            _parse_repetitions(values["r"])
             if "r" in values
             else None
         ),
         sets_count=(
-            _parse_positive_integer(values["s"], "Количество подходов")
+            _parse_sets_count(values["s"])
             if "s" in values
             else None
         ),
@@ -170,21 +178,39 @@ def _parse_indexed_input(text: str) -> AddSetFormInput:
 
 def _parse_weight(value: str) -> Decimal:
     """Разбирает вес с десятичной запятой или точкой."""
-    return normalize_weight(value.replace(",", "."))
+    weight = normalize_weight(value.replace(",", "."))
+    if not _MIN_WEIGHT <= weight <= _MAX_WEIGHT:
+        raise ValueError(f"Вес должен быть от {_MIN_WEIGHT} до {_MAX_WEIGHT} кг.")
+    return weight
 
 
-def _parse_non_negative_integer(value: str, label: str) -> int:
-    """Проверяет целое неотрицательное значение."""
+def _parse_repetitions(value: str) -> int:
+    """Проверяет диапазон целого количества повторений."""
+    return _parse_integer_in_range(
+        value,
+        label="Повторения",
+        minimum=_MIN_REPETITIONS,
+        maximum=_MAX_REPETITIONS,
+    )
+
+
+def _parse_sets_count(value: str) -> int:
+    """Проверяет диапазон целого количества добавляемых подходов."""
+    return _parse_integer_in_range(
+        value,
+        label="Количество подходов",
+        minimum=_MIN_SETS_COUNT,
+        maximum=_MAX_SETS_COUNT,
+    )
+
+
+def _parse_integer_in_range(value: str, *, label: str, minimum: int, maximum: int) -> int:
+    """Проверяет, что целое значение находится в допустимом диапазоне."""
     if "." in value or "," in value:
         raise ValueError(f"{label} должны быть целым числом.")
-    return int(value)
-
-
-def _parse_positive_integer(value: str, label: str) -> int:
-    """Проверяет положительное целое значение."""
-    parsed = _parse_non_negative_integer(value, label)
-    if parsed < 1:
-        raise ValueError(f"{label} должны быть не меньше 1.")
+    parsed = int(value)
+    if not minimum <= parsed <= maximum:
+        raise ValueError(f"{label} должны быть от {minimum} до {maximum}.")
     return parsed
 
 
@@ -209,21 +235,10 @@ async def inline_add_set_form(inline_query: InlineQuery, state: FSMContext) -> N
 def _inline_results(prefix: str, substring: str) -> list[InlineQueryResultArticle]:
     """Строит ограниченный набор безопасных inline-значений одного поля."""
     if prefix == "w":
-        values = [normalize_weight(Decimal(number) / 4) for number in range(0, 2001)]
-        return [
-            InlineQueryResultArticle(
-                id=f"w{value}",
-                title=f"{format_weight(value)} кг",
-                input_message_content=InputTextMessageContent(
-                    message_text=f"w{format(value, 'f')}",
-                    parse_mode=None,
-                ),
-            )
-            for value in values
-            if substring in format_weight(value).lower()
-        ]
+        return _weight_inline_results(substring)
 
-    upper_bound = 1000 if prefix == "r" else 100
+    upper_bound = _MAX_REPETITIONS if prefix == "r" else _MAX_SETS_COUNT
+    lower_bound = _MIN_REPETITIONS if prefix == "r" else _MIN_SETS_COUNT
     noun = "повторений" if prefix == "r" else "подходов"
     return [
         InlineQueryResultArticle(
@@ -234,9 +249,47 @@ def _inline_results(prefix: str, substring: str) -> list[InlineQueryResultArticl
                 parse_mode=None,
             ),
         )
-        for number in range(0 if prefix == "r" else 1, upper_bound + 1)
+        for number in range(lower_bound, upper_bound + 1)
         if substring in str(number)
     ]
+
+
+def _weight_inline_results(substring: str) -> list[InlineQueryResultArticle]:
+    """Строит подсказки сетки веса и вариант для корректного нестандартного веса."""
+    values = [
+        normalize_weight(_MIN_WEIGHT + _WEIGHT_STEP * number)
+        for number in range(int((_MAX_WEIGHT - _MIN_WEIGHT) / _WEIGHT_STEP) + 1)
+    ]
+    normalized_query = substring.replace(",", ".")
+    results = [
+        _weight_inline_result(value)
+        for value in values
+        if normalized_query in format(value, "f")
+    ]
+    custom_weight = _try_parse_weight(substring)
+    if custom_weight is not None and custom_weight not in values:
+        results.insert(0, _weight_inline_result(custom_weight))
+    return results
+
+
+def _try_parse_weight(value: str) -> Decimal | None:
+    """Возвращает корректный вес для inline-подсказки или None без показа ошибки."""
+    try:
+        return _parse_weight(value)
+    except ValueError:
+        return None
+
+
+def _weight_inline_result(weight: Decimal) -> InlineQueryResultArticle:
+    """Создаёт безопасный inline-результат выбора веса."""
+    return InlineQueryResultArticle(
+        id=f"w{format(weight, 'f')}",
+        title=f"{format_weight(weight)} кг",
+        input_message_content=InputTextMessageContent(
+            message_text=f"w{format(weight, 'f')}",
+            parse_mode=None,
+        ),
+    )
 
 
 @router.message(F.text & ~F.text.startswith("/"), TrainingStates.add_set_form)
