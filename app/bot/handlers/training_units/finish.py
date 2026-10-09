@@ -86,6 +86,7 @@ async def add_comment(message: Message, state: FSMContext) -> None:
     current_draft = await get_training_draft(state)
     new_comment = message.text[:TRAINING_COMMENT_MAX_LENGTH]
     if current_draft.training.comment == new_comment:
+        await message.delete()
         return
     next_draft = deepcopy(current_draft)
     next_draft.training.comment = new_comment
