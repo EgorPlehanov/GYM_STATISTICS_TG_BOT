@@ -45,18 +45,6 @@ def get_ikb_add_set_form(
                 callback_data="form_select_exercise",
             )
         )
-    builder.row(
-        InlineKeyboardButton(
-            text=f"Вес: {format_weight(weight)} кг" if weight is not None else "Вес",
-            switch_inline_query_current_chat=(
-                f"w{format_weight(weight)}" if weight is not None else "w"
-            ),
-        ),
-        InlineKeyboardButton(
-            text=f"Повторы: {repetitions}" if repetitions is not None else "Повторы",
-            switch_inline_query_current_chat=f"r{repetitions}" if repetitions is not None else "r",
-        ),
-    )
     if not is_editing:
         builder.row(
             InlineKeyboardButton(
@@ -70,6 +58,18 @@ def get_ikb_add_set_form(
                 ),
             )
         )
+    builder.row(
+        InlineKeyboardButton(
+            text=f"Вес: {format_weight(weight)} кг" if weight is not None else "Вес",
+            switch_inline_query_current_chat=(
+                f"w{format_weight(weight)}" if weight is not None else "w"
+            ),
+        ),
+        InlineKeyboardButton(
+            text=f"Повторы: {repetitions}" if repetitions is not None else "Повторы",
+            switch_inline_query_current_chat=f"r{repetitions}" if repetitions is not None else "r",
+        ),
+    )
     actions = [
         InlineKeyboardButton(
             text="⬅️ Подход" if is_editing else "Отменить",

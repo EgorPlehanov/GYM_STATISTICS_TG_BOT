@@ -168,4 +168,22 @@ def test_add_set_form_passes_current_values_to_inline_query() -> None:
         for row in keyboard.inline_keyboard
         for button in row
         if button.switch_inline_query_current_chat is not None
-    ] == ["w80,125", "r8", "s3"]
+    ] == ["s3", "w80,125", "r8"]
+
+
+def test_add_set_form_places_sets_count_below_exercise() -> None:
+    """Количество подходов располагается отдельной строкой перед весом и повторениями."""
+    keyboard = get_ikb_add_set_form(
+        exercise_name="Жим лежа",
+        weight=Decimal("80.000"),
+        repetitions=8,
+        sets_count=3,
+        can_submit=True,
+        is_editing=False,
+    )
+
+    assert [[button.text for button in row] for row in keyboard.inline_keyboard[:3]] == [
+        ["Жим лежа"],
+        ["Подходов: 3"],
+        ["Вес: 80 кг", "Повторы: 8"],
+    ]
