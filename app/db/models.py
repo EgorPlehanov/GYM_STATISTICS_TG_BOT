@@ -11,11 +11,13 @@ from sqlalchemy import (
     Date,
     ForeignKey,
     Numeric,
+    String,
     UniqueConstraint,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.training import TRAINING_COMMENT_MAX_LENGTH
 from app.db.base import Base, str_256, str_2048
 
 intpk = Annotated[int, mapped_column(primary_key=True)]
@@ -302,7 +304,7 @@ class Training(Base):
     id: Mapped[intpk]
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"))
     date: Mapped[date] = mapped_column(Date)
-    comment: Mapped[str_256 | None]
+    comment: Mapped[str | None] = mapped_column(String(TRAINING_COMMENT_MAX_LENGTH))
     created_at: Mapped[created_at]
     updated_at: Mapped[updated_at]
 

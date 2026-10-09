@@ -30,6 +30,7 @@ from app.bot.ui.training import (
     replace_after_backend,
     transition_training_screen,
 )
+from app.core.training import TRAINING_COMMENT_MAX_LENGTH
 
 from .redirect_result import (
     delete_removed_training_redirect_messages,
@@ -57,16 +58,25 @@ async def inline_comment(inline_query: InlineQuery) -> None:
     """Возвращает inline-вариант комментария из введенного текста."""
     results = []
     if inline_query.query:
-        results.append(
-            InlineQueryResultArticle(
-                id="comment", title=inline_query.query,
-                input_message_content=InputTextMessageContent(
-                    message_text=inline_query.query,
-                    parse_mode=None,
-                ),
-            )
-        )
+        results.append(_build_inline_comment_result(inline_query.query))
     await inline_query.answer(results, cache_time=0, is_personal=True)
+
+
+def _build_inline_comment_result(comment: str) -> InlineQueryResultArticle:
+    """Создает inline-результат с итоговым текстом и счетчиком его длины."""
+    truncated_comment = comment[:TRAINING_COMMENT_MAX_LENGTH]
+    description = f"{len(comment)}/{TRAINING_COMMENT_MAX_LENGTH} символов"
+    if len(comment) > TRAINING_COMMENT_MAX_LENGTH:
+        description += f": будет сохранено {TRAINING_COMMENT_MAX_LENGTH}"
+    return InlineQueryResultArticle(
+        id="comment",
+        title=truncated_comment,
+        description=description,
+        input_message_content=InputTextMessageContent(
+            message_text=truncated_comment,
+            parse_mode=None,
+        ),
+    )
 
 
 @router.message(F.text, TrainingStates.add_comment)
@@ -74,7 +84,7 @@ async def inline_comment(inline_query: InlineQuery) -> None:
 async def add_comment(message: Message, state: FSMContext) -> None:
     """Сохраняет комментарий только после успешного обновления главного экрана."""
     current_draft = await get_training_draft(state)
-    new_comment = message.text[:500]
+    new_comment = message.text[:TRAINING_COMMENT_MAX_LENGTH]
     if current_draft.training.comment == new_comment:
         return
     next_draft = deepcopy(current_draft)
@@ -86,8 +96,10 @@ async def add_comment(message: Message, state: FSMContext) -> None:
     )
     if result is TrainingTransitionResult.APPLIED:
         await message.delete()
-    if len(message.text) > 500:
-        warning = await message.answer("❗ Комментарий сокращён до 500 символов.")
+    if len(message.text) > TRAINING_COMMENT_MAX_LENGTH:
+        warning = await message.answer(
+            f"⚠️ Комментарий сокращён до {TRAINING_COMMENT_MAX_LENGTH} символов."
+        )
         await sleep(3)
         await warning.delete()
 

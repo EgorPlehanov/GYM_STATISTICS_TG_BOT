@@ -3,10 +3,15 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
 def get_ikb_finish_add_comment(
-    current_comment: bool = None
+    current_comment: str | None = None,
 ) -> InlineKeyboardMarkup:
-    """
-    Фабрика инлайн клавиатуры меню редактирования тренировки
+    """Создает клавиатуру добавления или изменения комментария тренировки.
+
+    Args:
+        current_comment: текущий текст комментария, который подставляется в inline-ввод.
+
+    Returns:
+        Inline-клавиатура с вводом комментария и командой сохранения.
     """
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="💪 Продолжить тренировку 💪", callback_data="to_menu"))
