@@ -8,12 +8,14 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from app.bot.formatters.training import format_training_step
 from app.bot.fsm.training import (
     TrainingCalendarView,
+    TrainingDeletionView,
     TrainingDraft,
     TrainingFlowStep,
     TrainingMode,
     can_submit_set_form_for_draft,
     get_draft_exercise,
     has_draft_exercises,
+    has_edit_set_changes,
 )
 from app.bot.keyboards.training_kb import (
     get_ikb_add_set_form,
@@ -24,7 +26,11 @@ from app.bot.keyboards.training_kb import (
     get_ikb_finish_add_comment,
     get_ikb_select_exercise_fab,
     get_ikb_training_menu,
-    ikb_edit_accept_delete,
+)
+from app.bot.keyboards.training_kb.edit.ikb_edit_delete import (
+    get_ikb_edit_delete_confirm,
+    get_ikb_edit_delete_exercises,
+    get_ikb_edit_delete_sets,
 )
 
 from .calendar import render_training_calendar
@@ -63,7 +69,7 @@ def _render_keyboard(
     if step is TrainingFlowStep.SELECT_EXERCISE:
         return_to_form = (
             draft.ui.exercise_selection_return_step
-            is TrainingFlowStep.ADD_SET_FORM
+            is TrainingFlowStep.SET_FORM
         )
         return get_ikb_select_exercise_fab(
             exercise_data=draft.suggestions.most_frequent_exercises,
@@ -74,7 +80,7 @@ def _render_keyboard(
             ),
             back_button_text="⬅️ К форме" if return_to_form else "⬅️ Меню",
         )
-    if step is TrainingFlowStep.ADD_SET_FORM:
+    if step is TrainingFlowStep.SET_FORM:
         is_editing = _mode(draft) is TrainingMode.EDIT_SET
         return get_ikb_add_set_form(
             exercise_name=draft.selection.exercise_name,
@@ -83,6 +89,8 @@ def _render_keyboard(
             sets_count=draft.selection.sets_count,
             can_submit=can_submit_set_form_for_draft(draft),
             is_editing=is_editing,
+            has_changes=has_edit_set_changes(draft) if is_editing else False,
+            edited_set_number=draft.edit.set_number,
         )
     if step is TrainingFlowStep.ADD_COMMENT:
         return get_ikb_finish_add_comment(current_comment=draft.training.comment)
@@ -95,9 +103,27 @@ def _render_keyboard(
         )
     if step is TrainingFlowStep.EDIT_SELECT_SET:
         exercise = get_draft_exercise(draft, draft.edit.exercise_id)
-        return get_ikb_edit_select_set_fab(exercise.sets, page=draft.ui.edit_set_page)
+        return get_ikb_edit_select_set_fab(
+            exercise.sets,
+            page=draft.ui.edit_set_page,
+            exercise_name=draft.edit.exercise_name,
+        )
     if step is TrainingFlowStep.EDIT_DELETE:
-        return ikb_edit_accept_delete
+        selected = set(draft.deletion.selected_set_local_ids)
+        if draft.deletion.view is TrainingDeletionView.EXERCISES:
+            return get_ikb_edit_delete_exercises(
+                draft.training.exercises,
+                selected_set_local_ids=selected,
+                page=draft.deletion.exercise_page,
+            )
+        if draft.deletion.view is TrainingDeletionView.SETS:
+            exercise = get_draft_exercise(draft, draft.deletion.opened_exercise_id)
+            return get_ikb_edit_delete_sets(
+                exercise,
+                selected_set_local_ids=selected,
+                page=draft.deletion.set_page,
+            )
+        return get_ikb_edit_delete_confirm()
     if step is TrainingFlowStep.RESUME_PROMPT:
         from app.bot.keyboards.training_kb.ikb_resume_prompt import get_ikb_resume_prompt
 

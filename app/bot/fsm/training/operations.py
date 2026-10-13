@@ -111,6 +111,32 @@ def update_set_in_draft(
     return updated
 
 
+def has_edit_set_changes(draft: TrainingDraft) -> bool:
+    """Проверяет, изменились ли вес или повторения в форме редактирования.
+
+    Args:
+        draft: текущий FSM draft с контекстом редактируемого подхода.
+
+    Returns:
+        True, если заполненные в форме вес или повторения отличаются от
+        исходного подхода. Если контекст редактирования неполный, возвращает
+        False.
+    """
+    exercise_id = draft.edit.exercise_id
+    set_id = draft.edit.set_id
+    if exercise_id is None or set_id is None:
+        return False
+
+    set_data = _get_set_by_local_id(draft, exercise_id, set_id)
+    if set_data is None:
+        return False
+
+    return (
+        draft.selection.weight != set_data.weight
+        or draft.selection.repetitions != set_data.repetitions
+    )
+
+
 def delete_set_from_draft(
     draft: TrainingDraft,
     exercise_id: int,
@@ -193,6 +219,36 @@ def delete_all_exercises_from_draft(draft: TrainingDraft) -> None:
     """
     draft.training.exercises.clear()
     recalculate_draft_set_numbers(draft)
+
+
+def delete_selected_sets_from_draft(
+    draft: TrainingDraft,
+    selected_set_local_ids: set[str],
+) -> int:
+    """Удаляет выбранные подходы одной операцией по стабильным FSM-идентификаторам.
+
+    Args:
+        draft: текущий FSM draft тренировки.
+        selected_set_local_ids: local_id подходов, отмеченных пользователем.
+
+    Returns:
+        Количество фактически удаленных подходов.
+    """
+    deleted_count = 0
+    remaining_exercises: list[TrainingDraftExercise] = []
+    for exercise in draft.training.exercises:
+        remaining_sets = [
+            set_data
+            for set_data in exercise.sets
+            if set_data.local_id not in selected_set_local_ids
+        ]
+        deleted_count += len(exercise.sets) - len(remaining_sets)
+        if remaining_sets:
+            exercise.sets = remaining_sets
+            remaining_exercises.append(exercise)
+    draft.training.exercises = remaining_exercises
+    recalculate_draft_set_numbers(draft)
+    return deleted_count
 
 
 def recalculate_draft_set_numbers(draft: TrainingDraft) -> None:

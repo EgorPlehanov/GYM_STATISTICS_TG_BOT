@@ -60,7 +60,7 @@ async def selected_set(
     set_id = callback_data.set_id
     set_data = get_draft_set_by_local_id(next_draft, next_draft.edit.exercise_id, set_id)
     next_draft.edit.set_id = set_id
-    next_draft.edit.set_number = set_data.set_number
+    next_draft.edit.set_number = set_id
     next_draft.selection.mode = TrainingMode.EDIT_SET.value
     next_draft.selection.exercise_id = next_draft.edit.exercise_id
     next_draft.selection.exercise_name = next_draft.edit.exercise_name
@@ -70,11 +70,11 @@ async def selected_set(
     await transition_training_screen(
         bot=callback.bot, chat_id=callback.message.chat.id, state=state,
         current_draft=current_draft, next_draft=next_draft,
-        next_step=TrainingFlowStep.ADD_SET_FORM,
+        next_step=TrainingFlowStep.SET_FORM,
     )
 
 
-@router.callback_query(F.data == "to_edit_menu_set", TrainingStates.add_set_form)
+@router.callback_query(F.data == "to_edit_menu_set", TrainingStates.set_form)
 async def back_to_edit_set(callback: CallbackQuery, state: FSMContext) -> None:
     """Возвращает к выбору подхода для редактирования."""
     current_draft = await get_training_draft(state)

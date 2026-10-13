@@ -28,7 +28,7 @@ class TrainingFlowStep(str, Enum):
     SELECT_DATE = "select_date"
     CHANGE_DATE_ACCEPT = "change_date_accept"
     SELECT_EXERCISE = "select_exercise"
-    ADD_SET_FORM = "add_set_form"
+    SET_FORM = "set_form"
     MENU = "menu"
     ADD_COMMENT = "add_comment"
     EDIT_MENU = "edit_menu"
@@ -43,7 +43,7 @@ class TrainingStates(StatesGroup):
     select_date = State()  # выбор даты
     change_date_accept = State()  # изменение даты
     select_exercise = State()  # выбор упражнения
-    add_set_form = State()  # единая форма добавления подходов
+    set_form = State()  # единая форма создания и редактирования подходов
     menu = State()  # главное меню
     add_comment = State()  # добавление комментария
     edit_menu = State()  # режим редактирования
@@ -58,7 +58,7 @@ _STATE_TO_FLOW_STEP = {
     TrainingStates.select_date.state: TrainingFlowStep.SELECT_DATE,
     TrainingStates.change_date_accept.state: TrainingFlowStep.CHANGE_DATE_ACCEPT,
     TrainingStates.select_exercise.state: TrainingFlowStep.SELECT_EXERCISE,
-    TrainingStates.add_set_form.state: TrainingFlowStep.ADD_SET_FORM,
+    TrainingStates.set_form.state: TrainingFlowStep.SET_FORM,
     TrainingStates.menu.state: TrainingFlowStep.MENU,
     TrainingStates.add_comment.state: TrainingFlowStep.ADD_COMMENT,
     TrainingStates.edit_menu.state: TrainingFlowStep.EDIT_MENU,

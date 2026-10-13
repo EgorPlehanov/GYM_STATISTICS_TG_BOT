@@ -16,6 +16,8 @@ def get_ikb_add_set_form(
     sets_count: int | None,
     can_submit: bool,
     is_editing: bool,
+    has_changes: bool = False,
+    edited_set_number: int | None = None,
 ) -> InlineKeyboardMarkup:
     """Создаёт компактную клавиатуру формы добавления подходов.
 
@@ -26,6 +28,8 @@ def get_ikb_add_set_form(
         sets_count: выбранное число подходов или None.
         can_submit: доступна ли команда добавления или сохранения.
         is_editing: форма редактирует один существующий подход.
+        has_changes: изменились ли параметры редактируемого подхода.
+        edited_set_number: отображаемый номер редактируемого подхода.
 
     Returns:
         Inline-клавиатура с полями формы и командами отмены/добавления.
@@ -36,6 +40,12 @@ def get_ikb_add_set_form(
             InlineKeyboardButton(
                 text=exercise_name or "Упражнение",
                 callback_data="edit_form_exercise",
+            )
+        )
+        builder.row(
+            InlineKeyboardButton(
+                text=f"Подход {edited_set_number}" if edited_set_number is not None else "Подход",
+                callback_data="edit_form_set",
             )
         )
     else:
@@ -70,20 +80,25 @@ def get_ikb_add_set_form(
             switch_inline_query_current_chat=f"r{repetitions}" if repetitions is not None else "r",
         ),
     )
-    actions = [
-        InlineKeyboardButton(
-            text="⬅️ Подход" if is_editing else "Отменить",
-            callback_data="to_edit_menu_set" if is_editing else "to_menu",
-        )
-    ]
-    if can_submit:
+    if is_editing and not has_changes:
+        actions = [
+            InlineKeyboardButton(text="⬅️ Назад", callback_data="to_edit_menu_set")
+        ]
+    else:
+        actions = [
+            InlineKeyboardButton(
+                text="❌ Отменить" if is_editing else "Отменить",
+                callback_data="to_edit_menu_set" if is_editing else "to_menu",
+            )
+        ]
+    if can_submit and (not is_editing or has_changes):
         actions.append(
             InlineKeyboardButton(
-                text="Сохранить" if is_editing else "Добавить",
+                text="✅ Сохранить" if is_editing else "Добавить",
                 callback_data="accept_edit" if is_editing else "accept_addition",
             )
         )
     builder.row(*actions)
     if is_editing:
-        builder.row(InlineKeyboardButton(text="Удалить", callback_data="delete_set"))
+        builder.row(InlineKeyboardButton(text="🗑️ Удалить подход", callback_data="delete_set"))
     return builder.as_markup()

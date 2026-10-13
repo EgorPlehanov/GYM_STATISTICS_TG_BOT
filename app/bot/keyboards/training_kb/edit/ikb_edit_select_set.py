@@ -22,6 +22,7 @@ def get_ikb_edit_select_set_fab(
     sets: list[TrainingDraftSet],
     page: int = 0,
     page_size: int = 5,
+    exercise_name: str | None = None,
 ) -> InlineKeyboardMarkup:
     """Фабрика inline-клавиатуры выбора подхода из текущего draft.
 
@@ -34,6 +35,12 @@ def get_ikb_edit_select_set_fab(
         Inline-клавиатура выбора подхода для редактирования.
     """
     builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(
+            text=exercise_name or "Упражнение",
+            callback_data="to_edit_menu_exercise",
+        )
+    )
 
     for i in range(page * page_size, (page + 1) * page_size):
         if i >= len(sets):
@@ -42,9 +49,9 @@ def get_ikb_edit_select_set_fab(
         set_data = sets[i]
         builder.row(
             InlineKeyboardButton(
-                text=format_draft_set_to_text(
-                    set_data=set_data,
-                    set_id=set_id,
+                text=(
+                    f"{set_id} · "
+                    f"{format_draft_set_to_text(set_data, include_set_number=False)}"
                 ),
                 callback_data=EditTrainingSetPagination(
                     action=PaginationAction.SET,
@@ -85,14 +92,14 @@ def get_ikb_edit_select_set_fab(
     )
     builder.row(
         InlineKeyboardButton(
-            text="⬅️ Упражнение ⬅️",
+            text="⬅️ Назад",
             callback_data="to_edit_menu_exercise",
         )
     )
     builder.row(
         InlineKeyboardButton(
-            text="🗑️ Удалить все подходы 🗑️",
-            callback_data="delete_all_sets",
+            text="🗑️ Удалить упражнение",
+            callback_data="delete_exercise_selected",
         )
     )
     return builder.as_markup()

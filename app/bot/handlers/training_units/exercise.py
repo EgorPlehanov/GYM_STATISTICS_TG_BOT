@@ -112,11 +112,11 @@ async def selected_exercise(
     await transition_training_screen(
         bot=callback.bot, chat_id=callback.message.chat.id, state=state,
         current_draft=current_draft, next_draft=next_draft,
-        next_step=TrainingFlowStep.ADD_SET_FORM,
+        next_step=TrainingFlowStep.SET_FORM,
     )
 
 
-@router.callback_query(F.data == "form_select_exercise", TrainingStates.add_set_form)
+@router.callback_query(F.data == "form_select_exercise", TrainingStates.set_form)
 async def select_exercise_from_form(callback: CallbackQuery, state: FSMContext) -> None:
     """Открывает выбор упражнения с возможностью вернуться к заполненной форме."""
     current_draft = await get_training_draft(state)
@@ -124,7 +124,7 @@ async def select_exercise_from_form(callback: CallbackQuery, state: FSMContext) 
         return
     next_draft = deepcopy(current_draft)
     next_draft.ui.exercise_page = 0
-    next_draft.ui.exercise_selection_return_step = TrainingFlowStep.ADD_SET_FORM
+    next_draft.ui.exercise_selection_return_step = TrainingFlowStep.SET_FORM
     await transition_training_screen(
         bot=callback.bot,
         chat_id=callback.message.chat.id,
@@ -155,7 +155,7 @@ async def cancel_exercise_selection_from_form(
         state=state,
         current_draft=current_draft,
         next_draft=next_draft,
-        next_step=TrainingFlowStep.ADD_SET_FORM,
+        next_step=TrainingFlowStep.SET_FORM,
     )
 
 
@@ -213,7 +213,7 @@ async def inline_selected_exercise(message: Message, state: FSMContext) -> None:
     result = await transition_training_screen(
         bot=message.bot, chat_id=message.chat.id, state=state,
         current_draft=current_draft, next_draft=next_draft,
-        next_step=TrainingFlowStep.ADD_SET_FORM,
+        next_step=TrainingFlowStep.SET_FORM,
     )
     if result is TrainingTransitionResult.APPLIED:
         await message.delete()

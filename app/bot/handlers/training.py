@@ -121,7 +121,7 @@ async def cancel_training_by_callback(callback: CallbackQuery, state: FSMContext
 
 @router.callback_query(F.data == "to_menu", TrainingStates.select_date)
 @router.callback_query(F.data == "to_menu", TrainingStates.select_exercise)
-@router.callback_query(F.data == "to_menu", TrainingStates.add_set_form)
+@router.callback_query(F.data == "to_menu", TrainingStates.set_form)
 @router.callback_query(F.data == "to_menu", TrainingStates.edit_menu)
 @router.callback_query(F.data == "to_menu", TrainingStates.add_comment)
 async def back_to_menu(callback: CallbackQuery, state: FSMContext) -> None:

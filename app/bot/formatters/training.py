@@ -6,6 +6,7 @@ from decimal import Decimal
 from aiogram import html
 
 from app.bot.fsm.training import (
+    TrainingDeletionView,
     TrainingDraft,
     TrainingDraftSet,
     TrainingFlowStep,
@@ -30,25 +31,19 @@ def format_exercises_data_from_draft(
     Returns:
         HTML-текст списка упражнений и подходов для Telegram.
     """
-    delete_all_accept_flag = (
-        delete_accept_flag
-        and draft.edit.exercise_id is None
-        and draft.edit.set_id is None
-    )
+    selected_set_local_ids = set(draft.deletion.selected_set_local_ids)
 
     text_parts = []
     for exercise in draft.training.exercises:
         exercise_edit_flag = (
             "✏️ "
-            if draft.edit.exercise_id == exercise.exercise_id or delete_all_accept_flag
+            if draft.edit.exercise_id == exercise.exercise_id
             else ""
         )
         exercise_name = html.bold(exercise.exercise_name)
-        if (
-            delete_accept_flag
-            and draft.edit.exercise_id == exercise.exercise_id
-            and (draft.edit.set_id is None or len(exercise.sets) == 1)
-        ) or delete_all_accept_flag:
+        if delete_accept_flag and exercise.sets and all(
+            set_data.local_id in selected_set_local_ids for set_data in exercise.sets
+        ):
             exercise_name = html.strikethrough(exercise_name)
 
         exercise_text_parts = [f"{exercise_edit_flag}◼️ {exercise_name}:"]
@@ -56,11 +51,7 @@ def format_exercises_data_from_draft(
             set_edit_flag = ""
             if (
                 draft.edit.exercise_id == exercise.exercise_id
-                and (
-                    draft.edit.set_id is None
-                    or draft.edit.set_id == local_set_number
-                )
-                or delete_all_accept_flag
+                and draft.edit.set_id == local_set_number
             ):
                 set_edit_flag = "✏️ "
 
@@ -68,7 +59,7 @@ def format_exercises_data_from_draft(
                 f"{local_set_number}) "
                 f"{format_draft_set_to_text(set_data, include_set_number=False)}"
             )
-            if (delete_accept_flag and set_edit_flag) or delete_all_accept_flag:
+            if delete_accept_flag and set_data.local_id in selected_set_local_ids:
                 set_text = html.strikethrough(set_text)
 
             exercise_text_parts.append(f"{set_edit_flag}\t▫️ {set_text}")
@@ -254,11 +245,17 @@ def get_current_values_from_draft(draft: TrainingDraft) -> str | None:
 
 def get_delete_object_text_from_draft(draft: TrainingDraft) -> str:
     """Возвращает текст удаляемой сущности из typed draft."""
-    if draft.edit.exercise_id is None:
-        return "Всех упражнений с подходами"
-    if draft.edit.set_id is None:
-        return f"Всех подходов упражнения {html.underline(draft.edit.exercise_name)}"
-    return f"Подхода упражнения {html.underline(draft.edit.exercise_name)}"
+    selected = set(draft.deletion.selected_set_local_ids)
+    lines = []
+    for exercise in draft.training.exercises:
+        selected_count = sum(set_data.local_id in selected for set_data in exercise.sets)
+        if not selected_count:
+            continue
+        if selected_count == len(exercise.sets):
+            lines.append(f"{exercise.exercise_name} — все подходы ({selected_count})")
+        else:
+            lines.append(f"{exercise.exercise_name} — {selected_count}")
+    return "\n".join(lines)
 
 
 def format_training_step(
@@ -306,21 +303,22 @@ def _get_step_text(draft: TrainingDraft, step: TrainingFlowStep) -> str:
         TrainingFlowStep.SELECT_DATE: "Выберите дату",
         TrainingFlowStep.CHANGE_DATE_ACCEPT: "Что делать с этой тренировкой",
         TrainingFlowStep.SELECT_EXERCISE: "Выберите упражнение",
-        TrainingFlowStep.ADD_SET_FORM: "Добавьте подход",
+        TrainingFlowStep.SET_FORM: "Добавьте подход",
         TrainingFlowStep.MENU: "Что дальше",
         TrainingFlowStep.ADD_COMMENT: "Отправить комментарий или просто заверши",
         TrainingFlowStep.EDIT_MENU: "Что исправить",
         TrainingFlowStep.EDIT_SELECT_EXERCISE: "Выберите упражнение",
         TrainingFlowStep.EDIT_SELECT_SET: "Выберите подход",
-        TrainingFlowStep.EDIT_DELETE: "Подтвердите удаление",
+        TrainingFlowStep.EDIT_DELETE: "🗑️ Удаление",
     }
     additional_text = ""
     if (
-        step is TrainingFlowStep.ADD_SET_FORM
+        step is TrainingFlowStep.SET_FORM
         and draft.selection.mode == TrainingMode.EDIT_SET.value
     ):
         return "Измените подход"
-    if step is TrainingFlowStep.EDIT_DELETE:
+    if step is TrainingFlowStep.EDIT_DELETE and draft.deletion.view is TrainingDeletionView.CONFIRM:
+        step_to_text[TrainingFlowStep.EDIT_DELETE] = "🗑️ Удалить выбранное?"
         additional_text = get_delete_object_text_from_draft(draft)
     elif step is TrainingFlowStep.CHANGE_DATE_ACCEPT and draft.ui.date_conflict:
         conflict_draft = TrainingDraft(training=draft.ui.date_conflict.training)

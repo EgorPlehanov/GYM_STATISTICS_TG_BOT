@@ -45,7 +45,9 @@ def test_format_exercises_data_from_draft_marks_edit_set() -> None:
 def test_training_values_from_draft_marks_delete_target() -> None:
     """Проверяет зачеркнутый текст при подтверждении удаления."""
     draft = _build_training_draft()
-    draft.edit.exercise_id = 1
+    draft.deletion.selected_set_local_ids = [
+        set_data.local_id for set_data in draft.training.exercises[0].sets
+    ]
 
     text = get_training_values_from_draft(draft, delete_accept_flag=True)
 

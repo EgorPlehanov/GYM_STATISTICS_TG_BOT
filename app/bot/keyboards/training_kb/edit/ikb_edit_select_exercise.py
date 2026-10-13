@@ -70,8 +70,13 @@ def get_ikb_edit_select_exercise_fab(
             ).pack()
         )
     ] if page < math.ceil(len(exercises) / page_size) - 1 else []))
-    builder.row(InlineKeyboardButton(text="⬅️ Назад ⬅️", callback_data="to_edit_menu"))
-    builder.row(InlineKeyboardButton(text="🗑️ Удалить все 🗑️", callback_data="delete_all_exercises"))
+    builder.row(InlineKeyboardButton(text="⬅️ Назад", callback_data="to_edit_menu"))
+    builder.row(
+        InlineKeyboardButton(
+            text="🗑️ Удалить все упражнения",
+            callback_data="delete_all_exercises",
+        )
+    )
     return builder.as_markup()
 
 

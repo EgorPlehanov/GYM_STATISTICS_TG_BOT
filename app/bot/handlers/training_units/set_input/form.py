@@ -79,7 +79,7 @@ async def open_add_set_form(callback: CallbackQuery, state: FSMContext) -> None:
         current_draft=current_draft,
         next_draft=next_draft,
         next_step=(
-            TrainingFlowStep.ADD_SET_FORM
+            TrainingFlowStep.SET_FORM
             if next_draft.selection.exercise_id is not None
             else TrainingFlowStep.SELECT_EXERCISE
         ),
@@ -105,7 +105,7 @@ async def repeat_set(callback: CallbackQuery, state: FSMContext) -> None:
         state=state,
         current_draft=current_draft,
         next_draft=next_draft,
-        next_step=TrainingFlowStep.ADD_SET_FORM,
+        next_step=TrainingFlowStep.SET_FORM,
     )
 
 
@@ -214,7 +214,7 @@ def _parse_integer_in_range(value: str, *, label: str, minimum: int, maximum: in
     return parsed
 
 
-@router.inline_query(TrainingStates.add_set_form)
+@router.inline_query(TrainingStates.set_form)
 async def inline_add_set_form(inline_query: InlineQuery, state: FSMContext) -> None:
     """Возвращает подсказки для поля, обозначенного префиксом w/r/s."""
     query = inline_query.query.strip()
@@ -292,7 +292,7 @@ def _weight_inline_result(weight: Decimal) -> InlineQueryResultArticle:
     )
 
 
-@router.message(F.text & ~F.text.startswith("/"), TrainingStates.add_set_form)
+@router.message(F.text & ~F.text.startswith("/"), TrainingStates.set_form)
 async def update_add_set_form(message: Message, state: FSMContext) -> None:
     """Применяет значения из сообщения к форме, не меняя остальные поля."""
     current_draft = await get_training_draft(state)
@@ -320,13 +320,49 @@ async def update_add_set_form(message: Message, state: FSMContext) -> None:
         state=state,
         current_draft=current_draft,
         next_draft=next_draft,
-        next_step=TrainingFlowStep.ADD_SET_FORM,
+        next_step=TrainingFlowStep.SET_FORM,
     )
     if result is TrainingTransitionResult.APPLIED:
         await message.delete()
 
 
-@router.callback_query(F.data == "edit_form_exercise", TrainingStates.add_set_form)
-async def show_edit_form_exercise_info(callback: CallbackQuery) -> None:
-    """Сообщает, что упражнение определяется выбранным подходом."""
-    await callback.answer("Для изменения упражнения выберите другой подход.")
+@router.callback_query(F.data == "edit_form_exercise", TrainingStates.set_form)
+async def open_edit_exercises(callback: CallbackQuery, state: FSMContext) -> None:
+    """Возвращает из формы подхода к выбору упражнения для редактирования."""
+    current_draft = await get_training_draft(state)
+    if not await is_current_training_callback(callback, current_draft):
+        return
+    next_draft = deepcopy(current_draft)
+    next_draft.selection.weight = None
+    next_draft.selection.repetitions = None
+    next_draft.selection.exercise_id = None
+    next_draft.selection.exercise_name = None
+    next_draft.edit.exercise_id = None
+    next_draft.edit.exercise_name = None
+    next_draft.edit.set_id = None
+    next_draft.edit.set_number = None
+    await transition_training_screen(
+        bot=callback.bot, chat_id=callback.message.chat.id, state=state,
+        current_draft=current_draft, next_draft=next_draft,
+        next_step=TrainingFlowStep.EDIT_SELECT_EXERCISE,
+    )
+
+
+@router.callback_query(F.data == "edit_form_set", TrainingStates.set_form)
+async def open_edit_sets(callback: CallbackQuery, state: FSMContext) -> None:
+    """Возвращает из формы подхода к списку подходов выбранного упражнения."""
+    current_draft = await get_training_draft(state)
+    if not await is_current_training_callback(callback, current_draft):
+        return
+    next_draft = deepcopy(current_draft)
+    next_draft.selection.weight = None
+    next_draft.selection.repetitions = None
+    next_draft.selection.exercise_id = None
+    next_draft.selection.exercise_name = None
+    next_draft.edit.set_id = None
+    next_draft.edit.set_number = None
+    await transition_training_screen(
+        bot=callback.bot, chat_id=callback.message.chat.id, state=state,
+        current_draft=current_draft, next_draft=next_draft,
+        next_step=TrainingFlowStep.EDIT_SELECT_SET,
+    )

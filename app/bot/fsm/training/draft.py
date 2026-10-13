@@ -5,6 +5,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Any
+from uuid import uuid4
 
 from aiogram.fsm.context import FSMContext
 
@@ -31,6 +32,7 @@ class TrainingDraftSet:
         weight: вес в килограммах.
         repetitions: количество повторений.
         execution_time: время выполнения подхода в ISO-формате или None.
+        local_id: стабильный идентификатор подхода внутри FSM-черновика.
     """
 
     set_id: int | None
@@ -38,6 +40,7 @@ class TrainingDraftSet:
     weight: Decimal
     repetitions: int
     execution_time: str | None = None
+    local_id: str = field(default_factory=lambda: uuid4().hex)
 
 
 @dataclass(slots=True)
@@ -114,6 +117,35 @@ class TrainingEditContext:
     set_number: int | None = None
     replace_training_id: int | None = None
     original_training_date: str | None = None
+
+
+class TrainingDeletionView(str, Enum):
+    """Представления отдельного режима выбора целей удаления."""
+
+    EXERCISES = "exercises"
+    SETS = "sets"
+    CONFIRM = "confirm"
+
+
+@dataclass(slots=True)
+class TrainingDeletionContext:
+    """Выбор подходов для отложенного удаления из FSM-черновика.
+
+    Attributes:
+        view: текущий экран выбора или подтверждения.
+        exercise_page: страница списка упражнений.
+        set_page: страница списка подходов открытого упражнения.
+        opened_exercise_id: упражнение, для которого открыт список подходов.
+        selected_set_local_ids: стабильные local_id выбранных подходов.
+        return_step: экран, на который нужно вернуться без применения удаления.
+    """
+
+    view: TrainingDeletionView = TrainingDeletionView.EXERCISES
+    exercise_page: int = 0
+    set_page: int = 0
+    opened_exercise_id: int | None = None
+    selected_set_local_ids: list[str] = field(default_factory=list)
+    return_step: TrainingFlowStep = TrainingFlowStep.EDIT_MENU
 
 
 @dataclass(slots=True)
@@ -233,6 +265,7 @@ class TrainingDraft:
         training: основной черновик тренировки.
         selection: временные значения текущего ввода.
         edit: контекст редактирования.
+        deletion: контекст отложенного удаления.
         ui: Telegram UI-контекст.
         suggestions: подсказки для сценария.
     """
@@ -240,6 +273,7 @@ class TrainingDraft:
     training: TrainingDraftData
     selection: TrainingSelection = field(default_factory=TrainingSelection)
     edit: TrainingEditContext = field(default_factory=TrainingEditContext)
+    deletion: TrainingDeletionContext = field(default_factory=TrainingDeletionContext)
     ui: TrainingUiContext = field(default_factory=TrainingUiContext)
     suggestions: TrainingSuggestions = field(default_factory=TrainingSuggestions)
 
@@ -269,6 +303,7 @@ def draft_from_json(data: dict[str, Any]) -> TrainingDraft:
         training=_training_data_from_json(data["training"]),
         selection=_selection_from_json(data.get("selection", {})),
         edit=TrainingEditContext(**data.get("edit", {})),
+        deletion=_deletion_context_from_json(data.get("deletion", {})),
         ui=_ui_context_from_json(data.get("ui", {})),
         suggestions=_suggestions_from_json(data.get("suggestions", {})),
     )
@@ -386,6 +421,7 @@ def _training_data_from_json(data: dict[str, Any]) -> TrainingDraftData:
                         execution_time=_normalize_datetime_or_none(
                             set_data.get("execution_time")
                         ),
+                        local_id=set_data.get("local_id") or uuid4().hex,
                     )
                     for set_data in exercise.get("sets", [])
                 ],
@@ -422,6 +458,18 @@ def _ui_context_from_json(data: dict[str, Any]) -> TrainingUiContext:
         context_data["last_weight"] = _weight_from_json(context_data["last_weight"])
 
     return TrainingUiContext(**context_data)
+
+
+def _deletion_context_from_json(data: dict[str, Any]) -> TrainingDeletionContext:
+    """Восстанавливает контекст удаления из JSON-friendly FSM-словаря."""
+    context_data = dict(data)
+    view = context_data.get("view")
+    if view is not None:
+        context_data["view"] = TrainingDeletionView(view)
+    return_step = context_data.get("return_step")
+    if return_step is not None:
+        context_data["return_step"] = TrainingFlowStep(return_step)
+    return TrainingDeletionContext(**context_data)
 
 
 def _suggestions_from_json(data: dict[str, Any]) -> TrainingSuggestions:

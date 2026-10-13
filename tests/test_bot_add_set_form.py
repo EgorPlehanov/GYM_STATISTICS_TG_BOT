@@ -8,7 +8,7 @@ from app.bot.handlers.training_units.set_input.form import (
     _inline_results,
     parse_add_set_form_input,
 )
-from app.bot.keyboards.training_kb.set_input.ikb_add_set_form import (
+from app.bot.keyboards.training_kb.set_input.ikb_set_form import (
     get_ikb_add_set_form,
 )
 
@@ -136,7 +136,27 @@ def test_add_set_form_hides_submit_until_required_fields_are_set() -> None:
 
 
 def test_edit_set_form_hides_sets_count_and_uses_save_action() -> None:
-    """Редактирование одного подхода не предоставляет ввод числа подходов."""
+    """Измененная форма редактирования показывает отмену и сохранение."""
+    keyboard = get_ikb_add_set_form(
+        exercise_name="Жим лежа",
+        weight=Decimal("80.000"),
+        repetitions=8,
+        sets_count=None,
+        can_submit=True,
+        is_editing=True,
+        has_changes=True,
+    )
+    buttons = [button for row in keyboard.inline_keyboard for button in row]
+
+    assert all(not button.text.startswith("Подходов") for button in buttons)
+    assert any(button.callback_data == "accept_edit" for button in buttons)
+    assert any(button.text == "✅ Сохранить" for button in buttons)
+    assert any(button.text == "❌ Отменить" for button in buttons)
+    assert any(button.callback_data == "delete_set" for button in buttons)
+
+
+def test_unchanged_edit_set_form_shows_back_action() -> None:
+    """Неизмененная форма редактирования возвращает к списку без отмены."""
     keyboard = get_ikb_add_set_form(
         exercise_name="Жим лежа",
         weight=Decimal("80.000"),
@@ -145,11 +165,10 @@ def test_edit_set_form_hides_sets_count_and_uses_save_action() -> None:
         can_submit=True,
         is_editing=True,
     )
-    buttons = [button for row in keyboard.inline_keyboard for button in row]
 
-    assert all(not button.text.startswith("Подходов") for button in buttons)
-    assert any(button.callback_data == "accept_edit" for button in buttons)
-    assert any(button.callback_data == "delete_set" for button in buttons)
+    action_row = keyboard.inline_keyboard[-2]
+    assert [button.text for button in action_row] == ["⬅️ Назад"]
+    assert action_row[0].callback_data == "to_edit_menu_set"
 
 
 def test_add_set_form_passes_current_values_to_inline_query() -> None:
